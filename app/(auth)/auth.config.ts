@@ -31,19 +31,24 @@ export const authConfig = {
         return true;
       }
 
-  const isOnChat = nextUrl.pathname.startsWith('/');
+      const isOnChat = nextUrl.pathname.startsWith('/');
       const isOnLoginPage = nextUrl.pathname.startsWith('/login');
       const isOnRegisterPage = nextUrl.pathname.startsWith('/register');
-  // Allow Supabase auth bridges and recovery flows without auth
-  const isOnMagicBridge = nextUrl.pathname.startsWith('/magic');
-  const isOnResetPassword = nextUrl.pathname.startsWith('/reset-password');
+      // Allow Supabase auth bridges and recovery flows without auth
+      const isOnMagicBridge = nextUrl.pathname.startsWith('/magic');
+      const isOnResetPassword = nextUrl.pathname.startsWith('/reset-password');
       const isOnSharePage = nextUrl.pathname.startsWith('/share/');
 
       if (isLoggedIn && (isOnLoginPage || isOnRegisterPage)) {
         return Response.redirect(new URL('/', nextUrl as unknown as URL));
       }
 
-      if (isOnRegisterPage || isOnLoginPage || isOnMagicBridge || isOnResetPassword) {
+      if (
+        isOnRegisterPage ||
+        isOnLoginPage ||
+        isOnMagicBridge ||
+        isOnResetPassword
+      ) {
         return true;
       }
 
