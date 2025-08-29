@@ -41,13 +41,6 @@ export const getImageModel = (modelId: ImageModelId) => {
   throw new Error(`Provider ${model.owned_by} not supported`);
 };
 
-const MODEL_ALIASES = {
-  'chat-model': getLanguageModel('openai/gpt-4o-mini'),
-  'title-model': getLanguageModel('openai/gpt-4o-mini'),
-  'artifact-model': getLanguageModel('openai/gpt-4o-mini'),
-  'chat-model-reasoning': getLanguageModel('openai/o3-mini'),
-};
-
 export const getModelProviderOptions = (
   providerModelId: ModelId,
 ):
