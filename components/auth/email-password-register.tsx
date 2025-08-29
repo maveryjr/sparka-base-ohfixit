@@ -18,7 +18,13 @@ export function EmailPasswordRegister() {
     setLoading(true);
     try {
       const supabase = getSupabaseClient();
-      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/magic`,
+        },
+      });
       if (signUpError) {
         setError(signUpError.message);
       } else {

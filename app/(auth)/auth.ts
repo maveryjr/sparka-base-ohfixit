@@ -34,12 +34,13 @@ export const {
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        accessToken: { label: 'Access Token', type: 'text' },
       },
       async authorize(credentials) {
         try {
           const email = credentials?.email as string | undefined;
           const password = credentials?.password as string | undefined;
-          if (!email || !password) return null;
+          const magicAccessToken = credentials?.accessToken as string | undefined;
 
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
           const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
@@ -48,6 +49,39 @@ export const {
             return null;
           }
           const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+          // Case 1: Magic/Recovery access token from Supabase
+          if (magicAccessToken) {
+            const { data: userData, error: userErr } = await supabase.auth.getUser(magicAccessToken);
+            if (userErr || !userData?.user?.email) {
+              console.error('Supabase getUser(accessToken) failed:', userErr?.message);
+              return null;
+            }
+            const supaUser = userData.user;
+            const supaEmail = supaUser.email ?? null;
+            if (!supaEmail) {
+              console.error('Supabase user missing email');
+              return null;
+            }
+            const existingUserArray = await getUserByEmail(supaEmail);
+            if (existingUserArray.length === 0) {
+              await createUser({
+                email: supaEmail,
+                name: supaUser.user_metadata?.full_name ?? null,
+                image: supaUser.user_metadata?.avatar_url ?? null,
+              });
+            }
+            const user: User = {
+              id: existingUserArray[0]?.id ?? supaUser.id,
+              email: supaEmail,
+              name: supaUser.user_metadata?.full_name ?? null,
+              image: supaUser.user_metadata?.avatar_url ?? null,
+            } as unknown as User;
+            return user;
+          }
+
+          // Case 2: Traditional email/password login
+          if (!email || !password) return null;
           const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           if (error || !data.user) {
             console.error('Supabase signInWithPassword failed:', error?.message);
