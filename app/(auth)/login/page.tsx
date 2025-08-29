@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
 import { SocialAuthProviders } from '@/components/social-auth-providers';
+import { EmailPasswordLogin } from '@/components/auth/email-password-login';
 import { ChevronLeft } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -30,12 +31,17 @@ export default function LoginPage() {
         <div className="flex flex-col space-y-2 text-center">
           {/* Assuming Icons.logo exists */}
           {/* <Icons.logo className="mx-auto h-6 w-6" /> */}
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Welcome back
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Sign in using your Google account
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Sign In / Sign Up</h1>
+          <p className="text-sm text-muted-foreground">Sign in with your email and password.</p>
+        </div>
+        <EmailPasswordLogin />
+        <div className="relative my-2 w-full">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">or continue with</span>
+          </div>
         </div>
         <SocialAuthProviders />
         <p className="px-8 text-center text-sm text-muted-foreground">
