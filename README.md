@@ -2,7 +2,7 @@
 
 <img src="public/icon.svg" alt="Sparka AI" width="64" height="64">
 
-# Sparka AI-Chat
+# Sparka AI-Chat-new
 
 **AI for everyone, from everyone**
 
