@@ -10,11 +10,12 @@ export type Capabilities = {
 export function detectOS(userAgent: string, platform?: string): OSFamily {
   const ua = userAgent.toLowerCase();
   const pl = (platform || '').toLowerCase();
-  if (ua.includes('mac os x') || pl.includes('mac')) return 'macOS';
-  if (ua.includes('windows')) return 'Windows';
-  if (ua.includes('android')) return 'Android';
+  // Order matters: check mobile OS first to avoid misclassifying iOS UAs that include 'Mac OS X'
   if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ios')) return 'iOS';
-  if (ua.includes('linux')) return 'Linux';
+  if (ua.includes('android')) return 'Android';
+  if (ua.includes('windows')) return 'Windows';
+  if (ua.includes('mac os x') || pl.includes('mac')) return 'macOS';
+  if (ua.includes('linux') || pl.includes('linux')) return 'Linux';
   return 'Unknown';
 }
 

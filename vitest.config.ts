@@ -6,5 +6,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/unit/**/*.test.ts'],
+    alias: {
+      'server-only': '/Users/michaelaveryjr/Projects/sparka/tests/stubs/server-only.ts',
+    },
   },
 });

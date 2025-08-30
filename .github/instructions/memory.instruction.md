@@ -110,6 +110,15 @@ applyTo: '**'
 		- Persistence options: minimal via initial tool state in provider; robust via chat-level setting in DB and page loader.
 	- Acceptance focus: Deliver header toggle + per-chat persistence first; iterate on adaptive follow-ups next.
 
+- Update (Issue #9 – Trust, Consent, Audit Trail planning):
+	- Completed research and repo scan to align Drizzle schema, migrations, API route patterns, and UI integration points.
+	- Prepared DB schema additions: `consent_event`, `action_log`, `diagnostics_snapshot` (PascalCase names in code, camelCase columns; `chatId` FK cascade; nullable `userId`).
+	- Planned API endpoints: `POST /api/ohfixit/consent`, `POST /api/ohfixit/action-log`, `GET /api/ohfixit/audit?chatId=...` with Zod validation and `cache: 'no-store'`.
+	- UI: Consent prompts with previews/dry-runs; per-chat audit timeline component mounted in chat view.
+	- Server utilities: `lib/ohfixit/logger.ts` to write consent/action entries; attribute anonymous via session id.
+	- Tests: unit for schemas/logger; integration for APIs; Playwright E2E for consent → audit timeline.
+	- Handoff document created: `docs/ohfixit-issue-9-handoff.md` summarizing status and continuation plan.
+
 ## Next Steps
 - Verify capture→attach preview→submit flow manually; ensure model auto-switch messages appear and attachment previews render
 - Implement `components/ohfixit/screenshot-annotator.tsx` with blur/arrow/box and export flattened PNG
@@ -136,3 +145,5 @@ applyTo: '**'
 ## Notes
 - Branch context: working within current workspace; add migrations for consent and audit when reaching that phase
 - Acceptance criteria tracked in docs/ohfixit-integration-issue.md; prioritize consent and clear UX copy
+
+- Handoff for Issue #9: see `docs/ohfixit-issue-9-handoff.md` for a compact continuation guide (overview, foundation, codebase status, resolutions, progress, active state, recent ops, and step-by-step plan).

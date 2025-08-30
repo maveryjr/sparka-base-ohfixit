@@ -56,6 +56,13 @@ export default defineConfig({
       testMatch: /auth.setup.ts/,
     },
     {
+      name: 'guide-mode',
+      testMatch: /guide-mode.test.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+    {
       name: 'screencap',
       testMatch: /screencap.test.ts/,
       use: {
