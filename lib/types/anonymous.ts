@@ -23,7 +23,7 @@ export const ANONYMOUS_LIMITS = {
     'openai/gpt-5-nano',
     'openai/gpt-4o-mini',
   ] as const satisfies ModelId[],
-  AVAILABLE_TOOLS: ['createDocument', 'updateDocument'] satisfies ToolName[],
+  AVAILABLE_TOOLS: ['createDocument', 'updateDocument', 'clientEnv', 'networkCheck'] satisfies ToolName[],
   SESSION_DURATION: 2147483647, // Max session time
   // Rate limiting for anonymous users based on IP
   RATE_LIMIT: {

@@ -337,6 +337,95 @@ function PureMessagePart({
     }
   }
 
+  if (type === 'tool-guideSteps') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Planning a step-by-step guide…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return (
+        <div key={toolCallId} className="rounded border p-3">
+          <div className="font-medium mb-2">{output.summary}</div>
+          <ol className="list-decimal pl-5 space-y-1">
+            {output.steps?.map((s: any) => (
+              <li key={s.id}>
+                <div className="font-medium">{s.title}</div>
+                <div className="text-sm text-muted-foreground">
+                  {s.rationale}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      );
+    }
+  }
+
+  if (type === 'tool-clientEnv') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Reading client environment…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      // show a compact summary
+      const { output } = part as any;
+      const ua = output?.client?.data?.userAgent;
+      const os = output?.osCapabilities?.family;
+      return (
+        <div key={toolCallId} className="rounded border p-3 text-sm space-y-1">
+          <div>OS: {os || 'Unknown'}</div>
+          <div>User Agent: <span className="break-words">{ua || 'n/a'}</span></div>
+        </div>
+      );
+    }
+  }
+
+  if (type === 'tool-networkCheck') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Running network checks…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      const results = output?.results || [];
+      return (
+        <div key={toolCallId} className="rounded border p-3 text-sm">
+          <div className="font-medium mb-2">Network checks</div>
+          <ul className="space-y-1">
+            {results.map((r: any) => (
+              <li key={r.target} className="flex items-center gap-2">
+                <span className={r.ok ? 'text-green-600' : 'text-red-600'}>
+                  {r.ok ? 'OK' : 'Fail'}
+                </span>
+                <span className="truncate">{r.target}</span>
+                {typeof r.latencyMs === 'number' && (
+                  <span className="text-muted-foreground">{r.latencyMs} ms</span>
+                )}
+                {r.error && (
+                  <span className="text-muted-foreground">{r.error}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+  }
+
   if (type === 'tool-stockChart') {
     const { toolCallId, state } = part;
     if (state === 'input-available') {

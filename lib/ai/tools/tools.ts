@@ -14,6 +14,9 @@ import type { ModelId } from '@/lib/ai/model-id';
 import type { StreamWriter } from '../types';
 import { deepResearch } from './deep-research/deep-research';
 import { guideSteps } from '@/lib/ai/tools/ohfixit/guide-steps';
+import createClientEnvTool from '@/lib/ai/tools/ohfixit/client-env';
+import createNetworkCheckTool from '@/lib/ai/tools/ohfixit/network-check';
+import { getAnonymousSession } from '@/lib/anonymous-session-server';
 
 export function getTools({
   dataStream,
@@ -32,9 +35,13 @@ export function getTools({
   lastGeneratedImage: { imageUrl: string; name: string } | null;
   contextForLLM: ModelMessage[];
 }) {
+  const anonymousIdPromise = getAnonymousSession().then((s) => s?.id || null).catch(() => null);
   return {
     getWeather,
     guideSteps,
+    // OhFixIt diagnostics tools
+    clientEnv: createClientEnvTool({ userId: session?.user?.id, anonymousId: undefined }),
+    networkCheck: createNetworkCheckTool({ userId: session?.user?.id, anonymousId: undefined }),
     createDocument: createDocumentTool({
       session,
       dataStream,

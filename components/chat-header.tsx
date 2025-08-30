@@ -2,7 +2,7 @@
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { Button } from '@/components/ui/button';
 import { GitIcon } from './icons';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { ShareButton } from './share-button';
 import { Share, LogIn } from 'lucide-react';
@@ -10,6 +10,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { SidebarUserNav } from './sidebar-user-nav';
 import type { User } from 'next-auth';
+import { CollectClientDiagnostics } from '@/components/ohfixit/collect-client-diagnostics';
 
 function PureChatHeader({
   chatId,
@@ -25,6 +26,7 @@ function PureChatHeader({
   const router = useRouter();
   const { data: session } = useSession();
   const isAuthenticated = !!session?.user;
+  const [diagOpen, setDiagOpen] = useState(false);
 
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
@@ -51,6 +53,14 @@ function PureChatHeader({
       )}
 
       <div className="ml-auto flex items-center gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 px-3" onClick={() => setDiagOpen(true)}>
+              Diagnostics
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Share device diagnostics (optional)</TooltipContent>
+        </Tooltip>
         <Button variant="ghost" size="sm" className="p-2 h-8 w-8" asChild>
           <a
             href="https://github.com/franciscomoretti/sparka"
@@ -84,6 +94,7 @@ function PureChatHeader({
           </Tooltip>
         )}
       </div>
+      <CollectClientDiagnostics open={diagOpen} onOpenChange={setDiagOpen} />
     </header>
   );
 }
