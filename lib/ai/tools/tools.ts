@@ -13,6 +13,7 @@ import { generateImage } from '@/lib/ai/tools/generate-image';
 import type { ModelId } from '@/lib/ai/model-id';
 import type { StreamWriter } from '../types';
 import { deepResearch } from './deep-research/deep-research';
+import { guideSteps } from '@/lib/ai/tools/ohfixit/guide-steps';
 
 export function getTools({
   dataStream,
@@ -33,6 +34,7 @@ export function getTools({
 }) {
   return {
     getWeather,
+    guideSteps,
     createDocument: createDocumentTool({
       session,
       dataStream,
