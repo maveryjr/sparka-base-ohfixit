@@ -8,6 +8,7 @@ import {
 import { replaceFilePartUrlByBinaryDataInMessages } from '@/lib/utils/download-assets';
 import { auth } from '@/app/(auth)/auth';
 import { systemPrompt } from '@/lib/ai/prompts';
+import buildDiagnosticsContext from '@/lib/ohfixit/diagnostics-context';
 import {
   getChatById,
   saveChat,
@@ -455,11 +456,17 @@ export async function POST(request: NextRequest) {
       }
 
       // Build the data stream that will emit tokens
+      // Build diagnostics context for system prompt (user or anonymous)
+      const diagnosticsContext = await buildDiagnosticsContext({
+        userId,
+        anonymousId: anonymousSession?.id ?? null,
+      });
+
       const stream = createUIMessageStream<ChatMessage>({
         execute: ({ writer: dataStream }) => {
           const result = streamText({
             model: getLanguageModel(selectedModelId),
-            system: systemPrompt(),
+            system: systemPrompt(diagnosticsContext ?? undefined),
             messages: contextForLLM,
             stopWhen: [
               stepCountIs(5),

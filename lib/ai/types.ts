@@ -29,6 +29,9 @@ export const toolNameSchema = z.enum([
   'codeInterpreter',
   'generateImage',
   'deepResearch',
+  'guideSteps',
+  'clientEnv',
+  'networkCheck',
 ]);
 
 const _ = toolNameSchema.options satisfies ToolName[];
@@ -68,6 +71,17 @@ type webSearchTool = InferUITool<ReturnType<typeof tavilyWebSearch>>;
 type stockChartTool = InferUITool<typeof stockChart>;
 type codeInterpreterTool = InferUITool<typeof codeInterpreter>;
 type retrieveTool = InferUITool<typeof retrieve>;
+// Diagnostics + OhFixIt tools
+type guideStepsTool = InferUITool<typeof import('./tools/ohfixit/guide-steps')['guideSteps']>;
+// For factory tools, we reference the Tool type by creating a temporary type helper
+type _ClientEnvTool = ReturnType<
+  typeof import('./tools/ohfixit/client-env').default
+>;
+type clientEnvTool = InferUITool<_ClientEnvTool>;
+type _NetworkCheckTool = ReturnType<
+  typeof import('./tools/ohfixit/network-check').default
+>;
+type networkCheckTool = InferUITool<_NetworkCheckTool>;
 
 export type ChatTools = {
   getWeather: weatherTool;
@@ -81,6 +95,9 @@ export type ChatTools = {
   stockChart: stockChartTool;
   codeInterpreter: codeInterpreterTool;
   retrieve: retrieveTool;
+  guideSteps: guideStepsTool;
+  clientEnv: clientEnvTool;
+  networkCheck: networkCheckTool;
 };
 
 export type CustomUIDataTypes = {

@@ -61,6 +61,21 @@ export const toolsDefinitions: Record<ToolName, ToolDefinition> = {
     description: 'Research a topic',
     cost: 50,
   },
+  guideSteps: {
+    name: 'guideSteps',
+    description: 'Return a step-by-step user guide plan',
+    cost: 1,
+  },
+  clientEnv: {
+    name: 'clientEnv',
+    description: 'Read consented client diagnostics snapshot',
+    cost: 1,
+  },
+  networkCheck: {
+    name: 'networkCheck',
+    description: 'Run basic network connectivity checks',
+    cost: 2,
+  },
 };
 
 export const allTools = toolNameSchema.options;
