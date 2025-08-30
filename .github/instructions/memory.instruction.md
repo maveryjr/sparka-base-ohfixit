@@ -95,6 +95,21 @@ applyTo: '**'
 	- Wired into `app/(chat)/api/chat/route.ts`: builds diagnostics context using `userId` or `anonymousSession.id` and passes to `systemPrompt(...)` for every chat stream.
 	- Tests: `tests/unit/diagnostics-context.test.ts` validates OS detection, snapshot inclusion, and network lines. Typecheck passes; tests execution is configured but runner output appears suppressed in this environment.
 
+- Update (OhFixIt Issue #7 – Guided Fixes “Guide Me” flow):
+	- Current capabilities verified:
+		- AI tool for planning: `lib/ai/tools/ohfixit/guide-steps.ts` implemented with Zod schemas (`GuideStepSchema`, `GuidePlanSchema`) and registered via `lib/ai/tools/tools.ts` and surfaced in `lib/ai/types.ts` + `lib/ai/tools/tools-definitions.ts`.
+		- UI rendering: `components/ohfixit/guide-steps.tsx` checklist UI renders from `components/message-parts.tsx` when receiving `type: 'tool-guideSteps'` parts.
+		- Tool selection UX: `components/responsive-tools.tsx` includes the “Guide Me” tool option; `providers/chat-input-provider.tsx` manages `selectedTool` and input state.
+		- Diagnostics: consent modal and context work; header has diagnostics entrypoint; system prompt enrichment active in chat route.
+	- Gaps to acceptance criteria:
+		1) Missing persistent “Guide Me mode” toggle in `components/chat-header.tsx`.
+		2) Lack of per-chat persistence for the mode (only `Message.selectedTool` exists; no chat-level setting discovered).
+		3) Adaptive follow-ups: UI captures “It worked/Didn’t work,” but assistant behavior isn’t yet driven by that feedback.
+	- Likely wiring points:
+		- Toggle component in `ChatHeader` near diagnostics; use `useChatInput()` to set `selectedTool = 'guideSteps'` when enabled.
+		- Persistence options: minimal via initial tool state in provider; robust via chat-level setting in DB and page loader.
+	- Acceptance focus: Deliver header toggle + per-chat persistence first; iterate on adaptive follow-ups next.
+
 ## Next Steps
 - Verify capture→attach preview→submit flow manually; ensure model auto-switch messages appear and attachment previews render
 - Implement `components/ohfixit/screenshot-annotator.tsx` with blur/arrow/box and export flattened PNG
@@ -102,6 +117,21 @@ applyTo: '**'
 - Wire the button into `PromptInputTools` in `components/multimodal-input.tsx` and show previews via `AttachmentList`
 - Create initial `lib/ai/tools/ohfixit/guide-steps.ts` scaffold and register in `lib/ai/tools/tools.ts`
 - Add tests: unit for attachment injection and tool schema; Playwright for capture→annotate→attach→send flow
+
+### Next Steps – Issue #7 (Guide Me)
+- Implement header toggle:
+	- Add a small toggle/button component (e.g., `components/ohfixit/guide-mode-toggle.tsx`) and render in `components/chat-header.tsx` next to diagnostics.
+	- When enabled, call `setSelectedTool('guideSteps')` via `useChatInput()` to prime the next user message.
+	- Reflect active state in the Tools selector UI.
+- Persist per-chat preference:
+	- Minimal: extend `ChatInputProvider` to accept `initialSelectedTool` from page loader for a specific chat and keep it until user changes.
+	- Robust: add chat-level setting field/table; load it in chat page and write on toggle; fallback to localStorage for anonymous.
+- Adaptive follow-ups:
+	- Send user feedback from `GuideSteps` (“It worked/Didn’t work + notes”) as a lightweight message or tool input to trigger a refinement plan.
+	- Optionally add `stopWhen`/`onToolFinish` hooks to nudge follow-up prompts.
+- Tests:
+	- Unit: store initialization with `initialSelectedTool` and toggle reducer.
+	- E2E: header toggle enables Guide Me, send message, plan steps render, toggle persists when reloading the chat.
 
 ## Notes
 - Branch context: working within current workspace; add migrations for consent and audit when reaching that phase

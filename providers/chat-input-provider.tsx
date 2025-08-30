@@ -171,8 +171,8 @@ export function ChatInputProvider({
         clearInput();
       }
 
-      // deepResearch stays active until the research process completes (handled via DataStreamHandler)
-      if (selectedTool !== 'deepResearch') {
+      // deepResearch and guideSteps stay active until the user disables them
+      if (selectedTool !== 'deepResearch' && selectedTool !== 'guideSteps') {
         resetData();
       }
     },

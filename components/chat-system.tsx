@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { Chat } from '@/components/chat';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 import { ChatSync } from '@/components/chat-sync';
@@ -19,6 +19,22 @@ export const ChatSystem = memo(function ChatSystem({
   isReadonly: boolean;
   initialTool?: UiToolName | null;
 }) {
+  const [persistedTool, setPersistedTool] = useState<UiToolName | null>(null);
+
+  // On mount, read per-chat guide mode preference to prime initial tool
+  useEffect(() => {
+    try {
+      const key = `chat:${id}:guideMode`;
+      const val = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+      if (val === 'on') setPersistedTool('guideSteps');
+    } catch {
+      // ignore
+    }
+  }, [id]);
+
+  const initialToolResolved = useMemo<UiToolName | null>(() => {
+    return initialTool ?? persistedTool ?? null;
+  }, [initialTool, persistedTool]);
   return (
     <ArtifactProvider>
       {isReadonly ? (
@@ -35,7 +51,7 @@ export const ChatSystem = memo(function ChatSystem({
       ) : (
         <ChatInputProvider
           localStorageEnabled={true}
-          initialTool={initialTool ?? null}
+          initialTool={initialToolResolved}
         >
           <ChatSync id={id} initialMessages={initialMessages} />
           <Chat
