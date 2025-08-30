@@ -46,6 +46,7 @@ import {
   DEFAULT_PDF_MODEL,
   DEFAULT_CHAT_IMAGE_COMPATIBLE_MODEL,
 } from '@/lib/ai/all-models';
+import { ScreenCaptureButton } from './ohfixit/screen-capture-button';
 import { CreditLimitDisplay } from './upgrade-cta/credit-limit-display';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
@@ -437,6 +438,32 @@ function PureMultimodalInput({
     },
   });
 
+  // Handle screen capture file from ScreenCaptureButton
+  const handleScreenCapture = useCallback(
+    async (file: File) => {
+      // Validate and possibly auto-switch model
+      const validFiles = processFiles([file]);
+      if (validFiles.length === 0) return;
+
+      setUploadQueue(validFiles.map((f) => f.name));
+      try {
+        const uploadPromises = validFiles.map((vf) => uploadFile(vf));
+        const uploaded = await Promise.all(uploadPromises);
+        const ok = uploaded.filter((a) => a !== undefined) as Attachment[];
+        if (ok.length > 0) {
+          setAttachments((current) => [...current, ...ok]);
+          toast.success(`${ok.length} screenshot${ok.length > 1 ? 's' : ''} attached`);
+        }
+      } catch (err) {
+        console.error('Error uploading captured screenshot', err);
+        toast.error('Failed to upload screenshot');
+      } finally {
+        setUploadQueue([]);
+      }
+    },
+    [processFiles, setAttachments, uploadFile],
+  );
+
   return (
     <div className="relative">
       {messageIds.length === 0 &&
@@ -561,6 +588,7 @@ function PureMultimodalInput({
             isEmpty={isEmpty}
             submitForm={submitForm}
             uploadQueue={uploadQueue}
+            onCapture={handleScreenCapture}
           />
         </PromptInput>
       </div>
@@ -637,6 +665,7 @@ function PureChatInputBottomControls({
   isEmpty,
   submitForm,
   uploadQueue,
+  onCapture,
 }: {
   selectedModelId: ModelId;
   onModelChange: (modelId: ModelId) => void;
@@ -647,11 +676,17 @@ function PureChatInputBottomControls({
   isEmpty: boolean;
   submitForm: () => void;
   uploadQueue: Array<string>;
+  onCapture: (file: File) => void | Promise<void>;
 }) {
   return (
     <PromptInputToolbar className="flex flex-row justify-between min-w-0 w-full gap-1 @[400px]:gap-2 border-t">
       <PromptInputTools className="flex items-center gap-1 @[400px]:gap-2 min-w-0">
         <AttachmentsButton fileInputRef={fileInputRef} status={status} />
+        <ScreenCaptureButton
+          status={status}
+          onCapture={onCapture}
+          className="size-8 @[400px]:size-10"
+        />
         <ModelSelector
           selectedModelId={selectedModelId}
           className="text-xs @[400px]:text-sm w-fit shrink max-w-none px-2 @[400px]:px-3 truncate justify-start h-8 @[400px]:h-10"
@@ -693,6 +728,7 @@ const ChatInputBottomControls = memo(
     if (prevProps.submitForm !== nextProps.submitForm) return false;
     if (prevProps.uploadQueue.length !== nextProps.uploadQueue.length)
       return false;
+    if (prevProps.onCapture !== nextProps.onCapture) return false;
     return true;
   },
 );
