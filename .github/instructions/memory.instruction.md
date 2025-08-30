@@ -52,6 +52,16 @@ applyTo: '**'
 	 - Added `handleScreenCapture` that reuses `processFiles` for validation + auto model switching, then uploads via existing `uploadFile` and appends to `attachments`; manages `uploadQueue` and toasts
 	 - Memoization updated to include new `onCapture` prop; import resolved and type checks pass
 
+	- Update (Annotator wired into capture flow):
+		- Added annotator modal state and handlers in `components/multimodal-input.tsx`
+		- On capture, open modal with object URL for the image; on export, wrap Blob as `File` and reuse `processFiles` and `uploadFile` to attach
+		- Annotator UI via `components/ohfixit/screenshot-annotator.tsx` embedded in `Dialog` from `components/ui/dialog`
+		- Cleans up object URL on close; toasts on success/failure; type checks pass
+
+	## Testing Notes
+	- Type checks pass via `tsc --noEmit`
+	- Playwright screencap tests require local browsers (`npx playwright install`) to run; current environment lacks installed browsers
+
 ## Next Steps
 - Verify capture→attach preview→submit flow manually; ensure model auto-switch messages appear and attachment previews render
 - Implement `components/ohfixit/screenshot-annotator.tsx` with blur/arrow/box and export flattened PNG

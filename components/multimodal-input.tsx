@@ -53,6 +53,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { LoginPrompt } from './upgrade-cta/login-prompt';
 import { generateUUID } from '@/lib/utils';
 import { useSaveMessageMutation } from '@/hooks/chat-sync-hooks';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { ScreenshotAnnotator } from './ohfixit/screenshot-annotator';
 
 function PureMultimodalInput({
   chatId,
@@ -122,6 +124,20 @@ function PureMultimodalInput({
     imageUrl: '',
     imageName: undefined,
   });
+
+  // Annotator modal state for captured screenshots
+  const [annotatorState, setAnnotatorState] = useState<{
+    isOpen: boolean;
+    imageSrc: string; // object URL for the captured image
+    fileName?: string;
+  }>({ isOpen: false, imageSrc: '', fileName: undefined });
+
+  const closeAnnotator = useCallback(() => {
+    setAnnotatorState((prev) => {
+      if (prev.imageSrc) URL.revokeObjectURL(prev.imageSrc);
+      return { isOpen: false, imageSrc: '', fileName: undefined };
+    });
+  }, []);
 
   // Helper function to process and validate files
   const processFiles = useCallback(
@@ -441,27 +457,48 @@ function PureMultimodalInput({
   // Handle screen capture file from ScreenCaptureButton
   const handleScreenCapture = useCallback(
     async (file: File) => {
-      // Validate and possibly auto-switch model
-      const validFiles = processFiles([file]);
-      if (validFiles.length === 0) return;
+      // Open annotator modal instead of immediately uploading
+      // Create an object URL so the annotator can render the image
+      const objectUrl = URL.createObjectURL(file);
+      // Revoke any previous object URL to avoid leaks if user captures repeatedly
+      setAnnotatorState((prev) => {
+        if (prev.imageSrc) URL.revokeObjectURL(prev.imageSrc);
+        return { isOpen: true, imageSrc: objectUrl, fileName: file.name };
+      });
+    },
+    [],
+  );
 
-      setUploadQueue(validFiles.map((f) => f.name));
+  // When user exports from the annotator, upload and attach the annotated PNG
+  const handleAnnotatorExport = useCallback(
+    async (blob: Blob) => {
       try {
-        const uploadPromises = validFiles.map((vf) => uploadFile(vf));
-        const uploaded = await Promise.all(uploadPromises);
+        const baseName = (annotatorState.fileName || 'screenshot').replace(/\.[^.]+$/, '');
+        const annotatedFile = new File([blob], `${baseName}_annotated.png`, {
+          type: 'image/png',
+          lastModified: Date.now(),
+        });
+
+        // Validate and possibly auto-switch model for the annotated image
+        const validFiles = processFiles([annotatedFile]);
+        if (validFiles.length === 0) return;
+
+        setUploadQueue(validFiles.map((f) => f.name));
+        const uploaded = await Promise.all(validFiles.map((vf) => uploadFile(vf)));
         const ok = uploaded.filter((a) => a !== undefined) as Attachment[];
         if (ok.length > 0) {
           setAttachments((current) => [...current, ...ok]);
-          toast.success(`${ok.length} screenshot${ok.length > 1 ? 's' : ''} attached`);
+          toast.success('Annotated screenshot attached');
         }
       } catch (err) {
-        console.error('Error uploading captured screenshot', err);
-        toast.error('Failed to upload screenshot');
+        console.error('Error uploading annotated screenshot', err);
+        toast.error('Failed to upload annotated screenshot');
       } finally {
         setUploadQueue([]);
+        closeAnnotator();
       }
     },
-    [processFiles, setAttachments, uploadFile],
+    [annotatorState.fileName, processFiles, uploadFile, setAttachments, closeAnnotator],
   );
 
   return (
@@ -599,6 +636,20 @@ function PureMultimodalInput({
         imageUrl={imageModal.imageUrl}
         imageName={imageModal.imageName}
       />
+
+      {/* Annotator Modal */}
+      <Dialog open={annotatorState.isOpen} onOpenChange={(open) => !open && closeAnnotator()}>
+        <DialogContent className="sm:max-w-[90vw] sm:max-h-[90vh] w-full h-full overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Annotate screenshot</DialogTitle>
+          </DialogHeader>
+          {annotatorState.imageSrc && (
+            <div className="mt-2">
+              <ScreenshotAnnotator imageSrc={annotatorState.imageSrc} onExport={handleAnnotatorExport} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
