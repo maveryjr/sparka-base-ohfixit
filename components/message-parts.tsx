@@ -13,6 +13,7 @@ import { CodeInterpreterMessage } from './code-interpreter-message';
 import { GeneratedImage } from './generated-image';
 import { ResearchUpdates } from './message-annotations';
 import { GuideSteps } from '@/components/ohfixit/guide-steps';
+import { AutomationPlanView } from '@/components/ohfixit/action-preview';
 import type { ChatMessage } from '@/lib/ai/types';
 import {
   chatStore,
@@ -351,6 +352,22 @@ function PureMessagePart({
       const { output } = part as any;
       if (!output) return null;
       return <GuideSteps plan={output} className="my-2" />;
+    }
+  }
+
+  if (type === 'tool-automation') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Preparing an automation plan…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return <AutomationPlanView plan={output} className="my-2" />;
     }
   }
 
