@@ -29,10 +29,17 @@ applyTo: '**'
 - Documentation style: docs/ohfixit-integration-issue.md as authoritative spec; update README or docs selectively
 
 ## Context7 Research History
-- Libraries researched on Context7: [placeholder for future entries]
-- Best practices discovered: [to be filled when research occurs]
-- Implementation patterns used: AI SDK v5 streamText with tools; media capture via getDisplayMedia; attachment flows
-- Version-specific findings: [to be populated]
+- Libraries researched on Context7:
+	- /vercel/ai (AI SDK v5): tools with zod schemas; streamText server usage; toUIMessageStreamResponse; tool streaming default; onError handlers; multi-step with stopWhen
+	- /vercel/next.js (App Router): route handlers using Web Request/Response; streaming with ReadableStream; caching and dynamic rendering notes
+- Best practices discovered:
+	- Define tools with tool({ description, inputSchema, execute }) and register in streamText; tool streaming is default in v5
+	- Use route handlers in app/**/route.ts for server endpoints; prefer cache: 'no-store' for dynamic diagnostics
+	- Use onFinish/onStepFinish to inspect tool results if needed; UI can render tool part states
+- Implementation patterns used: AI SDK v5 streamText with tools; media capture via getDisplayMedia; attachment flows; tool registry in lib/ai/tools/tools.ts
+- Version-specific findings:
+	- AI SDK v5 uses result.toUIMessageStreamResponse for UI streaming
+	- streamText is synchronous (no await needed) in v4+; codebase aligns with v5
 
 ## Conversation History
 - Important decisions made: Start MVP with Screen Capture + Guide Me; anchor UI in components/chat-input.tsx; build new components under components/ohfixit/*; create tools under lib/ai/tools/ohfixit/* and register in lib/ai/tools/tools.ts
@@ -61,6 +68,16 @@ applyTo: '**'
 	## Testing Notes
 	- Type checks pass via `tsc --noEmit`
 	- Playwright screencap tests require local browsers (`npx playwright install`) to run; current environment lacks installed browsers
+
+- Update (Diagnostics Toolkit MVP - Issue #6):
+	- Implemented client diagnostics consent UI in `components/ohfixit/collect-client-diagnostics.tsx` and API intake at `app/api/diagnostics/client/route.ts` with Zod validation and anon rate limiting
+	- Implemented network checks tool in `lib/ai/tools/ohfixit/network-check.ts` and API at `app/api/diagnostics/network/route.ts`
+	- Added OS detection + capability mapping in `lib/ohfixit/os-capabilities.ts`
+	- In-memory store at `lib/ohfixit/diagnostics-store.ts` with per-session records; helper `getSessionKeyForIds`
+	- Tools registered in `lib/ai/tools/tools.ts`; UI renders outputs in `components/message-parts.tsx`
+	- Fix: updated network-check tool to resolve user/anonymous session via `auth()`/`getAnonymousSession()` to avoid `anon:unknown` key usage
+	- Tests: added `tests/unit/os-capabilities.test.ts` and `tests/unit/diagnostics-store.test.ts`; vitest configured with `vitest.config.ts` and `vite-tsconfig-paths`
+	- Status: Typecheck and unit tests pass locally
 
 ## Next Steps
 - Verify capture→attach preview→submit flow manually; ensure model auto-switch messages appear and attachment previews render

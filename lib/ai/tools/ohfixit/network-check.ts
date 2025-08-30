@@ -8,6 +8,8 @@ import {
   type NetworkDiagnostics,
   type NetworkCheckResult,
 } from '@/lib/ohfixit/diagnostics-store';
+import { auth } from '@/app/(auth)/auth';
+import { getAnonymousSession } from '@/lib/anonymous-session-server';
 
 export const NetworkCheckInput = z.object({
   targets: z
@@ -41,7 +43,25 @@ export function createNetworkCheckTool({
       'Run basic network connectivity checks to known endpoints and record results.',
     inputSchema: NetworkCheckInput,
     execute: async ({ targets }): Promise<NetworkCheckOutput> => {
-      const sessionKey = getSessionKeyForIds({ userId, anonymousId });
+      // Resolve session identifiers similarly to clientEnv tool to avoid using a fallback key
+      let resolvedUserId = userId ?? null;
+      let resolvedAnonymousId = anonymousId ?? null;
+      if (!resolvedUserId) {
+        try {
+          const session = await auth();
+          resolvedUserId = session?.user?.id || null;
+        } catch {}
+      }
+      if (!resolvedUserId && !resolvedAnonymousId) {
+        try {
+          const anon = await getAnonymousSession();
+          resolvedAnonymousId = anon?.id || null;
+        } catch {}
+      }
+      const sessionKey = getSessionKeyForIds({
+        userId: resolvedUserId,
+        anonymousId: resolvedAnonymousId,
+      });
       const results = await Promise.all(targets.map((t) => checkTarget(t)));
       const payload: NetworkDiagnostics = { ranAt: Date.now(), results };
       setNetworkDiagnostics(sessionKey, payload);
