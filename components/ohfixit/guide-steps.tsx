@@ -1,12 +1,42 @@
 'use client';
 
 import type { GuidePlan, GuideStep } from '@/lib/ai/tools/ohfixit/guide-steps';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { chatStore } from '@/lib/stores/chat-store';
+import type { ModelId } from '@/lib/ai/model-id';
+import { useChatInput } from '@/providers/chat-input-provider';
 
 export function GuideSteps({ plan, className }: { plan: GuidePlan; className?: string }) {
+  const { selectedModelId } = useChatInput();
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
   const [feedback, setFeedback] = useState<Record<string, 'worked' | 'didnt' | undefined>>({});
+
+  const sendFollowUp = useCallback((step: GuideStep, status: 'worked' | 'didnt') => {
+    const text = status === 'worked'
+      ? `Follow-up: Step "${step.title}" worked. Suggest the next step or confirm completion.`
+      : `Follow-up: Step "${step.title}" did not work. Propose an alternative or deeper troubleshooting for this step.`;
+    try {
+      const { currentChatHelpers, getLastMessageId } = chatStore.getState();
+      const sendMessage = currentChatHelpers?.sendMessage;
+      if (!sendMessage) return;
+      // Try to read selected model from provider via store latest message metadata; fallback to keeping current model selection implicit
+      const parentId = getLastMessageId();
+      const now = new Date();
+      sendMessage({
+        role: 'user',
+        parts: [{ type: 'text', text }],
+        metadata: {
+          selectedModel: selectedModelId as ModelId,
+          createdAt: now,
+          parentMessageId: parentId,
+          // keep currently selected tool active
+        },
+      });
+    } catch {
+      // ignore if helpers not ready
+    }
+  }, []);
 
   const toggle = (id: string) =>
     setCompleted((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -59,13 +89,19 @@ export function GuideSteps({ plan, className }: { plan: GuidePlan; className?: s
             <div className="ml-6 flex items-center gap-2 pt-1">
               <button
                 className={cn('px-2 py-1 rounded text-xs border', feedback[step.id] === 'worked' ? 'bg-green-600 text-white border-green-700' : 'hover:bg-green-50')}
-                onClick={() => setFeedback((f) => ({ ...f, [step.id]: 'worked' }))}
+                onClick={() => {
+                  setFeedback((f) => ({ ...f, [step.id]: 'worked' }));
+                  sendFollowUp(step, 'worked');
+                }}
               >
                 It worked
               </button>
               <button
                 className={cn('px-2 py-1 rounded text-xs border', feedback[step.id] === 'didnt' ? 'bg-red-600 text-white border-red-700' : 'hover:bg-red-50')}
-                onClick={() => setFeedback((f) => ({ ...f, [step.id]: 'didnt' }))}
+                onClick={() => {
+                  setFeedback((f) => ({ ...f, [step.id]: 'didnt' }));
+                  sendFollowUp(step, 'didnt');
+                }}
               >
                 Didn't work
               </button>
