@@ -56,6 +56,13 @@ export default defineConfig({
       testMatch: /auth.setup.ts/,
     },
     {
+      name: 'screencap',
+      testMatch: /screencap.test.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+    {
       name: 'setup:reasoning',
       testMatch: /reasoning.setup.ts/,
       dependencies: ['setup:auth'],
