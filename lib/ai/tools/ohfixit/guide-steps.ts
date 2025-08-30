@@ -1,4 +1,4 @@
-'use server';
+import 'server-only';
 
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
