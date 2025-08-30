@@ -1,6 +1,6 @@
 import type { ArtifactKind } from '../artifacts/artifact-kind';
 
-export const systemPrompt = () => {
+export const systemPrompt = (diagnosticsContext?: string | null) => {
   return `You are a friendly assistant!
 
 ## Your Goals
@@ -23,6 +23,11 @@ export const systemPrompt = () => {
 
 
 Today's Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit', weekday: 'short' })}
+  
+${diagnosticsContext ? `
+## Environment & Constraints
+${diagnosticsContext}
+` : ''}
   
   `;
 };

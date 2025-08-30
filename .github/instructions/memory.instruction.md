@@ -89,6 +89,12 @@ applyTo: '**'
 	- Aligned client diagnostics payload with API schema: switched `screen.pixelRatio` to `screen.dpr`, renamed `hardware` to `device` with `memoryGB` and `cores`, added `window.innerWidth/innerHeight`. Updated preview to reflect `dpr`.
 	- Re-ran typecheck successfully. Unit tests attempted; environment produced no output but no errors reported.
 
+- Update (Diagnostics Context Builder + System Prompt Enrichment):
+	- Added `lib/ohfixit/diagnostics-context.ts` that composes a concise environment summary from `diagnostics-store` and `os-capabilities`, including OS family, capabilities, client snapshot (userAgent, screen dpr, device memory/cores, network, battery, window), and recent network check results. Adds modeling constraints and bandwidth tips.
+	- Extended `lib/ai/prompts.ts` `systemPrompt(diagnosticsContext?)` to inject an "Environment & Constraints" section when provided.
+	- Wired into `app/(chat)/api/chat/route.ts`: builds diagnostics context using `userId` or `anonymousSession.id` and passes to `systemPrompt(...)` for every chat stream.
+	- Tests: `tests/unit/diagnostics-context.test.ts` validates OS detection, snapshot inclusion, and network lines. Typecheck passes; tests execution is configured but runner output appears suppressed in this environment.
+
 ## Next Steps
 - Verify capture→attach preview→submit flow manually; ensure model auto-switch messages appear and attachment previews render
 - Implement `components/ohfixit/screenshot-annotator.tsx` with blur/arrow/box and export flattened PNG
