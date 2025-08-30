@@ -19,8 +19,8 @@ function collectSnapshot() {
     const languages = navigator.languages;
     const language = navigator.language;
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const screenInfo = typeof screen !== 'undefined' ? { width: screen.width, height: screen.height, pixelRatio: window.devicePixelRatio } : undefined;
-    const hardware = { deviceMemory: (nav?.deviceMemory ?? null), hardwareConcurrency: (nav?.hardwareConcurrency ?? null) };
+    const screenInfo = typeof screen !== 'undefined' ? { width: screen.width, height: screen.height, dpr: window.devicePixelRatio } : undefined;
+    const device = { memoryGB: (typeof nav?.deviceMemory === 'number' ? nav.deviceMemory : undefined), cores: (typeof nav?.hardwareConcurrency === 'number' ? nav.hardwareConcurrency : undefined) };
     const network = connection ? {
       downlink: connection.downlink,
       effectiveType: connection.effectiveType,
@@ -37,8 +37,9 @@ function collectSnapshot() {
         language,
         timeZone,
         screen: screenInfo,
-        hardware,
+        device,
         network,
+        window: typeof window !== 'undefined' ? { innerWidth: window.innerWidth, innerHeight: window.innerHeight } : undefined,
       },
     };
   } catch (e) {
@@ -100,7 +101,7 @@ export function CollectClientDiagnostics({ open, onOpenChange }: Props) {
               <li>User Agent: <span className="break-words">{redactUA}</span></li>
               <li>Language: {preview?.data?.language ?? 'Unknown'}</li>
               <li>Timezone: {preview?.data?.timeZone ?? 'Unknown'}</li>
-              <li>Screen: {preview?.data?.screen ? `${preview.data.screen.width}x${preview.data.screen.height} @${preview.data.screen.pixelRatio}x` : 'Unknown'}</li>
+              <li>Screen: {preview?.data?.screen ? `${preview.data.screen.width}x${preview.data.screen.height} @${preview.data.screen.dpr}x` : 'Unknown'}</li>
               {preview?.data?.network && (
                 <li>Network: {preview.data.network.effectiveType} · {preview.data.network.downlink} Mbps · rtt {preview.data.network.rtt}ms</li>
               )}

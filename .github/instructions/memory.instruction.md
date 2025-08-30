@@ -41,6 +41,11 @@ applyTo: '**'
 	- AI SDK v5 uses result.toUIMessageStreamResponse for UI streaming
 	- streamText is synchronous (no await needed) in v4+; codebase aligns with v5
 
+- Additional findings (Next.js 'use server' semantics):
+	- From /vercel/next.js docs: Files marked with 'use server' may only export async functions; exporting values like constants/types triggers error invalid-use-server-value.
+	- Solution: For server-only utility modules that export values (schemas, types, factories), avoid 'use server' and instead import 'server-only' to ensure server runtime without Server Actions constraints.
+	- Applied to ohfixit tool modules to resolve build error: “A 'use server' file can only export async functions…”.
+
 ## Conversation History
 - Important decisions made: Start MVP with Screen Capture + Guide Me; anchor UI in components/chat-input.tsx; build new components under components/ohfixit/*; create tools under lib/ai/tools/ohfixit/* and register in lib/ai/tools/tools.ts
 - Recurring questions or topics: Attachment lifecycle integration points need inspection (attachment-list, preview-attachment, stores)
@@ -78,6 +83,11 @@ applyTo: '**'
 	- Fix: updated network-check tool to resolve user/anonymous session via `auth()`/`getAnonymousSession()` to avoid `anon:unknown` key usage
 	- Tests: added `tests/unit/os-capabilities.test.ts` and `tests/unit/diagnostics-store.test.ts`; vitest configured with `vitest.config.ts` and `vite-tsconfig-paths`
 	- Status: Typecheck and unit tests pass locally
+
+- Update (Diagnostics fixes - payload + server action error):
+	- Resolved build error “Server Actions must be async functions” by removing `'use server'` from `lib/ai/tools/ohfixit/client-env.ts` and `network-check.ts` and adding `import 'server-only'` to enforce server-only usage.
+	- Aligned client diagnostics payload with API schema: switched `screen.pixelRatio` to `screen.dpr`, renamed `hardware` to `device` with `memoryGB` and `cores`, added `window.innerWidth/innerHeight`. Updated preview to reflect `dpr`.
+	- Re-ran typecheck successfully. Unit tests attempted; environment produced no output but no errors reported.
 
 ## Next Steps
 - Verify capture→attach preview→submit flow manually; ensure model auto-switch messages appear and attachment previews render
