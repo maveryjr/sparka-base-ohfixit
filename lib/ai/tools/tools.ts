@@ -14,6 +14,7 @@ import type { ModelId } from '@/lib/ai/model-id';
 import type { StreamWriter } from '../types';
 import { deepResearch } from './deep-research/deep-research';
 import { guideSteps } from '@/lib/ai/tools/ohfixit/guide-steps';
+import { automation } from '@/lib/ai/tools/ohfixit/automation';
 import createClientEnvTool from '@/lib/ai/tools/ohfixit/client-env';
 import createNetworkCheckTool from '@/lib/ai/tools/ohfixit/network-check';
 import { getAnonymousSession } from '@/lib/anonymous-session-server';
@@ -39,6 +40,7 @@ export function getTools({
   return {
     getWeather,
     guideSteps,
+    automation,
     // OhFixIt diagnostics tools
     clientEnv: createClientEnvTool({ userId: session?.user?.id, anonymousId: undefined }),
     networkCheck: createNetworkCheckTool({ userId: session?.user?.id, anonymousId: undefined }),

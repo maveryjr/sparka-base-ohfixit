@@ -30,6 +30,7 @@ export const toolNameSchema = z.enum([
   'generateImage',
   'deepResearch',
   'guideSteps',
+  'automation',
   'clientEnv',
   'networkCheck',
 ]);
@@ -44,6 +45,7 @@ export const frontendToolsSchema = z.enum([
   'generateImage',
   'createDocument',
   'guideSteps',
+  // Note: automation is not directly user-selectable as a primary tool in MVP.
 ]);
 
 const __ = frontendToolsSchema.options satisfies ToolNameInternal[];
@@ -74,6 +76,7 @@ type codeInterpreterTool = InferUITool<typeof codeInterpreter>;
 type retrieveTool = InferUITool<typeof retrieve>;
 // Diagnostics + OhFixIt tools
 type guideStepsTool = InferUITool<typeof import('./tools/ohfixit/guide-steps')['guideSteps']>;
+type automationTool = InferUITool<typeof import('./tools/ohfixit/automation')['automation']>;
 // For factory tools, we reference the Tool type by creating a temporary type helper
 type _ClientEnvTool = ReturnType<
   typeof import('./tools/ohfixit/client-env').default
@@ -97,6 +100,7 @@ export type ChatTools = {
   codeInterpreter: codeInterpreterTool;
   retrieve: retrieveTool;
   guideSteps: guideStepsTool;
+  automation: automationTool;
   clientEnv: clientEnvTool;
   networkCheck: networkCheckTool;
 };

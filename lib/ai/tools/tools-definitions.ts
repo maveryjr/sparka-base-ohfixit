@@ -66,6 +66,12 @@ export const toolsDefinitions: Record<ToolName, ToolDefinition> = {
     description: 'Return a step-by-step user guide plan',
     cost: 1,
   },
+  automation: {
+    name: 'automation',
+    description:
+      'Propose a safe, consent-gated action plan (open URL, DOM instruction, or script recommendation).',
+    cost: 2,
+  },
   clientEnv: {
     name: 'clientEnv',
     description: 'Read consented client diagnostics snapshot',
