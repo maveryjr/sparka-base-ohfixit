@@ -137,3 +137,45 @@ export const suggestion = pgTable(
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
+
+// OhFixIt – Trust, Consent, and Audit Trail tables
+
+export const consentEvent = pgTable('ConsentEvent', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  chatId: uuid('chatId')
+    .notNull()
+    .references(() => chat.id, { onDelete: 'cascade' }),
+  userId: uuid('userId').references(() => user.id), // nullable for anonymous
+  kind: varchar('kind', { length: 64 }).notNull(), // 'screenshot' | 'diagnostics' | 'automation'
+  payload: json('payload'), // include anonymousId and any extra details
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type ConsentEvent = InferSelectModel<typeof consentEvent>;
+
+export const actionLog = pgTable('ActionLog', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  chatId: uuid('chatId')
+    .notNull()
+    .references(() => chat.id, { onDelete: 'cascade' }),
+  userId: uuid('userId').references(() => user.id), // nullable for anonymous
+  actionType: varchar('actionType', { length: 64 }).notNull(), // 'open_url' | 'dom_instruction' | 'script_recommendation' | 'guide_step'
+  status: varchar('status', { length: 32 }).notNull().default('proposed'), // 'proposed' | 'approved' | 'executed' | 'cancelled'
+  summary: text('summary'),
+  payload: json('payload'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type ActionLog = InferSelectModel<typeof actionLog>;
+
+export const diagnosticsSnapshot = pgTable('DiagnosticsSnapshot', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  chatId: uuid('chatId')
+    .notNull()
+    .references(() => chat.id, { onDelete: 'cascade' }),
+  userId: uuid('userId').references(() => user.id), // nullable for anonymous
+  payload: json('payload'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type DiagnosticsSnapshot = InferSelectModel<typeof diagnosticsSnapshot>;

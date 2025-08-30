@@ -8,6 +8,7 @@ import type { Vote } from '@/lib/db/schema';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/ai/types';
 import { cn } from '@/lib/utils';
+import { AuditTimeline } from './ohfixit/audit-timeline';
 
 export interface MessagesPaneProps {
   chatId: string;
@@ -33,6 +34,9 @@ function PureMessagesPane({
       className={cn('flex w-full flex-col flex-1 min-h-0 h-full', className)}
     >
       <Messages votes={votes} isReadonly={isReadonly} isVisible={isVisible} />
+
+      {/* Audit Timeline for Trust & Consent */}
+      {!isReadonly ? <AuditTimeline chatId={chatId} /> : null}
 
       <div className="relative bottom-4 w-full z-10">
         {!isReadonly ? (

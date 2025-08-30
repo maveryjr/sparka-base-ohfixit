@@ -147,3 +147,13 @@ applyTo: '**'
 - Acceptance criteria tracked in docs/ohfixit-integration-issue.md; prioritize consent and clear UX copy
 
 - Handoff for Issue #9: see `docs/ohfixit-issue-9-handoff.md` for a compact continuation guide (overview, foundation, codebase status, resolutions, progress, active state, recent ops, and step-by-step plan).
+
+- Update (Issue #9 – Trust, Consent, Audit Trail implementation):
+	- Added server-only logger at `lib/ohfixit/logger.ts` with `logConsent`, `logAction`, `snapshotDiagnostics`, and `getAuditTimeline`; resolves actor via `auth()`/anonymous session and injects `anonymousId` into payloads when applicable. Uses Drizzle `eq/desc` ordering.
+	- Created API routes:
+		- `POST /api/ohfixit/consent` with Zod validation, optional Redis-based rate-limits for anonymous, calls `logConsent`, and sets no-store caching.
+		- `POST /api/ohfixit/action-log` with Zod validation, optional Redis rate-limits, calls `logAction`.
+		- `GET /api/ohfixit/audit` combines timeline via `getAuditTimeline` with pagination, dynamic/no-store caching.
+	- Built `components/ohfixit/audit-timeline.tsx` (client) using SWR to fetch `GET /api/ohfixit/audit?chatId=...` and render a compact event list; mounted in `components/messages-pane.tsx` below messages when not readonly.
+	- Typecheck passed (tsc --noEmit). Migrations for ConsentEvent/ActionLog/DiagnosticsSnapshot are present; run `db:migrate` during build.
+	- Next: add unit tests for logger shapes and API validation; extend UI to surface consent prompts and automation previews; consider ownership checks on audit route.
