@@ -288,6 +288,8 @@ export async function POST(request: NextRequest) {
       explicitlyRequestedTools = ['generateImage'];
     else if (selectedTool === 'createDocument')
       explicitlyRequestedTools = ['createDocument', 'updateDocument'];
+    else if (selectedTool === 'guideSteps')
+      explicitlyRequestedTools = ['guideSteps'];
 
     const baseModelCost = getBaseModelCostByModelId(selectedModelId);
 

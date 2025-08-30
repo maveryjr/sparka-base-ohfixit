@@ -12,6 +12,7 @@ import { StockChartMessage } from './stock-chart-message';
 import { CodeInterpreterMessage } from './code-interpreter-message';
 import { GeneratedImage } from './generated-image';
 import { ResearchUpdates } from './message-annotations';
+import { GuideSteps } from '@/components/ohfixit/guide-steps';
 import type { ChatMessage } from '@/lib/ai/types';
 import {
   chatStore,
@@ -349,21 +350,7 @@ function PureMessagePart({
     if (state === 'output-available') {
       const { output } = part as any;
       if (!output) return null;
-      return (
-        <div key={toolCallId} className="rounded border p-3">
-          <div className="font-medium mb-2">{output.summary}</div>
-          <ol className="list-decimal pl-5 space-y-1">
-            {output.steps?.map((s: any) => (
-              <li key={s.id}>
-                <div className="font-medium">{s.title}</div>
-                <div className="text-sm text-muted-foreground">
-                  {s.rationale}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      );
+      return <GuideSteps plan={output} className="my-2" />;
     }
   }
 

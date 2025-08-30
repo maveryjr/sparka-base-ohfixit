@@ -43,6 +43,7 @@ export const frontendToolsSchema = z.enum([
   'deepResearch',
   'generateImage',
   'createDocument',
+  'guideSteps',
 ]);
 
 const __ = frontendToolsSchema.options satisfies ToolNameInternal[];
