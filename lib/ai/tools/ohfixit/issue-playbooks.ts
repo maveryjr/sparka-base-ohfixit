@@ -411,93 +411,102 @@ export const ISSUE_PLAYBOOKS: IssuePlaybook[] = [
 ];
 
 // Simple function exports that can be used as tools
-export const getPlaybook = async (params: {
-  category?: 'Network' | 'Hardware' | 'System' | 'Security';
-  symptoms?: string[];
-  difficulty?: 'easy' | 'medium' | 'hard';
-  playbookId?: string;
-}) => {
-  const { category, symptoms, difficulty, playbookId } = params;
-  
-  if (playbookId) {
-    const playbook = ISSUE_PLAYBOOKS.find(p => p.id === playbookId);
-    return playbook || { error: 'Playbook not found' };
-  }
+const GetPlaybookInput = z.object({
+  category: z.enum(['Network', 'Hardware', 'System', 'Security']).optional(),
+  symptoms: z.array(z.string()).optional(),
+  difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+  playbookId: z.string().optional(),
+});
 
-  let filteredPlaybooks = ISSUE_PLAYBOOKS;
+export const getPlaybook = tool({
+  description: 'Get a troubleshooting playbook by ID or filter by category, symptoms, or difficulty.',
+  inputSchema: GetPlaybookInput,
+  execute: async ({ category, symptoms, difficulty, playbookId }) => {
+    if (playbookId) {
+      const playbook = ISSUE_PLAYBOOKS.find((p) => p.id === playbookId);
+      return playbook || { error: 'Playbook not found' };
+    }
 
-  if (category) {
-    filteredPlaybooks = filteredPlaybooks.filter(p => p.category === category);
-  }
+    let filteredPlaybooks = ISSUE_PLAYBOOKS;
 
-  if (difficulty) {
-    filteredPlaybooks = filteredPlaybooks.filter(p => p.difficulty === difficulty);
-  }
+    if (category) {
+      filteredPlaybooks = filteredPlaybooks.filter((p) => p.category === category);
+    }
 
-  if (symptoms && symptoms.length > 0) {
-    filteredPlaybooks = filteredPlaybooks.filter(playbook =>
-      symptoms.some((symptom: string) =>
-        playbook.symptoms.some(playbookSymptom =>
-          playbookSymptom.toLowerCase().includes(symptom.toLowerCase()) ||
-          symptom.toLowerCase().includes(playbookSymptom.toLowerCase())
-        )
-      )
-    );
-  }
+    if (difficulty) {
+      filteredPlaybooks = filteredPlaybooks.filter((p) => p.difficulty === difficulty);
+    }
 
-  return {
-    playbooks: filteredPlaybooks.map(p => ({
-      id: p.id,
-      title: p.title,
-      category: p.category,
-      description: p.description,
-      difficulty: p.difficulty,
-      estimatedTime: p.estimatedTime,
-      symptoms: p.symptoms
-    })),
-    total: filteredPlaybooks.length
-  };
-};
+    if (symptoms && symptoms.length > 0) {
+      filteredPlaybooks = filteredPlaybooks.filter((playbook) =>
+        symptoms.some((symptom: string) =>
+          playbook.symptoms.some((playbookSymptom) =>
+            playbookSymptom.toLowerCase().includes(symptom.toLowerCase()) ||
+            symptom.toLowerCase().includes(playbookSymptom.toLowerCase()),
+          ),
+        ),
+      );
+    }
 
-export const executePlaybookStep = async (params: {
-  playbookId: string;
-  stepId: string;
-  completed?: boolean;
-  notes?: string;
-}) => {
-  const { playbookId, stepId, completed = false, notes } = params;
-  
-  const playbook = ISSUE_PLAYBOOKS.find(p => p.id === playbookId);
-  if (!playbook) {
-    return { error: 'Playbook not found' };
-  }
+    return {
+      playbooks: filteredPlaybooks.map((p) => ({
+        id: p.id,
+        title: p.title,
+        category: p.category,
+        description: p.description,
+        difficulty: p.difficulty,
+        estimatedTime: p.estimatedTime,
+        symptoms: p.symptoms,
+      })),
+      total: filteredPlaybooks.length,
+    };
+  },
+});
 
-  const step = playbook.steps.find(s => s.id === stepId);
-  if (!step) {
-    return { error: 'Step not found' };
-  }
+const ExecutePlaybookStepInput = z.object({
+  playbookId: z.string(),
+  stepId: z.string(),
+  completed: z.boolean().optional(),
+  notes: z.string().optional(),
+});
 
-  return {
-    playbook: {
-      id: playbook.id,
-      title: playbook.title
-    },
-    step: {
-      id: step.id,
-      title: step.title,
-      description: step.description,
-      actions: step.actions,
-      expectedResult: step.expectedResult,
-      troubleshooting: step.troubleshooting,
-      estimatedTime: step.estimatedTime
-    },
-    completed,
-    notes,
-    nextSteps: playbook.steps.filter(s => 
-      playbook.steps.indexOf(s) > playbook.steps.indexOf(step)
-    ).slice(0, 2).map(s => ({
-      id: s.id,
-      title: s.title
-    }))
-  };
-};
+export const executePlaybookStep = tool({
+  description: 'Execute or mark progress on a specific playbook step and get follow-up steps.',
+  inputSchema: ExecutePlaybookStepInput,
+  execute: async ({ playbookId, stepId, completed = false, notes }) => {
+    const playbook = ISSUE_PLAYBOOKS.find((p) => p.id === playbookId);
+    if (!playbook) {
+      return { error: 'Playbook not found' };
+    }
+
+    const step = playbook.steps.find((s) => s.id === stepId);
+    if (!step) {
+      return { error: 'Step not found' };
+    }
+
+    return {
+      playbook: {
+        id: playbook.id,
+        title: playbook.title,
+      },
+      step: {
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        actions: step.actions,
+        expectedResult: step.expectedResult,
+        troubleshooting: step.troubleshooting,
+        estimatedTime: step.estimatedTime,
+      },
+      completed,
+      notes,
+      nextSteps: playbook.steps
+        .filter((s) => playbook.steps.indexOf(s) > playbook.steps.indexOf(step))
+        .slice(0, 2)
+        .map((s) => ({
+          id: s.id,
+          title: s.title,
+        })),
+    };
+  },
+});
