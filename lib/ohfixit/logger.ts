@@ -12,6 +12,7 @@ import {
   actionLog,
   consentEvent,
   diagnosticsSnapshot,
+  chat,
   type ActionLog as ActionLogRow,
   type ConsentEvent as ConsentEventRow,
   type DiagnosticsSnapshot as DiagnosticsSnapshotRow,
@@ -40,13 +41,29 @@ export async function logConsent(
   },
 ): Promise<ConsentEventRow[]> {
   const { userId, anonymousId } = await resolveActorIds();
-  const useChatId = userId ? attrs.chatId : null;
+  // Only attach FK to Chat when the chat row exists (provisional ids may not be persisted yet)
+  let useChatId: string | null = null;
+  let provisionalChatId: string | undefined = undefined;
+  if (userId) {
+    const exists = await db
+      .select({ id: chat.id })
+      .from(chat)
+      .where(eq(chat.id, attrs.chatId))
+      .limit(1);
+    if (exists.length) {
+      useChatId = attrs.chatId;
+    } else {
+      useChatId = null;
+      provisionalChatId = attrs.chatId;
+    }
+  }
   const values = {
     chatId: useChatId,
     userId: userId || null,
     kind: attrs.kind,
     payload: {
       ...(attrs.payload as Record<string, unknown> | null | undefined),
+      provisionalChatId,
       anonymousId: userId ? undefined : anonymousId,
     },
     createdAt: new Date(),
@@ -68,7 +85,22 @@ export async function logAction(
   },
 ): Promise<ActionLogRow[]> {
   const { userId, anonymousId } = await resolveActorIds();
-  const useChatId = userId ? attrs.chatId : null;
+  // Only attach FK to Chat when the chat row exists (provisional ids may not be persisted yet)
+  let useChatId: string | null = null;
+  let provisionalChatId: string | undefined = undefined;
+  if (userId) {
+    const exists = await db
+      .select({ id: chat.id })
+      .from(chat)
+      .where(eq(chat.id, attrs.chatId))
+      .limit(1);
+    if (exists.length) {
+      useChatId = attrs.chatId;
+    } else {
+      useChatId = null;
+      provisionalChatId = attrs.chatId;
+    }
+  }
   const values = {
     chatId: useChatId,
     userId: userId || null,
@@ -77,6 +109,7 @@ export async function logAction(
     summary: attrs.summary ?? null,
     payload: {
       ...(attrs.payload as Record<string, unknown> | null | undefined),
+      provisionalChatId,
       anonymousId: userId ? undefined : anonymousId,
     },
     createdAt: new Date(),
@@ -88,12 +121,28 @@ export async function snapshotDiagnostics(
   attrs: CommonAttrs & { payload: unknown },
 ): Promise<DiagnosticsSnapshotRow[]> {
   const { userId, anonymousId } = await resolveActorIds();
-  const useChatId = userId ? attrs.chatId : null;
+  // Only attach FK to Chat when the chat row exists (provisional ids may not be persisted yet)
+  let useChatId: string | null = null;
+  let provisionalChatId: string | undefined = undefined;
+  if (userId) {
+    const exists = await db
+      .select({ id: chat.id })
+      .from(chat)
+      .where(eq(chat.id, attrs.chatId))
+      .limit(1);
+    if (exists.length) {
+      useChatId = attrs.chatId;
+    } else {
+      useChatId = null;
+      provisionalChatId = attrs.chatId;
+    }
+  }
   const values = {
     chatId: useChatId,
     userId: userId || null,
     payload: {
       ...(attrs.payload as Record<string, unknown> | null | undefined),
+      provisionalChatId,
       anonymousId: userId ? undefined : anonymousId,
     },
     createdAt: new Date(),

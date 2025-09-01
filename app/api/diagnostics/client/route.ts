@@ -105,8 +105,8 @@ export async function POST(request: NextRequest) {
       anonymous = await createAnonymousSession();
       if (anonymous) await setAnonymousSession(anonymous);
     }
-    const chatId = parsed.data.chatId;
-    const sessionKey = getSessionKeyForIds({ userId, anonymousId: anonymous?.id, chatId });
+  const chatId = parsed.data.chatId;
+  const sessionKey = getSessionKeyForIds({ userId, anonymousId: anonymous?.id, chatId });
 
     const { userAgent, platform } = parsed.data.data;
     const family = detectOS(userAgent || '', platform);
@@ -120,7 +120,8 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    await setClientDiagnostics(sessionKey, payload);
+  // sessionKey is an object containing { chatId, userId, anonymousId }
+  await setClientDiagnostics(sessionKey as any, payload);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

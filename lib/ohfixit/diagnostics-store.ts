@@ -1,6 +1,6 @@
 
 import { db } from '@/lib/db/client';
-import { diagnosticsSnapshot } from '@/lib/db/schema';
+import { diagnosticsSnapshot, chat } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 // Persistent store for diagnostics data using Drizzle ORM
@@ -77,11 +77,22 @@ export async function setClientDiagnostics(
   { chatId, userId, anonymousId }: { chatId: string; userId?: string | null; anonymousId?: string | null },
   diag: ClientDiagnostics,
 ) {
-  const useChatId = userId ? chatId : null;
+  // Only attach FK to Chat when the chat row exists (provisional ids may not be persisted yet)
+  let useChatId: string | null = null;
+  let provisionalChatId: string | undefined = undefined;
+  if (userId) {
+    const exists = await db.select({ id: chat.id }).from(chat).where(eq(chat.id, chatId)).limit(1);
+    if (exists.length) {
+      useChatId = chatId;
+    } else {
+      useChatId = null;
+      provisionalChatId = chatId;
+    }
+  }
   await db.insert(diagnosticsSnapshot).values({
     chatId: useChatId,
     userId: userId || null,
-    payload: { client: diag, anonymousId },
+    payload: { client: diag, anonymousId, provisionalChatId },
     createdAt: new Date(),
   });
 }
@@ -90,11 +101,22 @@ export async function setNetworkDiagnostics(
   { chatId, userId, anonymousId }: { chatId: string; userId?: string | null; anonymousId?: string | null },
   net: NetworkDiagnostics,
 ) {
-  const useChatId = userId ? chatId : null;
+  // Only attach FK to Chat when the chat row exists (provisional ids may not be persisted yet)
+  let useChatId: string | null = null;
+  let provisionalChatId: string | undefined = undefined;
+  if (userId) {
+    const exists = await db.select({ id: chat.id }).from(chat).where(eq(chat.id, chatId)).limit(1);
+    if (exists.length) {
+      useChatId = chatId;
+    } else {
+      useChatId = null;
+      provisionalChatId = chatId;
+    }
+  }
   await db.insert(diagnosticsSnapshot).values({
     chatId: useChatId,
     userId: userId || null,
-    payload: { network: net, anonymousId },
+    payload: { network: net, anonymousId, provisionalChatId },
     createdAt: new Date(),
   });
 }

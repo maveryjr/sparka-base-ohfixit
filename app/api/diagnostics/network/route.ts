@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       results,
     };
 
-    await setNetworkDiagnostics(sessionKey, payload);
+  await setNetworkDiagnostics(sessionKey as any, payload);
 
     return NextResponse.json({ ok: true, results });
   } catch (error) {
