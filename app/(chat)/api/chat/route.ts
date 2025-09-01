@@ -472,6 +472,20 @@ export async function POST(request: NextRequest) {
 
       const stream = createUIMessageStream<ChatMessage>({
         execute: ({ writer: dataStream }) => {
+          // Check if this is a DNS/cache/network related query that should trigger automation
+          const userMessageText = userMessage.parts
+            .filter(part => part.type === 'text')
+            .map(part => part.text)
+            .join(' ')
+            .toLowerCase();
+
+          const shouldForceAutomation = userMessageText.includes('dns') ||
+            userMessageText.includes('cache') ||
+            userMessageText.includes('wifi') ||
+            userMessageText.includes('network') ||
+            userMessageText.includes('finder') ||
+            userMessageText.includes('clear');
+
           const result = streamText({
             model: getLanguageModel(selectedModelId),
             system: systemPrompt(diagnosticsContext ?? undefined),
@@ -498,6 +512,8 @@ export async function POST(request: NextRequest) {
               isEnabled: true,
               functionId: 'chat-response',
             },
+            // Force automation tool for system maintenance requests
+            toolChoice: shouldForceAutomation ? { type: 'tool', toolName: 'automation' } : undefined,
             tools: getTools({
               dataStream,
               session: {

@@ -43,9 +43,10 @@ export function getTools({
 }) {
   const anonymousIdPromise = getAnonymousSession().then((s) => s?.id || null).catch(() => null);
   return {
+    // Put automation tool FIRST to make it prominent
+    automation,
     getWeather,
     guideSteps,
-    automation,
     // OhFixIt Phase 2 tools
     getPlaybook,
     executePlaybookStep,

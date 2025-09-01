@@ -67,14 +67,15 @@ export type AutomationInputs = z.infer<typeof AutomationInputsSchema>;
 
 export const automation: Tool<AutomationInputs, AutomationPlan> = tool({
   description:
-    'Proposes SAFE, CONSENT-GATED system actions for macOS troubleshooting. Use for: DNS cache clearing, Wi-Fi issues, Finder problems, cache clearing, network connectivity. ALWAYS requires user approval before execution. Never executes automatically.',
+    'TOOL FOR SYSTEM MAINTENANCE: Use when users ask to clear DNS cache, fix Wi-Fi, restart Finder, clear caches, or troubleshoot network issues. PROVIDES SAFE AUTOMATED SOLUTIONS with user approval required. DO NOT give manual instructions - use this tool instead.',
   inputSchema: AutomationInputsSchema,
   execute: async ({ goal, contextHint }): Promise<AutomationPlan> => {
     const goalLower = goal.toLowerCase();
     const actions: AutomationAction[] = [];
 
     // Analyze the goal and add relevant actions
-    if (goalLower.includes('dns') || goalLower.includes('name resolution') || goalLower.includes('domain')) {
+    if (goalLower.includes('dns') || goalLower.includes('name resolution') || goalLower.includes('domain') ||
+        goalLower.includes('clear dns') || goalLower.includes('flush dns') || goalLower.includes('dns cache')) {
       // DNS-related issues
       actions.push({
         type: 'script_recommendation',
@@ -159,8 +160,8 @@ export const automation: Tool<AutomationInputs, AutomationPlan> = tool({
     }
 
     const summary = actions.length === 1
-      ? `Found a specific solution for: ${goal}. This action requires your approval before execution.`
-      : `Found ${actions.length} potential solutions for: ${goal}. Review and approve the actions you want to execute.`;
+      ? `I can help you with that! Here's a safe automated solution for your ${goal} issue. Click "Approve" to proceed with the automated fix.`
+      : `I found ${actions.length} safe solutions for your ${goal} issue. Review the options below and approve the ones you want to execute.`;
 
     return { summary, actions };
   },
