@@ -4,6 +4,9 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { generateActionPreview } from '@/lib/ohfixit/allowlist';
 import { logAction } from '@/lib/ohfixit/logger';
+import { db } from '@/lib/db/client';
+import { actionLog } from '@/lib/db/schema';
+import { desc, eq } from 'drizzle-orm';
 
 const ActionOperation = z.enum(['preview', 'approve', 'execute', 'rollback']);
 
@@ -46,41 +49,67 @@ export async function POST(request: NextRequest) {
 
     if (operation === 'approve') {
       const id = uuidv4();
-      // TODO: persist approval with expiry, link to chatId/actionId
-      await logAction({
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      // Persist approval with audit log; link to chatId/actionId
+      const rows = await logAction({
         chatId: chatId ?? 'provisional',
         actionType: 'script_recommendation',
         status: 'approved',
         summary: `Approved ${actionId}`,
-        payload: { actionId, approvalId: id },
-      }).catch(() => {});
-      return NextResponse.json({ approvalId: id, status: 'approved', actionId, chatId, expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() });
+        payload: { actionId, approvalId: id, expiresAt: expiresAt.toISOString() },
+      }).catch(() => [] as any);
+      const actionLogId = rows?.[0]?.id ?? null;
+      return NextResponse.json({ approvalId: id, actionLogId, status: 'approved', actionId, chatId, expiresAt: expiresAt.toISOString() });
     }
 
     if (operation === 'execute') {
+      if (!approvalId) {
+        return NextResponse.json({ error: 'approvalId is required to execute' }, { status: 400 });
+      }
+      // Find matching approval and ensure not expired; allow null chatId approvals
+      const approvals = await db
+        .select()
+        .from(actionLog)
+        .where(eq(actionLog.status, 'approved'))
+        .orderBy(desc(actionLog.createdAt))
+        .limit(100);
+      const now = Date.now();
+      const matched = approvals.find((row: any) => {
+        const p = (row?.payload ?? {}) as Record<string, any>;
+        if (!p || p.approvalId !== approvalId) return false;
+        // Require actionId match if provided
+        if (actionId && p.actionId && p.actionId !== actionId) return false;
+        const exp = p.expiresAt ? Date.parse(p.expiresAt) : new Date(row.createdAt).getTime() + 10 * 60 * 1000;
+        return !Number.isNaN(exp) && now <= exp;
+      });
+      if (!matched) {
+        return NextResponse.json({ error: 'Approval missing or expired' }, { status: 400 });
+      }
       const jobId = uuidv4();
-      // TODO: enqueue execution to desktop helper; create ActionLog entry with preview + pending outcome
-      await logAction({
+      // Enqueue execution to desktop helper (future); log the execution intent
+      const rows = await logAction({
         chatId: chatId ?? 'provisional',
         actionType: 'script_recommendation',
         status: 'executed',
         summary: `Execute ${actionId}`,
         payload: { actionId, approvalId: approvalId ?? null, jobId },
-      }).catch(() => {});
-      return NextResponse.json({ status: 'queued', jobId, actionId, approvalId: approvalId ?? null });
+      }).catch(() => [] as any);
+      const actionLogId = rows?.[0]?.id ?? null;
+      return NextResponse.json({ status: 'queued', jobId, actionLogId, actionId, approvalId: approvalId ?? null });
     }
 
     if (operation === 'rollback') {
       const jobId = uuidv4();
-      // TODO: enqueue rollback via desktop helper, reference prior rollback point
-      await logAction({
+      // Enqueue rollback via desktop helper (future), reference prior rollback point
+      const rows = await logAction({
         chatId: chatId ?? 'provisional',
         actionType: 'script_recommendation',
         status: 'cancelled',
         summary: `Rollback for ${actionId}`,
         payload: { actionId, approvalId: approvalId ?? null, jobId },
-      }).catch(() => {});
-      return NextResponse.json({ status: 'queued', jobId, rollbackOf: approvalId ?? actionId });
+      }).catch(() => [] as any);
+      const actionLogId = rows?.[0]?.id ?? null;
+      return NextResponse.json({ status: 'queued', jobId, actionLogId, rollbackOf: approvalId ?? actionId });
     }
 
     return NextResponse.json({ error: 'Unsupported operation' }, { status: 400 });

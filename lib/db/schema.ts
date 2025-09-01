@@ -161,6 +161,8 @@ export const actionLog = pgTable('ActionLog', {
   status: varchar('status', { length: 32 }).notNull().default('proposed'), // 'proposed' | 'approved' | 'executed' | 'cancelled'
   summary: text('summary'),
   payload: json('payload'),
+  executionHost: varchar('executionHost', { length: 32 }), // 'browser' | 'desktop-helper' | 'server'
+  outcome: varchar('outcome', { length: 32 }), // 'success' | 'failure' | 'aborted'
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 });
 
@@ -176,3 +178,30 @@ export const diagnosticsSnapshot = pgTable('DiagnosticsSnapshot', {
 });
 
 export type DiagnosticsSnapshot = InferSelectModel<typeof diagnosticsSnapshot>;
+
+// OhFixIt – Artifacts and Rollbacks
+
+export const rollbackPoint = pgTable('RollbackPoint', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  actionLogId: uuid('actionLogId')
+    .notNull()
+    .references(() => actionLog.id, { onDelete: 'cascade' }),
+  method: varchar('method', { length: 32 }).notNull(),
+  data: json('data'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type RollbackPoint = InferSelectModel<typeof rollbackPoint>;
+
+export const actionArtifact = pgTable('ActionArtifact', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  actionLogId: uuid('actionLogId')
+    .notNull()
+    .references(() => actionLog.id, { onDelete: 'cascade' }),
+  type: varchar('type', { length: 32 }).notNull(), // 'fileDiff' | 'systemChange' | 'screenshot' | 'log'
+  uri: text('uri'),
+  hash: varchar('hash', { length: 64 }),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type ActionArtifact = InferSelectModel<typeof actionArtifact>;

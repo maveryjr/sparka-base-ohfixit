@@ -179,6 +179,17 @@ applyTo: '**'
 	- Test focus: Ensure the header toggle `data-testid="guide-mode-toggle"` is present post-reload and `aria-pressed` reflects persisted state. Add minimal visibility wait if needed; prefer locator assertions that auto-retry.
 	- Status: Typecheck PASS; unit tests PASS; E2E failing test pending fix.
 
+	- Update (OhFixIt – Automation vertical slice: allowlist UI + approval expiry):
+		- Added approval expiry semantics:
+			- `app/api/automation/action/route.ts` now logs `expiresAt` in approval payload and validates `approvalId` before execute by scanning recent approved `ActionLog` rows and checking expiry.
+			- Returns `approvalId`, `expiresAt`, and persisted `actionLogId` on approve; returns `jobId` and `actionLogId` on execute.
+		- New UI: `components/ohfixit/automation-panel.tsx` provides an end-to-end panel to:
+			- Fetch allowlisted actions via `GET /api/automation/allowlist`.
+			- Preview actions (with parameterization for `clear-app-cache` bundleId), approve, execute, and rollback.
+			- Display returned `approvalId`, `expiresAt`, `jobId`, and `actionLogId` for traceability.
+		- Integration: Mounted the panel into Phase 2 hub (`components/ohfixit/phase2-integration.tsx`) as a new tab “Automation Panel”.
+		- Notes: File-level checks on changed files pass; global `tsc --noEmit` reveals pre-existing type errors in other modules (desktop helper stubs, voice-mode typings, extra tools). Deferred as unrelated to this slice.
+
 ### Context7 Sources (current session)
 - /vercel/next.js: Route Handlers streaming, dynamic vs force-static, server-only patterns; examples for `streamText` with AI SDK, `ReadableStream`, and route options like `export const dynamic = 'auto'`.
 - /vercel/ai (planned below): v5 tool calling, `streamText`, `toUIMessageStreamResponse`, `stopWhen`, `onFinish/onStepFinish` patterns.
