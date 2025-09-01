@@ -101,6 +101,8 @@ function PureChatHeader({
               variant={isGuideMode ? 'default' : 'ghost'}
               size="sm"
               className={cn('h-8 px-3', isGuideMode && 'bg-primary text-primary-foreground')}
+              data-testid="guide-mode-toggle"
+              aria-pressed={isGuideMode}
               onClick={() => setGuideMode(!isGuideMode)}
             >
               Guide Me
