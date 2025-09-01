@@ -5,13 +5,14 @@ import { GitIcon } from './icons';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { ShareButton } from './share-button';
-import { Share, LogIn } from 'lucide-react';
+import { Share, LogIn, Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { SidebarUserNav } from './sidebar-user-nav';
 import type { User } from 'next-auth';
 import { CollectClientDiagnostics } from '@/components/ohfixit/collect-client-diagnostics';
 import { useChatInput } from '@/providers/chat-input-provider';
+import { usePhase2 } from '@/providers/phase2-provider';
 import type { UiToolName } from '@/lib/ai/types';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +32,7 @@ function PureChatHeader({
   const isAuthenticated = !!session?.user;
   const [diagOpen, setDiagOpen] = useState(false);
   const { selectedTool, setSelectedTool } = useChatInput();
+  const { showPhase2Hub, setShowPhase2Hub } = usePhase2();
 
   // Persist and read per-chat "Guide Me" mode
   const storageKey = useMemo(() => `chat:${chatId}:guideMode`, [chatId]);
@@ -94,6 +96,29 @@ function PureChatHeader({
       )}
 
       <div className="ml-auto flex items-center gap-2">
+        {/* OhFixIt: Phase 2 Integration Hub toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={showPhase2Hub ? 'default' : 'ghost'}
+              size="sm"
+              className={cn('h-8 px-3', showPhase2Hub && 'bg-primary text-primary-foreground')}
+              onClick={() => setShowPhase2Hub(!showPhase2Hub)}
+            >
+              <Sparkles className="h-4 w-4 mr-1" />
+              Phase 2
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-center">
+              <div className="font-medium">Phase 2 Features</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Voice Mode, Playbooks, Redaction & More
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+
         {/* OhFixIt: Guide Me mode toggle */}
         <Tooltip>
           <TooltipTrigger asChild>

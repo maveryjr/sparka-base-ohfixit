@@ -6,6 +6,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from 'sonner';
 import { TRPCReactProvider } from '@/trpc/react';
+import { Phase2Provider } from '@/providers/phase2-provider';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://sparka.ai'),
@@ -99,7 +100,11 @@ export default async function RootLayout({
         >
           <Toaster position="top-center" />
           {/* <TooltipProvider delayDuration={0}> */}
-          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <TRPCReactProvider>
+            <Phase2Provider>
+              {children}
+            </Phase2Provider>
+          </TRPCReactProvider>
           {/* </TooltipProvider> */}
         </ThemeProvider>
       </body>

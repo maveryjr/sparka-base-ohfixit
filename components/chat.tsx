@@ -7,6 +7,8 @@ import { MessagesPane } from './messages-pane';
 import { useArtifactSelector } from '@/hooks/use-artifact';
 import { useTRPC } from '@/trpc/react';
 import { useSession } from 'next-auth/react';
+import { usePhase2 } from '@/providers/phase2-provider';
+import { Phase2Integration } from '@/components/ohfixit/phase2-integration';
 
 import { useSidebar } from '@/components/ui/sidebar';
 import type { ChatMessage } from '@/lib/ai/types';
@@ -50,6 +52,12 @@ export function Chat({
 
   const { state } = useSidebar();
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
+  const { showPhase2Hub } = usePhase2();
+
+  const handleFeatureSelect = (feature: string) => {
+    // Handle feature selection - could trigger chat messages or actions
+    console.log('Phase 2 feature selected:', feature);
+  };
 
   return (
     <>
@@ -65,6 +73,15 @@ export function Chat({
           hasMessages={messageIds.length > 0}
           user={session?.user}
         />
+
+        {showPhase2Hub && (
+          <div className="border-b bg-muted/30 p-4 max-h-[60vh] overflow-y-auto">
+            <Phase2Integration 
+              chatId={id}
+              onFeatureSelect={handleFeatureSelect}
+            />
+          </div>
+        )}
 
         <MessagesPane
           chatId={id}
