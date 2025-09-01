@@ -1,4 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+// Access the in-memory stub store created by the run route
+const g = globalThis as any;
+g.__ohfixit_health_jobs = g.__ohfixit_health_jobs || new Map<string, { status: 'queued' | 'running' | 'completed' | 'failed'; createdAt: number; result?: any }>();
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const jobId = searchParams.get('jobId');
+    if (!jobId) {
+      return NextResponse.json({ error: 'jobId is required' }, { status: 400 });
+    }
+    const job = g.__ohfixit_health_jobs.get(jobId);
+    if (!job) {
+      return NextResponse.json({ error: 'job not found' }, { status: 404 });
+    }
+    return NextResponse.json({ jobId, status: job.status, result: job.result ?? null });
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message || 'Failed to fetch results' }, { status: 400 });
+  }
+}
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
 import { z } from 'zod';
 import { logAction } from '@/lib/ohfixit/logger';

@@ -4,6 +4,10 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { logAction } from '@/lib/ohfixit/logger';
 
+// Very small in-memory stub store for demo/testing purposes only
+const g = globalThis as any;
+g.__ohfixit_health_jobs = g.__ohfixit_health_jobs || new Map<string, { status: 'queued' | 'running' | 'completed' | 'failed'; createdAt: number; result?: any }>();
+
 const runSchema = z.object({
   chatId: z.string().optional(),
   checks: z.array(z.string()).optional(),
@@ -21,9 +25,20 @@ export async function POST(request: NextRequest) {
     const { chatId, checks, priority } = runSchema.parse(body);
 
     const jobId = uuidv4();
-
-    // TODO: enqueue health checks (browser-level now; helper-powered in Phase 2)
-    // Persist job request linked to userId/chatId; return ETA based on checks
+    // Enqueue stub job in memory and simulate completion
+    g.__ohfixit_health_jobs.set(jobId, { status: 'queued', createdAt: Date.now() });
+    setTimeout(() => {
+      const job = g.__ohfixit_health_jobs.get(jobId);
+      if (!job) return;
+      job.status = 'completed';
+      job.result = {
+        overallScore: 82,
+        overallStatus: 'warning',
+        checks: [],
+        lastRunTime: new Date().toISOString(),
+      };
+      g.__ohfixit_health_jobs.set(jobId, job);
+    }, 50);
 
     // Log action to audit timeline
     await logAction({
@@ -36,6 +51,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       jobId,
+      status: 'queued',
       acceptedChecks: checks ?? ['network', 'disk', 'startup', 'services'],
       priority: priority ?? 'normal',
       estimatedTime: '30–90 seconds',

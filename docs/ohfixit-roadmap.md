@@ -35,7 +35,7 @@ Acceptance
 - [x] UI approval flow: “Do It For Me” panel with diff, risks, and one-tap Undo
 
 Acceptance
-- [ ] Approving triggers helper; `ActionLog` enriched with artifacts and rollback handle
+- [ ] Approving triggers helper; `ActionLog` enriched with artifacts and rollback handle (partial: helper handshake + reporting implemented; artifacts/rollback persisted on report)
 - [ ] One-tap Undo restores prior state; unallowlisted actions are rejected (partial: allowlist enforcement in place)
 
 ## Phase 2 – health checks dashboard (1.5 weeks)
@@ -114,6 +114,8 @@ Acceptance
 - [x] POST `/api/automation/action` – operations: preview, approve, execute, rollback
 - [x] POST `/api/ohfixit/health/run` – schedule health checks (stub)
 - [x] GET `/api/ohfixit/health/results` – fetch health check results (by jobId/chatId) (stub)
+- [x] POST `/api/automation/helper/token` – mint short‑lived JWT for Desktop Helper (scoped to chat/session/action)
+- [x] POST `/api/automation/helper/report` – helper reports outcome, artifacts, and rollback handle
 
 ## Data models (planned)
 
