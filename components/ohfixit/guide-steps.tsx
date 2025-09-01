@@ -28,6 +28,7 @@ export function GuideSteps({ plan, className }: { plan: GuidePlan; className?: s
         parts: [{ type: 'text', text }],
         metadata: {
           selectedModel: selectedModelId as ModelId,
+          selectedTool: 'guideSteps',
           createdAt: now,
           parentMessageId: parentId,
           // keep currently selected tool active
