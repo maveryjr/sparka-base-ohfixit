@@ -1,29 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/app/(auth)/auth';
+import { z } from 'zod';
+import { logAction } from '@/lib/ohfixit/logger';
 
 // Access the in-memory stub store created by the run route
 const g = globalThis as any;
 g.__ohfixit_health_jobs = g.__ohfixit_health_jobs || new Map<string, { status: 'queued' | 'running' | 'completed' | 'failed'; createdAt: number; result?: any }>();
-
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const jobId = searchParams.get('jobId');
-    if (!jobId) {
-      return NextResponse.json({ error: 'jobId is required' }, { status: 400 });
-    }
-    const job = g.__ohfixit_health_jobs.get(jobId);
-    if (!job) {
-      return NextResponse.json({ error: 'job not found' }, { status: 404 });
-    }
-    return NextResponse.json({ jobId, status: job.status, result: job.result ?? null });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Failed to fetch results' }, { status: 400 });
-  }
-}
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/(auth)/auth';
-import { z } from 'zod';
-import { logAction } from '@/lib/ohfixit/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,8 +18,24 @@ export async function GET(request: NextRequest) {
     const jobId = searchParams.get('jobId');
     const chatId = searchParams.get('chatId');
 
-    const querySchema = z.object({ jobId: z.string().nullable(), chatId: z.string().nullable() });
+    const querySchema = z.object({
+      jobId: z.string().nullable(),
+      chatId: z.string().nullable()
+    });
     querySchema.parse({ jobId, chatId });
+
+    // Check if we have a job in memory first
+    if (jobId) {
+      const job = g.__ohfixit_health_jobs.get(jobId);
+      if (job) {
+        return NextResponse.json({
+          jobId,
+          status: job.status,
+          result: job.result ?? null,
+          chatId
+        });
+      }
+    }
 
     // TODO: fetch real results from persistence; for now return stubbed sample
     const results = [
@@ -56,9 +54,16 @@ export async function GET(request: NextRequest) {
       payload: { jobId, count: results.length },
     }).catch(() => {});
 
-    return NextResponse.json({ jobId, chatId, results, createdAt: new Date().toISOString() });
+    return NextResponse.json({
+      jobId,
+      chatId,
+      results,
+      createdAt: new Date().toISOString()
+    });
   } catch (err: any) {
     console.error('Health results error:', err);
-    return NextResponse.json({ error: err?.message ?? 'Failed to fetch health results' }, { status: 400 });
+    return NextResponse.json({
+      error: err?.message ?? 'Failed to fetch health results'
+    }, { status: 400 });
   }
 }

@@ -85,6 +85,72 @@ const ACTIONS: Record<string, ActionDefinition> = {
       };
     },
   },
+  'restart-finder': {
+    id: 'restart-finder',
+    title: 'Restart Finder (macOS)',
+    os: 'macos',
+    category: 'system',
+    implementation: {
+      description: 'Restart the Finder application to refresh the desktop and file views',
+      commands: ['killall Finder'],
+      risks: ['Temporary loss of Finder windows'],
+      reversible: true,
+      estimatedTime: '5 seconds',
+      requirements: ['None'],
+    },
+  },
+  'clear-recent-items': {
+    id: 'clear-recent-items',
+    title: 'Clear Recent Items (macOS)',
+    os: 'macos',
+    category: 'privacy',
+    implementation: {
+      description: 'Clear recent applications, documents, and servers from system menus',
+      commands: [
+        'defaults delete com.apple.recentitems RecentApplications 2>/dev/null || true',
+        'defaults delete com.apple.recentitems RecentDocuments 2>/dev/null || true',
+        'defaults delete com.apple.recentitems RecentServers 2>/dev/null || true',
+      ],
+      risks: ['Loss of recent items history'],
+      reversible: false,
+      estimatedTime: '2 seconds',
+      requirements: ['None'],
+    },
+  },
+  'reset-launchpad': {
+    id: 'reset-launchpad',
+    title: 'Reset Launchpad Layout (macOS)',
+    os: 'macos',
+    category: 'system',
+    implementation: {
+      description: 'Reset Launchpad to default layout and restart Dock',
+      commands: [
+        'defaults write com.apple.dock ResetLaunchPad -bool true',
+        'killall Dock',
+      ],
+      risks: ['Launchpad layout will be reset to default'],
+      reversible: false,
+      estimatedTime: '10 seconds',
+      requirements: ['None'],
+    },
+  },
+  'clear-system-logs': {
+    id: 'clear-system-logs',
+    title: 'Clear Old System Logs (macOS)',
+    os: 'macos',
+    category: 'maintenance',
+    implementation: {
+      description: 'Remove old system log files to free up disk space',
+      commands: [
+        'sudo rm -rf /private/var/log/asl/*.asl 2>/dev/null || true',
+        'sudo rm -rf /private/var/log/DiagnosticMessages/*.asl 2>/dev/null || true',
+      ],
+      risks: ['Loss of old system logs'],
+      reversible: false,
+      estimatedTime: '30 seconds',
+      requirements: ['Administrator privileges'],
+    },
+  },
 };
 
 export function getActionDefinition(actionId: string): ActionDefinition | null {

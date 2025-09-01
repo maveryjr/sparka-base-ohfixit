@@ -22,7 +22,10 @@
     "fetch-models": "node scripts/fetch-models.js",
     "test": "export PLAYWRIGHT=True && bunx playwright test --workers=4",
     "test:unit": "vitest run",
-    "test:types": "tsc --noEmit"
+    "test:types": "tsc --noEmit",
+    "desktop-helper:dev": "cd desktop-helper && bun run tauri:dev",
+    "desktop-helper:build": "cd desktop-helper && bun run tauri:build",
+    "desktop-helper:install": "cd desktop-helper && bun install"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.3",
@@ -120,7 +123,7 @@
     "input-otp": "^1.4.2",
     "install": "^0.13.0",
     "js-tiktoken": "^1.0.19",
-  "jose": "^5.9.6",
+    "jose": "^5.9.6",
     "langfuse": "^3.37.0",
     "langfuse-vercel": "^3.37.0",
     "lexical": "^0.32.1",
@@ -179,6 +182,8 @@
     "@storybook/nextjs": "9.1.2",
     "@tailwindcss/postcss": "^4.1.12",
     "@tailwindcss/typography": "^0.5.16",
+    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/cli": "^2.8.4",
     "@types/d3-scale": "^4.0.8",
     "@types/diff": "^8.0.0",
     "@types/node": "^22.8.6",
@@ -199,8 +204,8 @@
     "tsx": "^4.19.1",
     "tw-animate-css": "^1.3.7",
     "typescript": "5.8.3",
-    "vitest": "^3.2.4",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
   },
   "packageManager": "bun@1.1.34"
 }

@@ -94,14 +94,38 @@ export const automation: Tool<AutomationInputs, AutomationPlan> = tool({
       {
         type: 'script_recommendation',
         id: 'script-dns-flush',
-        title: 'Optional: Flush DNS cache (macOS)',
+        title: 'Flush DNS Cache (macOS)',
         shell: 'bash',
         os: 'macos',
         script: 'sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder',
         explanation:
-          'If you suspect DNS resolution problems, flushing the DNS cache can help. This requires admin privileges.',
-        dryRun: true,
-        safetyNotes: 'Review the command and run it only if you understand the implications.',
+          'Flush the DNS cache to resolve name resolution issues.',
+        dryRun: false,
+        safetyNotes: 'Requires administrator privileges.',
+      },
+      {
+        type: 'script_recommendation',
+        id: 'script-wifi-toggle',
+        title: 'Toggle Wi-Fi (macOS)',
+        shell: 'bash',
+        os: 'macos',
+        script: 'networksetup -setairportpower en0 off; sleep 2; networksetup -setairportpower en0 on',
+        explanation:
+          'Toggle Wi-Fi off and back on to reset the network interface.',
+        dryRun: false,
+        safetyNotes: 'Temporarily disconnects from Wi-Fi network.',
+      },
+      {
+        type: 'script_recommendation',
+        id: 'script-clear-cache',
+        title: 'Clear Application Cache (macOS)',
+        shell: 'bash',
+        os: 'macos',
+        script: 'find ~/Library/Caches -name "*.cache" -type f -delete 2>/dev/null || true',
+        explanation:
+          'Clear application cache files to free up disk space.',
+        dryRun: false,
+        safetyNotes: 'Applications may rebuild caches on next launch.',
       },
     ];
 

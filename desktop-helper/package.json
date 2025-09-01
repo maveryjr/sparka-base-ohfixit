@@ -1,0 +1,15 @@
+{
+  "name": "ohfixit-desktop-helper",
+  "version": "0.1.0",
+  "description": "OhFixIt Desktop Helper - Safe system automation",
+  "main": "index.html",
+  "scripts": {
+    "dev": "echo 'Static HTML - no dev server needed'",
+    "build": "echo 'Static HTML - no build needed'",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

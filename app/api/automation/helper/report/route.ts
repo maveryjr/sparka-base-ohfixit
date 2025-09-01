@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { verifyAutomationToken } from '@/lib/ohfixit/jwt';
 import { db } from '@/lib/db/client';
 import { actionArtifact, actionLog, rollbackPoint } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,9 +19,10 @@ const rollbackSchema = z.object({
 });
 
 const payloadSchema = z.object({
-  actionLogId: z.string(),
-  outcome: z.enum(['success', 'failure', 'aborted']).default('success'),
-  message: z.string().optional(),
+  actionLogId: z.string().optional(),
+  actionId: z.string().optional(),
+  success: z.boolean().optional(),
+  output: z.string().optional(),
   artifacts: z.array(artifactSchema).default([]),
   rollbackPoint: rollbackSchema.optional(),
 });
@@ -37,27 +38,62 @@ export async function POST(req: NextRequest) {
     if (!claims) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
     const body = await req.json();
-    const { actionLogId, outcome, artifacts, rollbackPoint: rb } = payloadSchema.parse(body);
+    const { actionLogId, actionId, success, output, artifacts, rollbackPoint: rb } = payloadSchema.parse(body);
 
-    // ensure actionLog exists and update outcome + executionHost if not already set
-    const existing = await db.select().from(actionLog).where(eq(actionLog.id, actionLogId)).limit(1);
-    if (!existing.length) {
-      return NextResponse.json({ error: 'Unknown actionLogId' }, { status: 400 });
+    // Determine outcome from success boolean
+    const outcome = success === false ? 'failure' : 'success';
+
+    let finalActionLogId = actionLogId;
+
+    // If no actionLogId provided, try to find one based on actionId and recent approvals
+    if (!finalActionLogId && actionId) {
+      const recentLogs = await db
+        .select()
+        .from(actionLog)
+        .where(eq(actionLog.actionType, 'script_recommendation'))
+        .orderBy(desc(actionLog.createdAt))
+        .limit(10);
+
+      const matchingLog = recentLogs.find(log => {
+        const payload = log.payload as any;
+        return payload?.actionId === actionId;
+      });
+
+      if (matchingLog) {
+        finalActionLogId = matchingLog.id;
+      }
     }
 
-    await db
-      .update(actionLog)
-      .set({
+    // If still no actionLogId, create a new one
+    if (!finalActionLogId) {
+      const newLog = await db.insert(actionLog).values({
+        chatId: claims.chatId || null,
+        userId: claims.userId || null,
+        actionType: 'script_recommendation',
+        status: 'executed',
         outcome,
         executionHost: 'desktop-helper',
-        summary: existing[0].summary ?? null,
-      })
-      .where(eq(actionLog.id, actionLogId));
+        summary: `Executed ${actionId || 'unknown action'}`,
+        payload: { actionId, output, success },
+      }).returning();
+
+      finalActionLogId = newLog[0].id;
+    } else {
+      // Update existing action log
+      await db
+        .update(actionLog)
+        .set({
+          outcome,
+          executionHost: 'desktop-helper',
+          payload: { actionId, output, success },
+        })
+        .where(eq(actionLog.id, finalActionLogId));
+    }
 
     if (artifacts.length) {
       await db.insert(actionArtifact).values(
         artifacts.map((a) => ({
-          actionLogId,
+          actionLogId: finalActionLogId,
           type: a.type,
           uri: a.uri,
           hash: a.hash,
@@ -67,7 +103,7 @@ export async function POST(req: NextRequest) {
 
     if (rb) {
       await db.insert(rollbackPoint).values({
-        actionLogId,
+        actionLogId: finalActionLogId,
         method: rb.method,
         data: rb.data ?? null,
       });
