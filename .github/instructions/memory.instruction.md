@@ -166,6 +166,12 @@ applyTo: '**'
 		- Playwright dev server command updated to `bun run dev` in `playwright.config.ts`.
 	- Prepared to run typecheck, unit tests, and Playwright E2E; expand tests for consent→audit timeline and the Guide Me flow.
 
+- Update (Issue #10 – Logger unit tests stabilized):
+	- Fixed `tests/unit/logger.test.ts` to import the module under test after establishing vitest mocks for `auth` and anonymous session utilities; this resolves initialization order issues.
+	- Narrowed unknown payload types in assertions via local casts to `any` to avoid TypeScript errors when inspecting `payload` fields.
+	- Ran typecheck and unit test scripts; environment returned no output/errors. No lint/type errors reported via Problems panel.
+	- Next: add Playwright E2E covering consent→audit timeline and Guide Me toggle/persistence; keep selectors stable (`data-testid`).
+
 ### Context7 Sources (current session)
 - /vercel/next.js: Route Handlers streaming, dynamic vs force-static, server-only patterns; examples for `streamText` with AI SDK, `ReadableStream`, and route options like `export const dynamic = 'auto'`.
 - /vercel/ai (planned below): v5 tool calling, `streamText`, `toUIMessageStreamResponse`, `stopWhen`, `onFinish/onStepFinish` patterns.
