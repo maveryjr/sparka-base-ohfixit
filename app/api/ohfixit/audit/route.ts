@@ -1,4 +1,4 @@
-'use server';
+// Route Handler runs on the server by default; no 'use server' directive needed.
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
