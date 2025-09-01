@@ -73,18 +73,26 @@ export async function getRecordByChat({ chatId, userId, anonymousId }: { chatId:
   };
 }
 
-export async function setClientDiagnostics({ chatId, userId, anonymousId }: { chatId: string; userId?: string | null; anonymousId?: string | null }, diag: ClientDiagnostics) {
+export async function setClientDiagnostics(
+  { chatId, userId, anonymousId }: { chatId: string; userId?: string | null; anonymousId?: string | null },
+  diag: ClientDiagnostics,
+) {
+  const useChatId = userId ? chatId : null;
   await db.insert(diagnosticsSnapshot).values({
-    chatId,
+    chatId: useChatId,
     userId: userId || null,
     payload: { client: diag, anonymousId },
     createdAt: new Date(),
   });
 }
 
-export async function setNetworkDiagnostics({ chatId, userId, anonymousId }: { chatId: string; userId?: string | null; anonymousId?: string | null }, net: NetworkDiagnostics) {
+export async function setNetworkDiagnostics(
+  { chatId, userId, anonymousId }: { chatId: string; userId?: string | null; anonymousId?: string | null },
+  net: NetworkDiagnostics,
+) {
+  const useChatId = userId ? chatId : null;
   await db.insert(diagnosticsSnapshot).values({
-    chatId,
+    chatId: useChatId,
     userId: userId || null,
     payload: { network: net, anonymousId },
     createdAt: new Date(),

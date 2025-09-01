@@ -143,7 +143,6 @@ export type Suggestion = InferSelectModel<typeof suggestion>;
 export const consentEvent = pgTable('ConsentEvent', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   chatId: uuid('chatId')
-    .notNull()
     .references(() => chat.id, { onDelete: 'cascade' }),
   userId: uuid('userId').references(() => user.id), // nullable for anonymous
   kind: varchar('kind', { length: 64 }).notNull(), // 'screenshot' | 'diagnostics' | 'automation'
@@ -156,7 +155,6 @@ export type ConsentEvent = InferSelectModel<typeof consentEvent>;
 export const actionLog = pgTable('ActionLog', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   chatId: uuid('chatId')
-    .notNull()
     .references(() => chat.id, { onDelete: 'cascade' }),
   userId: uuid('userId').references(() => user.id), // nullable for anonymous
   actionType: varchar('actionType', { length: 64 }).notNull(), // 'open_url' | 'dom_instruction' | 'script_recommendation' | 'guide_step'
@@ -171,7 +169,6 @@ export type ActionLog = InferSelectModel<typeof actionLog>;
 export const diagnosticsSnapshot = pgTable('DiagnosticsSnapshot', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   chatId: uuid('chatId')
-    .notNull()
     .references(() => chat.id, { onDelete: 'cascade' }),
   userId: uuid('userId').references(() => user.id), // nullable for anonymous
   payload: json('payload'),

@@ -40,8 +40,9 @@ export async function logConsent(
   },
 ): Promise<ConsentEventRow[]> {
   const { userId, anonymousId } = await resolveActorIds();
+  const useChatId = userId ? attrs.chatId : null;
   const values = {
-    chatId: attrs.chatId,
+    chatId: useChatId,
     userId: userId || null,
     kind: attrs.kind,
     payload: {
@@ -67,8 +68,9 @@ export async function logAction(
   },
 ): Promise<ActionLogRow[]> {
   const { userId, anonymousId } = await resolveActorIds();
+  const useChatId = userId ? attrs.chatId : null;
   const values = {
-    chatId: attrs.chatId,
+    chatId: useChatId,
     userId: userId || null,
     actionType: attrs.actionType,
     status: attrs.status ?? 'proposed',
@@ -86,8 +88,9 @@ export async function snapshotDiagnostics(
   attrs: CommonAttrs & { payload: unknown },
 ): Promise<DiagnosticsSnapshotRow[]> {
   const { userId, anonymousId } = await resolveActorIds();
+  const useChatId = userId ? attrs.chatId : null;
   const values = {
-    chatId: attrs.chatId,
+    chatId: useChatId,
     userId: userId || null,
     payload: {
       ...(attrs.payload as Record<string, unknown> | null | undefined),
