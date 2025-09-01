@@ -46,7 +46,7 @@ export function AutomationPanel({ chatId }: { chatId: string }) {
   const [bundleId, setBundleId] = useState('');
   const [preview, setPreview] = useState<Preview | null>(null);
   const [approval, setApproval] = useState<{ approvalId: string; expiresAt: string; actionLogId?: string | null } | null>(null);
-  const [exec, setExec] = useState<{ jobId: string; actionLogId?: string | null } | null>(null);
+  const [exec, setExec] = useState<{ jobId: string; actionLogId?: string | null; helperToken?: string; reportUrl?: string; expiresIn?: number } | null>(null);
   const actions = data?.actions ?? [];
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export function AutomationPanel({ chatId }: { chatId: string }) {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json?.error || 'Execute failed');
-    setExec({ jobId: json.jobId, actionLogId: json.actionLogId });
+    setExec({ jobId: json.jobId, actionLogId: json.actionLogId, helperToken: json.helperToken, reportUrl: json.reportUrl, expiresIn: json.expiresIn });
   }
 
   async function doRollback() {
@@ -104,6 +104,7 @@ export function AutomationPanel({ chatId }: { chatId: string }) {
     const json = await res.json();
     if (!res.ok) throw new Error(json?.error || 'Rollback failed');
     // We don't track rollback job beyond response here
+    setExec({ jobId: json.jobId, actionLogId: json.actionLogId, helperToken: json.helperToken, reportUrl: json.reportUrl, expiresIn: json.expiresIn });
   }
 
   return (
@@ -190,6 +191,15 @@ export function AutomationPanel({ chatId }: { chatId: string }) {
                 <div className="text-sm font-medium mb-1">Execution</div>
                 <div className="text-xs">Job ID: <code>{exec.jobId}</code></div>
                 <div className="text-xs">ActionLog ID: <code>{exec.actionLogId ?? 'n/a'}</code></div>
+                {exec.helperToken && (
+                  <div className="text-xs break-all">Helper Token: <code>{exec.helperToken}</code></div>
+                )}
+                {exec.reportUrl && (
+                  <div className="text-xs">Report URL: <code>{exec.reportUrl}</code></div>
+                )}
+                {!!exec.expiresIn && (
+                  <div className="text-xs">Token TTL: {exec.expiresIn}s</div>
+                )}
               </div>
             )}
           </div>

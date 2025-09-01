@@ -13,30 +13,30 @@ This roadmap outlines the end-to-end plan to fully implement OhFixIt, aligned to
 
 ## Phase 0 – foundation and safety rails (1 week)
 
-- Allowlist and action contract
+- [x] Allowlist and action contract
   - Action descriptor schema: id, title, os, preconditions, implementation, preview, rollback strategy
   - Shared action contract for tools: inputs, previewDiff, risk, estimatedTime, permissions
-- Audit model enrichment
+- [x] Audit model enrichment
   - Extend `ActionLog` with: outcome, preview, diff, artifacts[], rollbackPointId, executionHost
   - New tables (planned): `ActionArtifact`, `RollbackPoint`
-- Minimal tooling
+- [x] Minimal tooling
   - Standardize preview-only responses for all execution-capable tools
 
 Acceptance
-- All execution-capable tools return a preview (no real execution)
-- Audit timeline renders previews and risk levels
+- [x] All execution-capable tools return a preview (no real execution)
+- [x] Audit timeline renders previews and risk levels
 
 ## Phase 1 – automation v1 (preview → approve → execute → rollback) (2–3 weeks)
 
-- Desktop Helper (Tauri), secure WS handshake, JWT-scoped to chat/session
-- Implement 3 safe macOS actions with rollbacks:
+- [ ] Desktop Helper (Tauri), secure WS handshake, JWT-scoped to chat/session
+- [ ] Implement 3 safe macOS actions with rollbacks:
   - Flush DNS, Toggle Wi‑Fi (restore prior state), Clear app cache (backup+restore)
-- Server APIs: preview/approve/execute/rollback with robust validation and audit
-- UI approval flow: “Do It For Me” panel with diff, risks, and one-tap Undo
+- [x] Server APIs: preview/approve/execute/rollback with robust validation and audit
+- [x] UI approval flow: “Do It For Me” panel with diff, risks, and one-tap Undo
 
 Acceptance
-- Approving triggers helper; `ActionLog` enriched with artifacts and rollback handle
-- One-tap Undo restores prior state; unallowlisted actions are rejected
+- [ ] Approving triggers helper; `ActionLog` enriched with artifacts and rollback handle
+- [ ] One-tap Undo restores prior state; unallowlisted actions are rejected (partial: allowlist enforcement in place)
 
 ## Phase 2 – health checks dashboard (1.5 weeks)
 
@@ -111,19 +111,19 @@ Acceptance
 
 ## APIs to scaffold now
 
-- POST `/api/automation/action` – operations: preview, approve, execute, rollback
-- POST `/api/ohfixit/health/run` – schedule health checks
-- GET `/api/ohfixit/health/results` – fetch health check results (by jobId/chatId)
+- [x] POST `/api/automation/action` – operations: preview, approve, execute, rollback
+- [x] POST `/api/ohfixit/health/run` – schedule health checks (stub)
+- [x] GET `/api/ohfixit/health/results` – fetch health check results (by jobId/chatId) (stub)
 
 ## Data models (planned)
 
-- ActionArtifact(id, actionId, type, uri/blobRef, hash, createdAt)
-- RollbackPoint(id, actionId, method, data JSON, createdAt)
-- PlaybookRun(id, chatId, playbookId, deviceProfileId, status, startedAt, finishedAt)
-- PlaybookRunStep(id, runId, stepId, status, artifacts[], notes)
-- HealthCheck(id, chatId/userId, checkKey, status, score, details JSON, createdAt)
-- DeviceProfile(id, userId, os, name, capabilities JSON, lastSeenAt, warranty JSON)
-- HumanHandoffSession(id, chatId, status, operatorId, startedAt, endedAt, transcriptRef)
+- [x] ActionArtifact(id, actionId, type, uri/blobRef, hash, createdAt)
+- [x] RollbackPoint(id, actionId, method, data JSON, createdAt)
+- [ ] PlaybookRun(id, chatId, playbookId, deviceProfileId, status, startedAt, finishedAt)
+- [ ] PlaybookRunStep(id, runId, stepId, status, artifacts[], notes)
+- [ ] HealthCheck(id, chatId/userId, checkKey, status, score, details JSON, createdAt)
+- [ ] DeviceProfile(id, userId, os, name, capabilities JSON, lastSeenAt, warranty JSON)
+- [ ] HumanHandoffSession(id, chatId, status, operatorId, startedAt, endedAt, transcriptRef)
 
 ## Consent & privacy
 

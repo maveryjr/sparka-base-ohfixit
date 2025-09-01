@@ -32,11 +32,14 @@ applyTo: '**'
 - Libraries researched on Context7:
 	- /vercel/ai (AI SDK v5): tools with zod schemas; streamText server usage; toUIMessageStreamResponse; tool streaming default; onError handlers; multi-step with stopWhen
 	- /vercel/next.js (App Router): route handlers using Web Request/Response; streaming with ReadableStream; caching and dynamic rendering notes
+	- /panva/jose (JWT): HS256 signing and verification with SignJWT and jwtVerify; issuer/audience validation; symmetric secret via TextEncoder; claim options like exp/iat/nbf
 - Best practices discovered:
 	- Define tools with tool({ description, inputSchema, execute }) and register in streamText; tool streaming is default in v5
 	- Use route handlers in app/**/route.ts for server endpoints; prefer cache: 'no-store' for dynamic diagnostics
 	- Use onFinish/onStepFinish to inspect tool results if needed; UI can render tool part states
+	- For helper handshake, mint short-lived tokens (<=10m), include chatId/userId/anonymousId/actionId/approvalId scope, validate iss/aud and algorithm; store secret in OHFIXIT_JWT_SECRET
 - Implementation patterns used: AI SDK v5 streamText with tools; media capture via getDisplayMedia; attachment flows; tool registry in lib/ai/tools/tools.ts
+	- JOSE-based JWT helpers in lib/ohfixit/jwt.ts; Next.js routes for token minting and helper reporting
 - Version-specific findings:
 	- AI SDK v5 uses result.toUIMessageStreamResponse for UI streaming
 	- streamText is synchronous (no await needed) in v4+; codebase aligns with v5
@@ -189,6 +192,14 @@ applyTo: '**'
 			- Display returned `approvalId`, `expiresAt`, `jobId`, and `actionLogId` for traceability.
 		- Integration: Mounted the panel into Phase 2 hub (`components/ohfixit/phase2-integration.tsx`) as a new tab “Automation Panel”.
 		- Notes: File-level checks on changed files pass; global `tsc --noEmit` reveals pre-existing type errors in other modules (desktop helper stubs, voice-mode typings, extra tools). Deferred as unrelated to this slice.
+
+- Update (OhFixIt – Helper handshake + reporting endpoints):
+	- Added JOSE JWT utility at `lib/ohfixit/jwt.ts` with HS256 signing/verification, claims: chatId, userId, anonymousId, actionId, approvalId, scope; issuer `ohfixit-helper`, audience `desktop-helper`, 10m TTL.
+	- Created `POST /api/automation/helper/token` (auth-required) returning `{ token, reportUrl, expiresIn }` for a given chatId/actionId/approvalId.
+	- Created `POST /api/automation/helper/report` expecting Bearer token; body with `{ actionLogId, outcome, artifacts[], rollbackPoint }`; updates `ActionLog` outcome/executionHost and inserts into `ActionArtifact` and `RollbackPoint` tables.
+	- Updated `POST /api/automation/action (execute)` to verify approval, mint helper token, log execution intent, and return `{ helperToken, reportUrl }` along with jobId.
+	- Added unit tests: `tests/unit/jwt.util.test.ts` and `tests/unit/helper.report.test.ts` for token sign/verify basics; tests configure `OHFIXIT_JWT_SECRET`.
+	- Acceptance impact: execution path can now be wired by a Desktop Helper using the token to report outcomes and artifacts; audit tables populated accordingly.
 
 ### Context7 Sources (current session)
 - /vercel/next.js: Route Handlers streaming, dynamic vs force-static, server-only patterns; examples for `streamText` with AI SDK, `ReadableStream`, and route options like `export const dynamic = 'auto'`.

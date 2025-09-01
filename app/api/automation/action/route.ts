@@ -7,6 +7,8 @@ import { logAction } from '@/lib/ohfixit/logger';
 import { db } from '@/lib/db/client';
 import { actionLog } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
+import { resolveActorIds } from '@/lib/ohfixit/logger';
+import { signAutomationToken } from '@/lib/ohfixit/jwt';
 
 const ActionOperation = z.enum(['preview', 'approve', 'execute', 'rollback']);
 
@@ -50,16 +52,32 @@ export async function POST(request: NextRequest) {
     if (operation === 'approve') {
       const id = uuidv4();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      // Validate action is allowlisted by generating a preview
+      const preview = generateActionPreview(actionId, parameters ?? {});
+      // Mint a token for the desktop helper to begin handshake if needed
+      const { userId, anonymousId } = await resolveActorIds();
+      const helperToken = await signAutomationToken(
+        {
+          chatId: chatId ?? null,
+          userId,
+          anonymousId,
+          actionId,
+          approvalId: id,
+          scope: 'both',
+        },
+        60 * 10,
+      );
+      const reportUrl = '/api/automation/helper/report';
       // Persist approval with audit log; link to chatId/actionId
       const rows = await logAction({
         chatId: chatId ?? 'provisional',
         actionType: 'script_recommendation',
         status: 'approved',
         summary: `Approved ${actionId}`,
-        payload: { actionId, approvalId: id, expiresAt: expiresAt.toISOString() },
+        payload: { actionId, approvalId: id, expiresAt: expiresAt.toISOString(), preview },
       }).catch(() => [] as any);
       const actionLogId = rows?.[0]?.id ?? null;
-      return NextResponse.json({ approvalId: id, actionLogId, status: 'approved', actionId, chatId, expiresAt: expiresAt.toISOString() });
+      return NextResponse.json({ approvalId: id, actionLogId, status: 'approved', actionId, chatId, expiresAt: expiresAt.toISOString(), helperToken, reportUrl, expiresIn: 600 });
     }
 
     if (operation === 'execute') {
@@ -86,30 +104,57 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Approval missing or expired' }, { status: 400 });
       }
       const jobId = uuidv4();
-      // Enqueue execution to desktop helper (future); log the execution intent
+      // Mint short-lived helper token scoped to this approval/action
+      const { userId, anonymousId } = await resolveActorIds();
+      const helperToken = await signAutomationToken(
+        {
+          chatId: chatId ?? matched.chatId ?? null,
+          userId,
+          anonymousId,
+          actionId,
+          approvalId,
+          scope: 'both',
+        },
+        60 * 10,
+      );
+      const reportUrl = '/api/automation/helper/report';
+      // Log the execution intent
       const rows = await logAction({
         chatId: chatId ?? 'provisional',
         actionType: 'script_recommendation',
         status: 'executed',
         summary: `Execute ${actionId}`,
-        payload: { actionId, approvalId: approvalId ?? null, jobId },
+        payload: { actionId, approvalId: approvalId ?? null, jobId, executionHost: 'desktop-helper' },
       }).catch(() => [] as any);
       const actionLogId = rows?.[0]?.id ?? null;
-      return NextResponse.json({ status: 'queued', jobId, actionLogId, actionId, approvalId: approvalId ?? null });
+      return NextResponse.json({ status: 'queued', jobId, actionLogId, actionId, approvalId: approvalId ?? null, helperToken, reportUrl, expiresIn: 600 });
     }
 
     if (operation === 'rollback') {
       const jobId = uuidv4();
+      const { userId, anonymousId } = await resolveActorIds();
+      const helperToken = await signAutomationToken(
+        {
+          chatId: chatId ?? null,
+          userId,
+          anonymousId,
+          actionId,
+          approvalId: approvalId ?? undefined,
+          scope: 'both',
+        },
+        60 * 10,
+      );
+      const reportUrl = '/api/automation/helper/report';
       // Enqueue rollback via desktop helper (future), reference prior rollback point
       const rows = await logAction({
         chatId: chatId ?? 'provisional',
         actionType: 'script_recommendation',
         status: 'cancelled',
         summary: `Rollback for ${actionId}`,
-        payload: { actionId, approvalId: approvalId ?? null, jobId },
+        payload: { actionId, approvalId: approvalId ?? null, jobId, executionHost: 'desktop-helper' },
       }).catch(() => [] as any);
       const actionLogId = rows?.[0]?.id ?? null;
-      return NextResponse.json({ status: 'queued', jobId, actionLogId, rollbackOf: approvalId ?? actionId });
+      return NextResponse.json({ status: 'queued', jobId, actionLogId, rollbackOf: approvalId ?? actionId, helperToken, reportUrl, expiresIn: 600 });
     }
 
     return NextResponse.json({ error: 'Unsupported operation' }, { status: 400 });
