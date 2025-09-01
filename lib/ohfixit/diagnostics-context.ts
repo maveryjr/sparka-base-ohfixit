@@ -6,6 +6,7 @@ import { capabilityMap, detectOS } from '@/lib/ohfixit/os-capabilities';
 export type DiagnosticsContextOptions = {
   userId?: string | null;
   anonymousId?: string | null;
+  chatId: string;
   includeTips?: boolean;
 };
 
@@ -19,14 +20,11 @@ function safeJoin(items: Array<string | undefined | null>, sep = ', ') {
 }
 
 export async function buildDiagnosticsContext(
-  opts: DiagnosticsContextOptions,
+  opts: DiagnosticsContextOptions
 ): Promise<string | null> {
-  const sessionKey = getSessionKeyForIds({
-    userId: opts.userId ?? null,
-    anonymousId: opts.anonymousId ?? null,
-  });
-
-  const rec = getRecord(sessionKey);
+  const { userId, anonymousId, chatId } = opts;
+  const { getRecordByChat } = await import('./diagnostics-store');
+  const rec = await getRecordByChat({ userId, anonymousId, chatId });
   if (!rec) return null;
 
   const parts: string[] = [];

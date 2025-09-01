@@ -31,6 +31,7 @@ if (process.env.REDIS_URL) {
 }
 
 const NetworkInput = z.object({
+  chatId: z.string(),
   targets: z.array(z.string().url()).default([
     'https://vercel.com',
     'https://www.google.com/generate_204',
@@ -86,7 +87,8 @@ export async function POST(request: NextRequest) {
       anonymous = await createAnonymousSession();
       if (anonymous) await setAnonymousSession(anonymous);
     }
-    const sessionKey = getSessionKeyForIds({ userId, anonymousId: anonymous?.id });
+    const chatId = parsed.data.chatId;
+    const sessionKey = getSessionKeyForIds({ userId, anonymousId: anonymous?.id, chatId });
 
     const results = await Promise.all(
       parsed.data.targets.map((t) => checkTarget(t)),
@@ -97,7 +99,7 @@ export async function POST(request: NextRequest) {
       results,
     };
 
-    setNetworkDiagnostics(sessionKey, payload);
+    await setNetworkDiagnostics(sessionKey, payload);
 
     return NextResponse.json({ ok: true, results });
   } catch (error) {

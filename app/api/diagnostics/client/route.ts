@@ -32,6 +32,7 @@ if (process.env.REDIS_URL) {
 }
 
 const ClientDiagnosticsInput = z.object({
+  chatId: z.string(),
   consent: z.boolean().default(false),
   data: z.object({
     userAgent: z.string().default(''),
@@ -104,7 +105,8 @@ export async function POST(request: NextRequest) {
       anonymous = await createAnonymousSession();
       if (anonymous) await setAnonymousSession(anonymous);
     }
-    const sessionKey = getSessionKeyForIds({ userId, anonymousId: anonymous?.id });
+    const chatId = parsed.data.chatId;
+    const sessionKey = getSessionKeyForIds({ userId, anonymousId: anonymous?.id, chatId });
 
     const { userAgent, platform } = parsed.data.data;
     const family = detectOS(userAgent || '', platform);
@@ -118,7 +120,7 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    setClientDiagnostics(sessionKey, payload);
+    await setClientDiagnostics(sessionKey, payload);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

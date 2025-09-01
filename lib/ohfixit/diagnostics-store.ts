@@ -1,5 +1,9 @@
-// Simple in-memory store for diagnostics data keyed by session (user or anonymous)
-// Note: This is ephemeral and per-process. For MVP it is acceptable; future work can persist using DB.
+
+import { db } from '@/lib/db/client';
+import { diagnosticsSnapshot } from '@/lib/db/schema';
+import { eq, desc } from 'drizzle-orm';
+
+// Persistent store for diagnostics data using Drizzle ORM
 
 export type ClientDiagnostics = {
   collectedAt: number;
@@ -39,29 +43,55 @@ export type NetworkDiagnostics = {
   results: NetworkCheckResult[];
 };
 
-type StoreRecord = {
+
+export type StoreRecord = {
   client?: ClientDiagnostics;
   network?: NetworkDiagnostics;
 };
 
-const store = new Map<string, StoreRecord>();
+// Diagnostics are stored per userId or anonymousId (and optionally chatId)
+// For MVP, we use userId/anonymousId only (chatId can be null)
 
-export function getRecord(sessionKey: string): StoreRecord | undefined {
-  return store.get(sessionKey);
+
+
+
+// New DB-backed functions require chatId
+export async function getRecordByChat({ chatId, userId, anonymousId }: { chatId: string; userId?: string | null; anonymousId?: string | null }): Promise<StoreRecord | undefined> {
+  const rows = await db
+    .select()
+    .from(diagnosticsSnapshot)
+    .where(
+      eq(diagnosticsSnapshot.chatId, chatId)
+    )
+    .orderBy(desc(diagnosticsSnapshot.createdAt))
+    .limit(1);
+  if (!rows.length) return undefined;
+  const payload = rows[0].payload as any;
+  return {
+    client: payload?.client,
+    network: payload?.network,
+  };
 }
 
-export function setClientDiagnostics(sessionKey: string, diag: ClientDiagnostics) {
-  const rec = store.get(sessionKey) ?? {};
-  rec.client = diag;
-  store.set(sessionKey, rec);
+export async function setClientDiagnostics({ chatId, userId, anonymousId }: { chatId: string; userId?: string | null; anonymousId?: string | null }, diag: ClientDiagnostics) {
+  await db.insert(diagnosticsSnapshot).values({
+    chatId,
+    userId: userId || null,
+    payload: { client: diag, anonymousId },
+    createdAt: new Date(),
+  });
 }
 
-export function setNetworkDiagnostics(sessionKey: string, net: NetworkDiagnostics) {
-  const rec = store.get(sessionKey) ?? {};
-  rec.network = net;
-  store.set(sessionKey, rec);
+export async function setNetworkDiagnostics({ chatId, userId, anonymousId }: { chatId: string; userId?: string | null; anonymousId?: string | null }, net: NetworkDiagnostics) {
+  await db.insert(diagnosticsSnapshot).values({
+    chatId,
+    userId: userId || null,
+    payload: { network: net, anonymousId },
+    createdAt: new Date(),
+  });
 }
 
-export function getSessionKeyForIds({ userId, anonymousId }: { userId?: string | null; anonymousId?: string | null }) {
-  return userId ? `u:${userId}` : anonymousId ? `a:${anonymousId}` : 'anon:unknown';
+export function getSessionKeyForIds({ userId, anonymousId, chatId }: { userId?: string | null; anonymousId?: string | null; chatId: string }) {
+  // For DB, just return the object for compatibility
+  return { userId, anonymousId, chatId };
 }

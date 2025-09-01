@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  chatId: string;
 };
 
 function collectSnapshot() {
@@ -47,7 +48,7 @@ function collectSnapshot() {
   }
 }
 
-export function CollectClientDiagnostics({ open, onOpenChange }: Props) {
+export function CollectClientDiagnostics({ open, onOpenChange, chatId }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState<any | null>(null);
 
@@ -58,7 +59,7 @@ export function CollectClientDiagnostics({ open, onOpenChange }: Props) {
   const handleAccept = useCallback(async () => {
     setSubmitting(true);
     try {
-      const payload = collectSnapshot();
+      const payload = { ...collectSnapshot(), chatId };
       const res = await fetch('/api/diagnostics/client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,7 +76,7 @@ export function CollectClientDiagnostics({ open, onOpenChange }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [onOpenChange]);
+  }, [onOpenChange, chatId]);
 
   const redactUA = useMemo(() => {
     const ua = preview?.data?.userAgent as string | undefined;
