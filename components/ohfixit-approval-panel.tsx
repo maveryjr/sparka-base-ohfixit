@@ -38,6 +38,7 @@ export function OhFixItApprovalPanel({ chatId }: { chatId: string }) {
     reportUrl: string;
   } | null>(null);
   const [status, setStatus] = useState<string>('');
+  const [rollbackInfo, setRollbackInfo] = useState<{ method?: string; data?: any } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -143,6 +144,9 @@ export function OhFixItApprovalPanel({ chatId }: { chatId: string }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Rollback failed');
       setStatus(`Rollback queued with jobId ${data.jobId}`);
+      if (data.rollbackPoint) {
+        setRollbackInfo({ method: data.rollbackPoint.method, data: data.rollbackPoint.data });
+      }
     } catch (e: any) {
       setError(e?.message || 'Rollback error');
     } finally {
@@ -222,6 +226,11 @@ export function OhFixItApprovalPanel({ chatId }: { chatId: string }) {
       )}
       {!!status && <div className="text-xs text-green-600">{status}</div>}
       {!!error && <div className="text-xs text-red-600">{error}</div>}
+      {rollbackInfo && (
+        <div className="text-[10px] text-neutral-600 break-all">
+          Rollback method: {rollbackInfo.method || 'n/a'}
+        </div>
+      )}
       {approval && (
         <div className="text-[10px] text-neutral-500 break-all">
           Token: {approval.helperToken.substring(0, 24)}... • Expires: {new Date(approval.expiresAt).toLocaleTimeString()}

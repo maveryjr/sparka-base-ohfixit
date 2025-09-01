@@ -56,7 +56,10 @@ Sparka AI is built with modern technologies for scalability and performance:
          - List allowlisted actions, preview diffs/commands and risks
          - Approve (mints a short-lived helper token) and Execute (queues via helper/report pipeline)
          - Undo triggers a rollback request (helper should report artifacts and rollback handles)
-      - Audit timeline renders recent consent, diagnostics snapshots, and action logs.
+         - Audit timeline renders recent consent, diagnostics snapshots, and action logs.
+      - Desktop Helper integration
+         - Handshake: POST /api/automation/helper/handshake with Authorization: Bearer <helperToken> to verify claims and register presence.
+         - Reporting: POST /api/automation/helper/report with Authorization: Bearer <helperToken> and JSON payload { actionLogId?, actionId?, success, output, artifacts[], rollbackPoint }.
 
 - **Tailwind CSS**: Responsive, utility-first styling
 - **Radix UI**: Accessible component primitives
