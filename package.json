@@ -120,6 +120,7 @@
     "input-otp": "^1.4.2",
     "install": "^0.13.0",
     "js-tiktoken": "^1.0.19",
+  "jose": "^5.9.6",
     "langfuse": "^3.37.0",
     "langfuse-vercel": "^3.37.0",
     "lexical": "^0.32.1",

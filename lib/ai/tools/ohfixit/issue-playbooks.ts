@@ -330,6 +330,83 @@ export const ISSUE_PLAYBOOKS: IssuePlaybook[] = [
       'Contact computer technician',
       'Consider professional malware removal service'
     ]
+  },
+  {
+    id: 'app-wont-open',
+    title: 'Fix App That Won\'t Open',
+    category: 'System',
+    description: 'Resolve issues with applications that fail to launch or keep crashing',
+    symptoms: [
+      'App icon bounces but doesn\'t open',
+      'Application crashes immediately on startup',
+      'Error message when trying to open app',
+      'App appears in task manager but no window shows'
+    ],
+    difficulty: 'medium',
+    estimatedTime: '10-15 minutes',
+    prerequisites: ['Admin access to computer'],
+    steps: [
+      {
+        id: 'restart-app',
+        title: 'Force Quit and Restart',
+        description: 'Completely close the application and restart it',
+        actions: [
+          'Press Ctrl+Shift+Esc to open Task Manager (Windows) or Cmd+Option+Esc (Mac)',
+          'Find the problematic application in the list',
+          'Select it and click "End Task" or "Force Quit"',
+          'Wait 10 seconds, then try opening the app again'
+        ],
+        expectedResult: 'Application should start normally',
+        estimatedTime: '2 minutes'
+      },
+      {
+        id: 'run-as-admin',
+        title: 'Run as Administrator',
+        description: 'Try running the application with elevated privileges',
+        actions: [
+          'Right-click on the application icon',
+          'Select "Run as administrator" (Windows) or hold Cmd while opening (Mac)',
+          'Click "Yes" if prompted by User Account Control'
+        ],
+        expectedResult: 'Application opens with admin privileges',
+        estimatedTime: '1 minute'
+      },
+      {
+        id: 'check-compatibility',
+        title: 'Check Compatibility Mode',
+        description: 'Run the app in compatibility mode for older Windows versions',
+        actions: [
+          'Right-click on the application executable',
+          'Select "Properties"',
+          'Go to "Compatibility" tab',
+          'Check "Run this program in compatibility mode"',
+          'Select an older Windows version from dropdown',
+          'Click "Apply" and "OK"'
+        ],
+        expectedResult: 'Application runs in compatibility mode',
+        estimatedTime: '3 minutes'
+      },
+      {
+        id: 'reinstall-app',
+        title: 'Reinstall Application',
+        description: 'Uninstall and reinstall the problematic application',
+        actions: [
+          'Go to Settings > Apps > Apps & features',
+          'Find the problematic application',
+          'Click on it and select "Uninstall"',
+          'Download the latest version from official website',
+          'Install the application following setup wizard'
+        ],
+        expectedResult: 'Fresh installation of the application',
+        estimatedTime: '10 minutes'
+      }
+    ],
+    fallbackOptions: [
+      'Check for Windows updates',
+      'Run System File Checker (sfc /scannow)',
+      'Contact application developer support',
+      'Try alternative software'
+    ]
   }
 ];
 

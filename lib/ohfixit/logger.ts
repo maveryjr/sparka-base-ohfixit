@@ -173,7 +173,17 @@ export async function getAuditTimeline({
       .orderBy(desc(consentEvent.createdAt))
       .limit(limit + offset),
     db
-      .select()
+      .select({
+        id: actionLog.id,
+        chatId: actionLog.chatId,
+        userId: actionLog.userId,
+        actionType: actionLog.actionType,
+        status: actionLog.status,
+        summary: actionLog.summary,
+        payload: actionLog.payload,
+        createdAt: actionLog.createdAt,
+        // Do NOT select executionHost/outcome to remain compatible before migration 0023
+      })
       .from(actionLog)
       .where(eq(actionLog.chatId, chatId))
       .orderBy(desc(actionLog.createdAt))
@@ -188,7 +198,8 @@ export async function getAuditTimeline({
 
   const tagged: AuditEvent[] = [
     ...consents.map((c) => ({ type: 'consent' as const, ...c })),
-    ...actions.map((a) => ({ type: 'action' as const, ...a })),
+    // Ensure executionHost/outcome keys exist to align with ActionLogRow type
+    ...actions.map((a) => ({ type: 'action' as const, executionHost: null, outcome: null, ...a } as any)),
     ...snapshots.map((d) => ({ type: 'diagnostics' as const, ...d })),
   ];
 

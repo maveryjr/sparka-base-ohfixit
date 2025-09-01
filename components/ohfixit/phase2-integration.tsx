@@ -17,6 +17,7 @@ import {
 import { VoiceMode } from './voice-mode';
 import { RedactionAssist } from './redaction-assist';
 import { FamilyPortal } from './family-portal';
+import { AutomationPanel } from './automation-panel';
 
 interface Phase2IntegrationProps {
   chatId: string;
@@ -58,6 +59,14 @@ export function Phase2Integration({ chatId, onFeatureSelect }: Phase2Integration
       description: 'Native OS automation with strict sandboxing',
       icon: Monitor,
       status: 'coming-soon',
+      category: 'automation'
+    },
+    {
+      id: 'automation-panel',
+      title: 'Automation Panel',
+      description: 'Preview → Approve → Execute allowlisted actions',
+      icon: Monitor,
+      status: 'available',
       category: 'automation'
     },
     {
@@ -147,7 +156,7 @@ export function Phase2Integration({ chatId, onFeatureSelect }: Phase2Integration
       {/* Feature Details */}
       {activeFeature && (
         <Tabs value={activeFeature} onValueChange={setActiveFeature}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             {phase2Features.map(feature => (
               <TabsTrigger 
                 key={feature.id} 
@@ -258,6 +267,10 @@ export function Phase2Integration({ chatId, onFeatureSelect }: Phase2Integration
 
           <TabsContent value="family-portal" className="space-y-4">
             <FamilyPortal />
+          </TabsContent>
+
+          <TabsContent value="automation-panel" className="space-y-4">
+            <AutomationPanel chatId={chatId} />
           </TabsContent>
         </Tabs>
       )}
