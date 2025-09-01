@@ -31,6 +31,10 @@ export const toolNameSchema = z.enum([
   'deepResearch',
   'guideSteps',
   'automation',
+  'getPlaybook',
+  'executePlaybookStep',
+  'enhancedAutomation',
+  'oneClickFixTool',
   'clientEnv',
   'networkCheck',
 ]);
@@ -77,6 +81,10 @@ type retrieveTool = InferUITool<typeof retrieve>;
 // Diagnostics + OhFixIt tools
 type guideStepsTool = InferUITool<typeof import('./tools/ohfixit/guide-steps')['guideSteps']>;
 type automationTool = InferUITool<typeof import('./tools/ohfixit/automation')['automation']>;
+type getPlaybookTool = InferUITool<typeof import('./tools/ohfixit/issue-playbooks')['getPlaybook']>;
+type executePlaybookStepTool = InferUITool<typeof import('./tools/ohfixit/issue-playbooks')['executePlaybookStep']>;
+type enhancedAutomationTool = InferUITool<typeof import('./tools/ohfixit/enhanced-automation')['enhancedAutomation']>;
+type oneClickFixTool = InferUITool<typeof import('../../ohfixit/one-click-fixes')['oneClickFixTool']>;
 // For factory tools, we reference the Tool type by creating a temporary type helper
 type _ClientEnvTool = ReturnType<
   typeof import('./tools/ohfixit/client-env').default
@@ -101,6 +109,10 @@ export type ChatTools = {
   retrieve: retrieveTool;
   guideSteps: guideStepsTool;
   automation: automationTool;
+  getPlaybook: getPlaybookTool;
+  executePlaybookStep: executePlaybookStepTool;
+  enhancedAutomation: enhancedAutomationTool;
+  oneClickFixTool: oneClickFixTool;
   clientEnv: clientEnvTool;
   networkCheck: networkCheckTool;
 };

@@ -14,6 +14,7 @@ import { GeneratedImage } from './generated-image';
 import { ResearchUpdates } from './message-annotations';
 import { GuideSteps } from '@/components/ohfixit/guide-steps';
 import { AutomationPlanView } from '@/components/ohfixit/action-preview';
+import { AutomationResult } from '@/components/ohfixit/automation-result';
 import type { ChatMessage } from '@/lib/ai/types';
 import {
   chatStore,
@@ -33,6 +34,7 @@ const isLastArtifact = (
   currentToolCallId: string,
 ): boolean => {
   let lastArtifact: { messageIndex: number; toolCallId: string } | null = null;
+  let lastAutomationResult: { messageIndex: number; toolCallId: string; result: any } | null = null;
 
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i];
@@ -488,6 +490,74 @@ function PureMessagePart({
       return (
         <div key={toolCallId}>
           <GeneratedImage result={output} args={input} />
+        </div>
+      );
+    }
+  }
+
+  if (type === 'tool-automation') {
+    const { toolCallId, state } = part;
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (output && typeof output === 'object' && 'error' in output) {
+        return (
+          <div key={toolCallId} className="text-red-500 p-2 border rounded">
+            Automation Error: {String((output as any).error)}
+          </div>
+        );
+      }
+      return (
+        <div key={toolCallId}>
+          <AutomationResult
+            plan={output as any}
+            onApprove={async (actionId) => {
+              try {
+                const response = await fetch('/api/automation/action', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    operation: 'approve',
+                    actionId,
+                    chatId: 'current-chat', // TODO: Get from context
+                  }),
+                });
+
+                if (!response.ok) {
+                  throw new Error('Failed to approve action');
+                }
+
+                const result = await response.json();
+                console.log('Action approved:', result);
+              } catch (error) {
+                console.error('Approval failed:', error);
+                // TODO: Show error to user
+              }
+            }}
+            onExecute={async (actionId) => {
+              try {
+                const response = await fetch('/api/automation/action', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    operation: 'execute',
+                    actionId,
+                    chatId: 'current-chat', // TODO: Get from context
+                    approvalId: 'current-approval', // TODO: Get from approval state
+                  }),
+                });
+
+                if (!response.ok) {
+                  throw new Error('Failed to execute action');
+                }
+
+                const result = await response.json();
+                console.log('Action executed:', result);
+              } catch (error) {
+                console.error('Execution failed:', error);
+                // TODO: Show error to user
+              }
+            }}
+          />
         </div>
       );
     }
