@@ -17,6 +17,7 @@ import { guideSteps } from '@/lib/ai/tools/ohfixit/guide-steps';
 import { automation } from '@/lib/ai/tools/ohfixit/automation';
 import createClientEnvTool from '@/lib/ai/tools/ohfixit/client-env';
 import createNetworkCheckTool from '@/lib/ai/tools/ohfixit/network-check';
+import { getPlaybook, executePlaybookStep } from '@/lib/ai/tools/ohfixit/issue-playbooks';
 import { getAnonymousSession } from '@/lib/anonymous-session-server';
 
 export function getTools({
@@ -43,9 +44,12 @@ export function getTools({
     getWeather,
     guideSteps,
     automation,
-  // OhFixIt diagnostics tools
-  clientEnv: createClientEnvTool({ userId: session?.user?.id, anonymousId: undefined, chatId }),
-  networkCheck: createNetworkCheckTool({ userId: session?.user?.id, anonymousId: undefined, chatId }),
+    // OhFixIt Phase 2 tools
+    getPlaybook,
+    executePlaybookStep,
+    // OhFixIt diagnostics tools
+    clientEnv: createClientEnvTool({ userId: session?.user?.id, anonymousId: undefined, chatId }),
+    networkCheck: createNetworkCheckTool({ userId: session?.user?.id, anonymousId: undefined, chatId }),
     createDocument: createDocumentTool({
       session,
       dataStream,
