@@ -36,7 +36,19 @@ type AuditEvent =
   | ({ type: 'action' } & ActionLog)
   | ({ type: 'diagnostics' } & DiagnosticsSnapshot);
 
-const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const r = await fetch(url, { cache: 'no-store' });
+  if (!r.ok) {
+    // Return an empty set on error to avoid UI crashes from parse errors
+    return { events: [] } as { events: AuditEvent[] };
+  }
+  const ct = r.headers.get('content-type') || '';
+  if (ct.includes('application/json')) {
+    return r.json();
+  }
+  // Fallback if server misconfigured
+  return { events: [] } as { events: AuditEvent[] };
+};
 
 export function AuditTimeline({ chatId }: { chatId: string }) {
   const { data, error, isLoading } = useSWR<{ events: AuditEvent[] }>(

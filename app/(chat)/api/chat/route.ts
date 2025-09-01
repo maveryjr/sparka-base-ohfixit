@@ -47,7 +47,7 @@ import { markdownJoinerTransform } from '@/lib/ai/markdown-joiner-transform';
 import { checkAnonymousRateLimit, getClientIP } from '@/lib/utils/rate-limit';
 import type { ModelId } from '@/lib/ai/model-id';
 import { calculateMessagesTokens } from '@/lib/ai/token-utils';
-import { ChatSDKError } from '@/lib/ai/errors';
+import { ChatSDKError, getMessageByErrorCode } from '@/lib/ai/errors';
 import { addExplicitToolRequestToMessages } from './addExplicitToolRequestToMessages';
 import { MAX_INPUT_TOKENS } from '@/lib/limits/tokens';
 import { getRecentGeneratedImage } from './getRecentGeneratedImage';
@@ -121,7 +121,10 @@ export async function POST(request: NextRequest) {
 
     if (!userMessage) {
       log.warn('No user message found');
-      return new Response('No user message found', { status: 400 });
+      return Response.json(
+        { code: 'bad_request:chat', message: getMessageByErrorCode('bad_request:chat'), cause: 'No user message found' },
+        { status: 400 },
+      );
     }
 
     // Extract selectedModel from user message metadata
@@ -129,9 +132,10 @@ export async function POST(request: NextRequest) {
 
     if (!selectedModelId) {
       log.warn('No selectedModel in user message metadata');
-      return new Response('No selectedModel in user message metadata', {
-        status: 400,
-      });
+      return Response.json(
+        { code: 'bad_request:chat', message: getMessageByErrorCode('bad_request:chat'), cause: 'No selectedModel in user message metadata' },
+        { status: 400 },
+      );
     }
 
     const session = await auth();
@@ -147,7 +151,10 @@ export async function POST(request: NextRequest) {
       const user = await getUserById({ userId });
       if (!user) {
         log.warn('User not found');
-        return new Response('User not found', { status: 404 });
+        return Response.json(
+          { code: 'not_found:chat', message: getMessageByErrorCode('not_found:chat'), cause: 'User not found' },
+          { status: 404 },
+        );
       }
     } else {
       // Apply rate limiting for anonymous users
@@ -159,18 +166,9 @@ export async function POST(request: NextRequest) {
 
       if (!rateLimitResult.success) {
         log.warn({ clientIP }, 'Rate limit exceeded');
-        return new Response(
-          JSON.stringify({
-            error: rateLimitResult.error,
-            type: 'RATE_LIMIT_EXCEEDED',
-          }),
-          {
-            status: 429,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(rateLimitResult.headers || {}),
-            },
-          },
+        return Response.json(
+          { code: 'rate_limit:chat', message: getMessageByErrorCode('rate_limit:chat'), cause: rateLimitResult.error },
+          { status: 429, headers: { ...(rateLimitResult.headers || {}) } },
         );
       }
 
@@ -182,39 +180,31 @@ export async function POST(request: NextRequest) {
       // Check message limits
       if (anonymousSession.remainingCredits <= 0) {
         log.info('Anonymous message limit reached');
-        return new Response(
-          JSON.stringify({
-            error: `You've used all ${ANONYMOUS_LIMITS.CREDITS} free messages. Sign up to continue chatting with unlimited access!`,
-            type: 'ANONYMOUS_LIMIT_EXCEEDED',
+        return Response.json(
+          {
+            code: 'bad_request:chat',
+            message:
+              "You've used all free messages. Sign up to continue chatting with unlimited access!",
+            cause: `Used ${ANONYMOUS_LIMITS.CREDITS} free messages`,
             maxMessages: ANONYMOUS_LIMITS.CREDITS,
             suggestion:
               'Create an account to get unlimited messages and access to more AI models',
-          }),
-          {
-            status: 402,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(rateLimitResult.headers || {}),
-            },
           },
+          { status: 402, headers: { ...(rateLimitResult.headers || {}) } },
         );
       }
 
       // Validate model for anonymous users
       if (!ANONYMOUS_LIMITS.AVAILABLE_MODELS.includes(selectedModelId as any)) {
         log.warn('Model not available for anonymous users');
-        return new Response(
-          JSON.stringify({
-            error: 'Model not available for anonymous users',
-            availableModels: ANONYMOUS_LIMITS.AVAILABLE_MODELS,
-          }),
+        return Response.json(
           {
-            status: 403,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(rateLimitResult.headers || {}),
-            },
+            code: 'forbidden:chat',
+            message: getMessageByErrorCode('forbidden:chat'),
+            cause: 'Model not available for anonymous users',
+            availableModels: ANONYMOUS_LIMITS.AVAILABLE_MODELS,
           },
+          { status: 403, headers: { ...(rateLimitResult.headers || {}) } },
         );
       }
     }
@@ -227,7 +217,10 @@ export async function POST(request: NextRequest) {
       modelDefinition = getModelDefinition(selectedModelId);
     } catch (error) {
       log.warn('Model not found');
-      return new Response('Model not found', { status: 404 });
+      return Response.json(
+        { code: 'not_found:chat', message: getMessageByErrorCode('not_found:chat'), cause: 'Model not found' },
+        { status: 404 },
+      );
     }
     // Skip database operations for anonymous users
     if (!isAnonymous) {
@@ -235,7 +228,10 @@ export async function POST(request: NextRequest) {
 
       if (chat && chat.userId !== userId) {
         log.warn('Unauthorized - chat ownership mismatch');
-        return new Response('Unauthorized', { status: 401 });
+        return Response.json(
+          { code: 'unauthorized:chat', message: getMessageByErrorCode('unauthorized:chat'), cause: 'Chat ownership mismatch' },
+          { status: 401 },
+        );
       }
 
       if (!chat) {
@@ -247,7 +243,10 @@ export async function POST(request: NextRequest) {
       } else {
         if (chat.userId !== userId) {
           log.warn('Unauthorized - chat ownership mismatch');
-          return new Response('Unauthorized', { status: 401 });
+          return Response.json(
+            { code: 'unauthorized:chat', message: getMessageByErrorCode('unauthorized:chat'), cause: 'Chat ownership mismatch' },
+            { status: 401 },
+          );
         }
       }
 
@@ -255,7 +254,10 @@ export async function POST(request: NextRequest) {
 
       if (exsistentMessage && exsistentMessage.chatId !== chatId) {
         log.warn('Unauthorized - message chatId mismatch');
-        return new Response('Unauthorized', { status: 401 });
+        return Response.json(
+          { code: 'unauthorized:chat', message: getMessageByErrorCode('unauthorized:chat'), cause: 'Message chatId mismatch' },
+          { status: 401 },
+        );
       }
 
       if (!exsistentMessage) {
@@ -304,9 +306,10 @@ export async function POST(request: NextRequest) {
           'RESPONSE > POST /api/chat: Credit reservation error:',
           creditError,
         );
-        return new Response(creditError, {
-          status: 402,
-        });
+        return Response.json(
+          { code: 'bad_request:chat', message: getMessageByErrorCode('bad_request:chat'), cause: creditError },
+          { status: 402 },
+        );
       }
 
       reservation = res;
@@ -351,11 +354,13 @@ export async function POST(request: NextRequest) {
         { explicitlyRequestedTools },
         'Insufficient budget for requested tool',
       );
-      return new Response(
-        `Insufficient budget for requested tool: ${explicitlyRequestedTools}.`,
+      return Response.json(
         {
-          status: 402,
+          code: 'bad_request:chat',
+          message: 'Insufficient budget for the requested tool(s).',
+          cause: String(explicitlyRequestedTools),
         },
+        { status: 402 },
       );
     } else if (
       explicitlyRequestedTools &&
@@ -694,9 +699,15 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     log.error({ error }, 'RESPONSE > POST /api/chat error');
-    return new Response('An error occurred while processing your request!', {
-      status: 404,
-    });
+    // Return a structured JSON error to avoid client-side JSON parsing errors
+    return Response.json(
+      {
+        code: 'bad_request:chat',
+        message: 'Something went wrong. Please try again later.',
+        cause: 'An error occurred while processing your request!',
+      },
+      { status: 400 },
+    );
   }
 }
 
