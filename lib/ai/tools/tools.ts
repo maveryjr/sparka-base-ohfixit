@@ -13,11 +13,13 @@ import { generateImage } from '@/lib/ai/tools/generate-image';
 import type { ModelId } from '@/lib/ai/model-id';
 import type { StreamWriter } from '../types';
 import { deepResearch } from './deep-research/deep-research';
-import { guideSteps } from '@/lib/ai/tools/ohfixit/guide-steps';
-import { automation } from '@/lib/ai/tools/ohfixit/automation';
-import createClientEnvTool from '@/lib/ai/tools/ohfixit/client-env';
-import createNetworkCheckTool from '@/lib/ai/tools/ohfixit/network-check';
-import { getPlaybook, executePlaybookStep } from '@/lib/ai/tools/ohfixit/issue-playbooks';
+import { guideSteps } from './ohfixit/guide-steps';
+import { automation } from './ohfixit/automation';
+import { getPlaybook, executePlaybookStep } from './ohfixit/issue-playbooks';
+import { enhancedAutomation } from './ohfixit/enhanced-automation';
+import { oneClickFixTool } from '../../ohfixit/one-click-fixes';
+import createClientEnvTool from './ohfixit/client-env';
+import createNetworkCheckTool from './ohfixit/network-check';
 import { getAnonymousSession } from '@/lib/anonymous-session-server';
 
 export function getTools({
@@ -47,6 +49,8 @@ export function getTools({
     // OhFixIt Phase 2 tools
     getPlaybook,
     executePlaybookStep,
+    enhancedAutomation,
+    oneClickFixTool,
     // OhFixIt diagnostics tools
     clientEnv: createClientEnvTool({ userId: session?.user?.id, anonymousId: undefined, chatId }),
     networkCheck: createNetworkCheckTool({ userId: session?.user?.id, anonymousId: undefined, chatId }),
