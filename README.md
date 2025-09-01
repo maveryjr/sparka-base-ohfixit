@@ -21,9 +21,6 @@ Access every major AI assistant Claude, GPT-4, Gemini, Grok, and 20+ models thro
 ## ✨ Features
 
 - **🤖 Multi-Model Chat** - Access 100+ AI models including Claude, GPT-5, Gemini, and Grok in one interface.
-
-- **🔐 Authentication & Sync** - Secure authentication with chat history sync across all devices.
-
 - **🎯 Easy to Try** - Try the interface and some features without creating an account.
 
 - **📎 Attachment Support** - Upload and analyze images, PDFs, and documents in conversations.
@@ -52,12 +49,19 @@ Sparka AI is built with modern technologies for scalability and performance:
 ### **Frontend**
 - **Next.js 15**: App Router with React Server Components
 - **TypeScript**: Full type safety and developer experience
+## Development
+   - OhFixIt Automation (Phase 1 slice)
+      - Set OHFIXIT_JWT_SECRET in your environment (falls back to NEXTAUTH_SECRET if set).
+      - Open a chat page and use the "Do It For Me" panel to:
+         - List allowlisted actions, preview diffs/commands and risks
+         - Approve (mints a short-lived helper token) and Execute (queues via helper/report pipeline)
+         - Undo triggers a rollback request (helper should report artifacts and rollback handles)
+      - Audit timeline renders recent consent, diagnostics snapshots, and action logs.
+
 - **Tailwind CSS**: Responsive, utility-first styling
 - **Radix UI**: Accessible component primitives
 - **Framer Motion**: Smooth animations and transitions
 - **Zustand**: Lightweight state management
-
-### **Backend**
 - **Vercel AI SDK**: Unified AI provider integration
 - **tRPC**: End-to-end typesafe APIs
 - **Drizzle ORM**: Type-safe database operations

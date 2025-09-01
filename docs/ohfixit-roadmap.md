@@ -32,11 +32,11 @@ Acceptance
 - [ ] Implement 3 safe macOS actions with rollbacks:
   - Flush DNS, Toggle Wi‑Fi (restore prior state), Clear app cache (backup+restore)
 - [x] Server APIs: preview/approve/execute/rollback with robust validation and audit
-- [x] UI approval flow: “Do It For Me” panel with diff, risks, and one-tap Undo
+- [x] UI approval flow: “Do It For Me” panel with diff, risks, and one-tap Undo (initial panel shipped; executes via helper token/report pipeline; Undo triggers rollback request)
 
 Acceptance
-- [ ] Approving triggers helper; `ActionLog` enriched with artifacts and rollback handle (partial: helper handshake + reporting implemented; artifacts/rollback persisted on report)
-- [ ] One-tap Undo restores prior state; unallowlisted actions are rejected (partial: allowlist enforcement in place)
+- [x] Approving triggers helper; `ActionLog` enriched with artifacts and rollback handle (helper report endpoint persists artifacts/rollback references)
+- [ ] One-tap Undo restores prior state; unallowlisted actions are rejected (partial: allowlist enforcement in place; desktop helper execution/rollback wiring TBD)
 
 ## Phase 2 – health checks dashboard (1.5 weeks)
 

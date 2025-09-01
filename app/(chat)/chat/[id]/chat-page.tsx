@@ -6,6 +6,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { useTRPC } from '@/trpc/react';
 import type { UiToolName } from '@/lib/ai/types';
 import { ChatSystem } from '@/components/chat-system';
+import OhFixItApprovalPanel from '@/components/ohfixit-approval-panel';
+import OhFixItAuditTimeline from '@/components/ohfixit-audit-timeline';
 
 // moved to components/chat-system
 
@@ -54,6 +56,10 @@ export function ChatPage({ id }: { id: string }) {
 
   return (
     <>
+      <div className="mb-3 space-y-3">
+        <OhFixItApprovalPanel chatId={chat.id} />
+        <OhFixItAuditTimeline chatId={chat.id} />
+      </div>
       <ChatSystem
         id={chat.id}
         initialMessages={initialThreadMessages}
