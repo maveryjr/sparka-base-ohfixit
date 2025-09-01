@@ -11,7 +11,21 @@ type Props = {
   chatId: string;
 };
 
-function collectSnapshot() {
+async function quickPing(url: string, timeoutMs = 2500) {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const t0 = performance.now();
+    const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+    const dt = performance.now() - t0;
+    clearTimeout(t);
+    return { ok: res.ok, rtt: Math.round(dt) };
+  } catch {
+    return { ok: false, rtt: undefined as number | undefined };
+  }
+}
+
+async function collectSnapshot() {
   try {
     const nav = navigator as any;
     const connection = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
@@ -29,6 +43,9 @@ function collectSnapshot() {
       saveData: connection.saveData,
     } : undefined;
 
+    // try a very fast ping to a lightweight endpoint
+    const ping = await quickPing('https://www.google.com/generate_204');
+
     return {
       consent: true,
       data: {
@@ -39,7 +56,10 @@ function collectSnapshot() {
         timeZone,
         screen: screenInfo,
         device,
-        network,
+        network: {
+          ...network,
+          rtt: typeof ping.rtt === 'number' ? ping.rtt : network?.rtt,
+        },
         window: typeof window !== 'undefined' ? { innerWidth: window.innerWidth, innerHeight: window.innerHeight } : undefined,
       },
     };
@@ -53,13 +73,15 @@ export function CollectClientDiagnostics({ open, onOpenChange, chatId }: Props) 
   const [preview, setPreview] = useState<any | null>(null);
 
   useEffect(() => {
-    if (open) setPreview(collectSnapshot());
+    if (open) {
+      collectSnapshot().then(setPreview).catch(() => setPreview(null));
+    }
   }, [open]);
 
   const handleAccept = useCallback(async () => {
     setSubmitting(true);
     try {
-      const payload = { ...collectSnapshot(), chatId };
+  const payload = { ...(await collectSnapshot()), chatId };
       const res = await fetch('/api/diagnostics/client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

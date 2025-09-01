@@ -27,6 +27,7 @@ export function getTools({
   attachments = [],
   lastGeneratedImage = null,
   contextForLLM,
+  chatId,
 }: {
   dataStream: StreamWriter;
   session: Session;
@@ -35,15 +36,16 @@ export function getTools({
   attachments: Array<FileUIPart>;
   lastGeneratedImage: { imageUrl: string; name: string } | null;
   contextForLLM: ModelMessage[];
+  chatId: string;
 }) {
   const anonymousIdPromise = getAnonymousSession().then((s) => s?.id || null).catch(() => null);
   return {
     getWeather,
     guideSteps,
     automation,
-    // OhFixIt diagnostics tools
-    clientEnv: createClientEnvTool({ userId: session?.user?.id, anonymousId: undefined }),
-    networkCheck: createNetworkCheckTool({ userId: session?.user?.id, anonymousId: undefined }),
+  // OhFixIt diagnostics tools
+  clientEnv: createClientEnvTool({ userId: session?.user?.id, anonymousId: undefined, chatId }),
+  networkCheck: createNetworkCheckTool({ userId: session?.user?.id, anonymousId: undefined, chatId }),
     createDocument: createDocumentTool({
       session,
       dataStream,

@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { getRecord, getSessionKeyForIds } from '@/lib/ohfixit/diagnostics-store';
+// DB-backed diagnostics retrieval happens via getRecordByChat (dynamic import below)
 import { capabilityMap, detectOS } from '@/lib/ohfixit/os-capabilities';
 
 export type DiagnosticsContextOptions = {
