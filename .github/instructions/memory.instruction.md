@@ -157,3 +157,15 @@ applyTo: '**'
 	- Built `components/ohfixit/audit-timeline.tsx` (client) using SWR to fetch `GET /api/ohfixit/audit?chatId=...` and render a compact event list; mounted in `components/messages-pane.tsx` below messages when not readonly.
 	- Typecheck passed (tsc --noEmit). Migrations for ConsentEvent/ActionLog/DiagnosticsSnapshot are present; run `db:migrate` during build.
 	- Next: add unit tests for logger shapes and API validation; extend UI to surface consent prompts and automation previews; consider ownership checks on audit route.
+
+- Update (Issue #10 – Epoch #4 – Current Session):
+	- Focus: stabilize Guide Me persistence and follow-ups, tighten tests (unit + Playwright), and align dev/test commands with Bun.
+	- Recent changes ensured:
+		- Submit button has stable test id: `data-testid="send-button"` in `components/ai-elements/prompt-input.tsx`.
+		- GuideSteps follow-up messages preserve `metadata.selectedTool = 'guideSteps'` in `components/ohfixit/guide-steps.tsx` to keep the tool active across turns.
+		- Playwright dev server command updated to `bun run dev` in `playwright.config.ts`.
+	- Prepared to run typecheck, unit tests, and Playwright E2E; expand tests for consent→audit timeline and the Guide Me flow.
+
+### Context7 Sources (current session)
+- /vercel/next.js: Route Handlers streaming, dynamic vs force-static, server-only patterns; examples for `streamText` with AI SDK, `ReadableStream`, and route options like `export const dynamic = 'auto'`.
+- /vercel/ai (planned below): v5 tool calling, `streamText`, `toUIMessageStreamResponse`, `stopWhen`, `onFinish/onStepFinish` patterns.
