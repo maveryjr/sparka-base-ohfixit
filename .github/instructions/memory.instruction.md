@@ -172,6 +172,14 @@ applyTo: '**'
 	- Ran typecheck and unit test scripts; environment returned no output/errors. No lint/type errors reported via Problems panel.
 	- Next: add Playwright E2E covering consent→audit timeline and Guide Me toggle/persistence; keep selectors stable (`data-testid`).
 
+- Update (Issue #11 – Epoch #4 – Guide Me persistence stabilization):
+	- Problem: E2E “Guide Me toggle persists across reloads” fails after reload; toggle not found or aria-pressed incorrect. Root cause likely a race from deriving `initialTool` via `useEffect` in `components/chat-system.tsx`, delaying hydration of `selectedTool` and header toggle.
+	- Current implementation: `components/chat-header.tsx` writes/reads `localStorage` key `chat:{chatId}:guideMode` and toggles `setSelectedTool('guideSteps')`; `ChatInputProvider` initializes `selectedTool` from `initialTool`; `ChatSystem` reads storage in a mount effect and applies as `persistedTool`.
+	- Plan: Compute `initialTool` synchronously on first client render (guarded by `typeof window !== 'undefined'`), passing it directly to `ChatInputProvider` to remove the mount-time race; keep header effect as a secondary guard. Then re-run the targeted Playwright test.
+	- Test focus: Ensure the header toggle `data-testid="guide-mode-toggle"` is present post-reload and `aria-pressed` reflects persisted state. Add minimal visibility wait if needed; prefer locator assertions that auto-retry.
+	- Status: Typecheck PASS; unit tests PASS; E2E failing test pending fix.
+
 ### Context7 Sources (current session)
 - /vercel/next.js: Route Handlers streaming, dynamic vs force-static, server-only patterns; examples for `streamText` with AI SDK, `ReadableStream`, and route options like `export const dynamic = 'auto'`.
 - /vercel/ai (planned below): v5 tool calling, `streamText`, `toUIMessageStreamResponse`, `stopWhen`, `onFinish/onStepFinish` patterns.
+- /microsoft/playwright (docs): Page.reload(), locator assertions, and toHaveAttribute auto-retry patterns to stabilize E2E post-reload checks.
