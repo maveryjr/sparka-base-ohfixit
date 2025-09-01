@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/app/(auth)/auth';
 import { z } from 'zod';
+import { logAction } from '@/lib/ohfixit/logger';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -24,6 +24,15 @@ export async function GET(request: NextRequest) {
       { key: 'startup', status: 'pass', score: 0.9, details: { entries: 7, recommendedDisable: 2 } },
       { key: 'services', status: 'pass', score: 0.95, details: { stoppedCritical: 0 } },
     ];
+
+    // Optional: log fetch event (not essential, but useful for audit trail completeness)
+    await logAction({
+      chatId: chatId ?? 'provisional',
+      actionType: 'script_recommendation',
+      status: 'proposed',
+      summary: 'Health results fetched',
+      payload: { jobId, count: results.length },
+    }).catch(() => {});
 
     return NextResponse.json({ jobId, chatId, results, createdAt: new Date().toISOString() });
   } catch (err: any) {

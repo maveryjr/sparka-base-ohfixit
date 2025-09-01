@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/app/(auth)/auth';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { generateActionPreview } from '@/lib/ohfixit/allowlist';
+import { logAction } from '@/lib/ohfixit/logger';
 
 const ActionOperation = z.enum(['preview', 'approve', 'execute', 'rollback']);
 
 const actionRequestSchema = z.object({
   operation: ActionOperation,
   actionId: z.string(),
-  parameters: z.record(z.any()).optional(),
+  parameters: z.object({}).catchall(z.any()).optional(),
   chatId: z.string().optional(),
   approvalId: z.string().optional(),
   sessionId: z.string().optional(),
@@ -17,7 +18,7 @@ const actionRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -26,7 +27,15 @@ export async function POST(request: NextRequest) {
     const { operation, actionId, parameters, chatId, approvalId } = actionRequestSchema.parse(body);
 
     if (operation === 'preview') {
-      const preview = await generatePreview(actionId, parameters);
+      const preview = generateActionPreview(actionId, parameters ?? {});
+      // Best-effort audit log for proposed action
+      await logAction({
+        chatId: chatId ?? 'provisional',
+        actionType: 'script_recommendation',
+        status: 'proposed',
+        summary: `Preview ${actionId}`,
+        payload: { actionId, preview },
+      }).catch(() => {});
       return NextResponse.json({
         actionId,
         preview,
@@ -38,18 +47,39 @@ export async function POST(request: NextRequest) {
     if (operation === 'approve') {
       const id = uuidv4();
       // TODO: persist approval with expiry, link to chatId/actionId
+      await logAction({
+        chatId: chatId ?? 'provisional',
+        actionType: 'script_recommendation',
+        status: 'approved',
+        summary: `Approved ${actionId}`,
+        payload: { actionId, approvalId: id },
+      }).catch(() => {});
       return NextResponse.json({ approvalId: id, status: 'approved', actionId, chatId, expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() });
     }
 
     if (operation === 'execute') {
       const jobId = uuidv4();
       // TODO: enqueue execution to desktop helper; create ActionLog entry with preview + pending outcome
+      await logAction({
+        chatId: chatId ?? 'provisional',
+        actionType: 'script_recommendation',
+        status: 'executed',
+        summary: `Execute ${actionId}`,
+        payload: { actionId, approvalId: approvalId ?? null, jobId },
+      }).catch(() => {});
       return NextResponse.json({ status: 'queued', jobId, actionId, approvalId: approvalId ?? null });
     }
 
     if (operation === 'rollback') {
       const jobId = uuidv4();
       // TODO: enqueue rollback via desktop helper, reference prior rollback point
+      await logAction({
+        chatId: chatId ?? 'provisional',
+        actionType: 'script_recommendation',
+        status: 'cancelled',
+        summary: `Rollback for ${actionId}`,
+        payload: { actionId, approvalId: approvalId ?? null, jobId },
+      }).catch(() => {});
       return NextResponse.json({ status: 'queued', jobId, rollbackOf: approvalId ?? actionId });
     }
 
@@ -61,50 +91,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function generatePreview(actionId: string, parameters: any): Promise<{
-  description: string;
-  commands: string[];
-  risks: string[];
-  reversible: boolean;
-  estimatedTime: string;
-  requirements: string[];
-  previewDiff?: string;
-}> {
-  // Minimal mapping; align later with allowlist registry
-  const definitions: Record<string, any> = {
-    'flush-dns-macos': {
-      description: 'Flush the DNS cache to resolve name resolution issues',
-      commands: ['sudo dscacheutil -flushcache', 'sudo killall -HUP mDNSResponder'],
-      risks: ['Temporary loss of cached DNS entries'],
-      reversible: false,
-      estimatedTime: '5 seconds',
-      requirements: ['Administrator privileges'],
-    },
-    'toggle-wifi-macos': {
-      description: 'Toggle Wi‑Fi off and back on to reset network interface',
-      commands: ['networksetup -setairportpower en0 off', 'sleep 2', 'networksetup -setairportpower en0 on'],
-      risks: ['Temporary loss of connectivity'],
-      reversible: true,
-      estimatedTime: '10–20 seconds',
-      requirements: ['Administrator privileges'],
-    },
-    'clear-app-cache': {
-      description: 'Move selected app cache to backup to free space and reset cache state',
-      commands: ['mv ~/Library/Caches/com.example.app ~/Desktop/app-cache-backup-$(date +%s)'],
-      risks: ['App may rebuild cache on next launch'],
-      reversible: true,
-      estimatedTime: '30–60 seconds',
-      requirements: ['App not running'],
-    },
-  };
-
-  const def = definitions[actionId];
-  if (!def) throw new Error(`Unknown action: ${actionId}`);
-
-  // Simple parameterization example
-  if (actionId === 'clear-app-cache' && parameters?.bundleId) {
-    def.commands = [`mv ~/Library/Caches/${parameters.bundleId} ~/Desktop/${parameters.bundleId}-cache-backup-$(date +%s)`];
-  }
-
-  return def;
-}
+// generatePreview removed in favor of allowlist.generateActionPreview
