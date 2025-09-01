@@ -3,8 +3,7 @@ import 'server-only';
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 import {
-  getRecord,
-  getSessionKeyForIds,
+  getRecordByChat,
   type ClientDiagnostics,
 } from '@/lib/ohfixit/diagnostics-store';
 import { capabilityMap, detectOS } from '@/lib/ohfixit/os-capabilities';
@@ -21,9 +20,11 @@ export type ClientEnvOutput = {
 export function createClientEnvTool({
   userId,
   anonymousId,
+  chatId,
 }: {
   userId?: string | null;
   anonymousId?: string | null;
+  chatId: string;
 }): Tool<z.infer<typeof ClientEnvInput>, ClientEnvOutput> {
   return tool({
     description:
@@ -44,11 +45,11 @@ export function createClientEnvTool({
           resolvedAnonymousId = anon?.id || null;
         } catch {}
       }
-      const sessionKey = getSessionKeyForIds({
+      const rec = await getRecordByChat({
+        chatId,
         userId: resolvedUserId,
         anonymousId: resolvedAnonymousId,
       });
-      const rec = getRecord(sessionKey);
       if (!rec?.client || rec.client.consent !== true) {
         return {};
       }

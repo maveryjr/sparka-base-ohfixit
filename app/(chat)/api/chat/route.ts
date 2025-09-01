@@ -462,6 +462,7 @@ export async function POST(request: NextRequest) {
       const diagnosticsContext = await buildDiagnosticsContext({
         userId,
         anonymousId: anonymousSession?.id ?? null,
+        chatId,
       });
 
       const stream = createUIMessageStream<ChatMessage>({
@@ -507,6 +508,7 @@ export async function POST(request: NextRequest) {
                 (part) => part.type === 'file',
               ),
               lastGeneratedImage,
+              chatId,
             }),
             onError: (error) => {
               log.error({ error }, 'streamText error');

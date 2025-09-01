@@ -153,7 +153,7 @@ function PureChatHeader({
           </Tooltip>
         )}
       </div>
-      <CollectClientDiagnostics open={diagOpen} onOpenChange={setDiagOpen} />
+  <CollectClientDiagnostics open={diagOpen} onOpenChange={setDiagOpen} chatId={chatId} />
     </header>
   );
 }

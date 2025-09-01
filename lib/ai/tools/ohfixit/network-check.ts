@@ -3,7 +3,6 @@ import 'server-only';
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 import {
-  getSessionKeyForIds,
   setNetworkDiagnostics,
   type NetworkDiagnostics,
   type NetworkCheckResult,
@@ -34,9 +33,11 @@ async function checkTarget(url: string): Promise<NetworkCheckResult> {
 export function createNetworkCheckTool({
   userId,
   anonymousId,
+  chatId,
 }: {
   userId?: string | null;
   anonymousId?: string | null;
+  chatId: string;
 }): Tool<z.infer<typeof NetworkCheckInput>, NetworkCheckOutput> {
   return tool({
     description:
@@ -58,13 +59,9 @@ export function createNetworkCheckTool({
           resolvedAnonymousId = anon?.id || null;
         } catch {}
       }
-      const sessionKey = getSessionKeyForIds({
-        userId: resolvedUserId,
-        anonymousId: resolvedAnonymousId,
-      });
       const results = await Promise.all(targets.map((t) => checkTarget(t)));
       const payload: NetworkDiagnostics = { ranAt: Date.now(), results };
-      setNetworkDiagnostics(sessionKey, payload);
+      await setNetworkDiagnostics({ chatId, userId: resolvedUserId, anonymousId: resolvedAnonymousId }, payload);
       return payload;
     },
   });

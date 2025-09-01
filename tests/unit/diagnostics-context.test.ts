@@ -4,19 +4,20 @@ import buildDiagnosticsContext from '@/lib/ohfixit/diagnostics-context';
 
 describe('buildDiagnosticsContext', () => {
   const userId = 'user-123';
-  const sessionKey = getSessionKeyForIds({ userId, anonymousId: null });
+  const chatId = 'test-chat-ctx';
+  const sessionKey = { userId, anonymousId: null, chatId };
 
   beforeEach(() => {
-    // no reset needed; keys are unique per test as userId constant
+    // no reset needed; keys are unique per test as userId+chatId constant
   });
 
   it('returns null when no diagnostics exist', async () => {
-    const text = await buildDiagnosticsContext({ userId, anonymousId: null });
+    const text = await buildDiagnosticsContext({ userId, anonymousId: null, chatId });
     expect(text === null || typeof text === 'string').toBe(true);
   });
 
   it('includes OS, capabilities, client snapshot and network checks', async () => {
-    setClientDiagnostics(sessionKey, {
+    await setClientDiagnostics(sessionKey, {
       collectedAt: Date.now(),
       consent: true,
       data: {
@@ -33,7 +34,7 @@ describe('buildDiagnosticsContext', () => {
       },
     });
 
-    setNetworkDiagnostics(sessionKey, {
+    await setNetworkDiagnostics(sessionKey, {
       ranAt: Date.now(),
       results: [
         { target: 'https://example.com/ping', ok: true, status: 200, latencyMs: 120 },
@@ -41,7 +42,7 @@ describe('buildDiagnosticsContext', () => {
       ],
     });
 
-    const text = await buildDiagnosticsContext({ userId, anonymousId: null });
+    const text = await buildDiagnosticsContext({ userId, anonymousId: null, chatId });
     expect(text).toBeTruthy();
     const s = text as string;
     expect(s).toContain('OS: macOS');
