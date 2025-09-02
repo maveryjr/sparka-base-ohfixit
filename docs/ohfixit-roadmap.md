@@ -28,25 +28,25 @@ Acceptance
 
 ## Phase 1 – automation v1 (preview → approve → execute → rollback) (2–3 weeks)
 
-- [ ] Desktop Helper (Tauri), secure WS handshake, JWT-scoped to chat/session
-- [ ] Implement 3 safe macOS actions with rollbacks:
+- [x] Desktop Helper (Tauri), secure WS handshake, JWT-scoped to chat/session
+- [x] Implement 3 safe macOS actions with rollbacks:
   - Flush DNS, Toggle Wi‑Fi (restore prior state), Clear app cache (backup+restore)
 - [x] Server APIs: preview/approve/execute/rollback with robust validation and audit
-- [x] UI approval flow: “Do It For Me” panel with diff, risks, and one-tap Undo (initial panel shipped; executes via helper token/report pipeline; Undo triggers rollback request)
+- [x] UI approval flow: "Do It For Me" panel with diff, risks, and one-tap Undo (initial panel shipped; executes via helper token/report pipeline; Undo triggers rollback request)
 
 Acceptance
 - [x] Approving triggers helper; `ActionLog` enriched with artifacts and rollback handle (helper report endpoint persists artifacts/rollback references)
-- [ ] One-tap Undo restores prior state; unallowlisted actions are rejected (partial: allowlist enforcement in place; desktop helper execution/rollback wiring TBD)
+- [x] One-tap Undo restores prior state; unallowlisted actions are rejected (rollback functionality implemented with desktop helper integration)
 
 ## Phase 2 – health checks dashboard (1.5 weeks)
 
-- Health check engine: browser + helper-powered privileged checks
-- API to run and fetch results; schedule periodic checks via helper
-- UI dashboard with severity, insights, and one-click safe auto-fixes
+- [x] Health check engine: browser + helper-powered privileged checks
+- [x] API to run and fetch results; schedule periodic checks via helper
+- [x] UI dashboard with severity, insights, and one-click safe auto-fixes
 
 Acceptance
-- ≥10 meaningful checks across network/disk/startup/services
-- Auto-fix uses automation pipeline with approval + rollback
+- [x] ≥10 meaningful checks across network/disk/startup/services
+- [x] Auto-fix uses automation pipeline with approval + rollback
 
 ## Phase 3 – playbooks & Fixlet Builder (2 weeks)
 
@@ -121,11 +121,11 @@ Acceptance
 
 - [x] ActionArtifact(id, actionId, type, uri/blobRef, hash, createdAt)
 - [x] RollbackPoint(id, actionId, method, data JSON, createdAt)
-- [ ] PlaybookRun(id, chatId, playbookId, deviceProfileId, status, startedAt, finishedAt)
-- [ ] PlaybookRunStep(id, runId, stepId, status, artifacts[], notes)
-- [ ] HealthCheck(id, chatId/userId, checkKey, status, score, details JSON, createdAt)
-- [ ] DeviceProfile(id, userId, os, name, capabilities JSON, lastSeenAt, warranty JSON)
-- [ ] HumanHandoffSession(id, chatId, status, operatorId, startedAt, endedAt, transcriptRef)
+- [x] PlaybookRun(id, chatId, playbookId, deviceProfileId, status, startedAt, finishedAt)
+- [x] PlaybookRunStep(id, runId, stepId, status, artifacts[], notes)
+- [x] HealthCheck(id, chatId/userId, checkKey, status, score, details JSON, createdAt)
+- [x] DeviceProfile(id, userId, os, name, capabilities JSON, lastSeenAt, warranty JSON)
+- [x] HumanHandoffSession(id, chatId, status, operatorId, startedAt, endedAt, transcriptRef)
 
 ## Consent & privacy
 

@@ -205,3 +205,88 @@ export const actionArtifact = pgTable('ActionArtifact', {
 });
 
 export type ActionArtifact = InferSelectModel<typeof actionArtifact>;
+
+// Health Check tables
+
+export const healthCheck = pgTable('HealthCheck', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  chatId: uuid('chatId')
+    .references(() => chat.id, { onDelete: 'cascade' }),
+  userId: uuid('userId').references(() => user.id), // nullable for anonymous
+  checkKey: varchar('checkKey', { length: 64 }).notNull(), // 'disk-space' | 'network' | etc
+  status: varchar('status', { length: 32 }).notNull(), // 'healthy' | 'warning' | 'critical' | 'unknown'
+  score: integer('score').notNull().default(0), // 0-100
+  details: json('details'), // check-specific results
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type HealthCheck = InferSelectModel<typeof healthCheck>;
+
+// Device Profile tables
+
+export const deviceProfile = pgTable('DeviceProfile', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  os: varchar('os', { length: 32 }).notNull(), // 'macos' | 'windows' | 'linux'
+  name: varchar('name', { length: 128 }).notNull(), // user-friendly device name
+  capabilities: json('capabilities'), // what actions/checks this device supports
+  lastSeenAt: timestamp('lastSeenAt').notNull().defaultNow(),
+  warranty: json('warranty'), // warranty info if available
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type DeviceProfile = InferSelectModel<typeof deviceProfile>;
+
+// Playbook execution tables
+
+export const playbookRun = pgTable('PlaybookRun', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  chatId: uuid('chatId')
+    .references(() => chat.id, { onDelete: 'cascade' }),
+  userId: uuid('userId').references(() => user.id), // nullable for anonymous
+  playbookId: varchar('playbookId', { length: 64 }).notNull(), // reference to playbook definition
+  deviceProfileId: uuid('deviceProfileId')
+    .references(() => deviceProfile.id),
+  status: varchar('status', { length: 32 }).notNull().default('pending'), // 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  startedAt: timestamp('startedAt'),
+  finishedAt: timestamp('finishedAt'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type PlaybookRun = InferSelectModel<typeof playbookRun>;
+
+export const playbookRunStep = pgTable('PlaybookRunStep', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  runId: uuid('runId')
+    .notNull()
+    .references(() => playbookRun.id, { onDelete: 'cascade' }),
+  stepId: varchar('stepId', { length: 64 }).notNull(), // reference to step definition
+  status: varchar('status', { length: 32 }).notNull().default('pending'), // 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+  artifacts: json('artifacts'), // artifacts produced by this step
+  notes: text('notes'), // execution notes or error details
+  startedAt: timestamp('startedAt'),
+  finishedAt: timestamp('finishedAt'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type PlaybookRunStep = InferSelectModel<typeof playbookRunStep>;
+
+// Human handoff tables
+
+export const humanHandoffSession = pgTable('HumanHandoffSession', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  chatId: uuid('chatId')
+    .notNull()
+    .references(() => chat.id, { onDelete: 'cascade' }),
+  userId: uuid('userId').references(() => user.id), // nullable for anonymous
+  status: varchar('status', { length: 32 }).notNull().default('pending'), // 'pending' | 'active' | 'completed' | 'cancelled'
+  operatorId: varchar('operatorId', { length: 128 }), // identifier for human operator
+  startedAt: timestamp('startedAt'),
+  endedAt: timestamp('endedAt'),
+  transcriptRef: varchar('transcriptRef', { length: 256 }), // reference to stored transcript/recording
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type HumanHandoffSession = InferSelectModel<typeof humanHandoffSession>;
