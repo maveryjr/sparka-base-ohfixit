@@ -290,3 +290,115 @@ export const humanHandoffSession = pgTable('HumanHandoffSession', {
 });
 
 export type HumanHandoffSession = InferSelectModel<typeof humanHandoffSession>;
+
+// Fixlet tables - for user-created reusable fixlets
+
+export const fixlet = pgTable('Fixlet', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  title: varchar('title', { length: 256 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 64 }).notNull(),
+  difficulty: varchar('difficulty', { length: 32 }).notNull(), // 'easy' | 'medium' | 'hard'
+  estimatedTime: varchar('estimatedTime', { length: 64 }).notNull(),
+  tags: json('tags').$type<string[]>(), // array of tags
+  authorId: uuid('authorId')
+    .notNull()
+    .references(() => user.id),
+  isPublic: boolean('isPublic').notNull().default(false),
+  usageCount: integer('usageCount').notNull().default(0),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+});
+
+export type Fixlet = InferSelectModel<typeof fixlet>;
+
+export const fixletStep = pgTable('FixletStep', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  fixletId: uuid('fixletId')
+    .notNull()
+    .references(() => fixlet.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 256 }).notNull(),
+  description: text('description'),
+  actions: json('actions').$type<string[]>(), // array of action strings
+  expectedResult: text('expectedResult'),
+  estimatedTime: varchar('estimatedTime', { length: 64 }).notNull(),
+  category: varchar('category', { length: 64 }).notNull(),
+  os: varchar('os', { length: 32 }), // optional OS-specific step
+  successCriteria: json('successCriteria').$type<string[]>(), // optional success criteria
+  stepOrder: integer('stepOrder').notNull(), // order within fixlet
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type FixletStep = InferSelectModel<typeof fixletStep>;
+
+export const fixletExecution = pgTable('FixletExecution', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  fixletId: uuid('fixletId')
+    .notNull()
+    .references(() => fixlet.id, { onDelete: 'cascade' }),
+  userId: uuid('userId').references(() => user.id), // nullable for anonymous
+  chatId: uuid('chatId')
+    .references(() => chat.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 32 }).notNull().default('pending'), // 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  startedAt: timestamp('startedAt'),
+  completedAt: timestamp('completedAt'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type FixletExecution = InferSelectModel<typeof fixletExecution>;
+
+export const fixletExecutionStep = pgTable('FixletExecutionStep', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  executionId: uuid('executionId')
+    .notNull()
+    .references(() => fixletExecution.id, { onDelete: 'cascade' }),
+  stepId: uuid('stepId')
+    .notNull()
+    .references(() => fixletStep.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 32 }).notNull().default('pending'), // 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+  startedAt: timestamp('startedAt'),
+  completedAt: timestamp('completedAt'),
+  notes: text('notes'), // execution notes or error details
+  artifacts: json('artifacts'), // artifacts produced by this step
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type FixletExecutionStep = InferSelectModel<typeof fixletExecutionStep>;
+
+// Fixlet sharing and collaboration
+
+export const fixletShare = pgTable('FixletShare', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  fixletId: uuid('fixletId')
+    .notNull()
+    .references(() => fixlet.id, { onDelete: 'cascade' }),
+  sharedByUserId: uuid('sharedByUserId')
+    .notNull()
+    .references(() => user.id),
+  sharedWithUserId: uuid('sharedWithUserId')
+    .references(() => user.id), // null means shared publicly
+  permissions: varchar('permissions', { length: 32 }).notNull().default('view'), // 'view' | 'edit' | 'execute'
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type FixletShare = InferSelectModel<typeof fixletShare>;
+
+// Fixlet ratings and feedback
+
+export const fixletRating = pgTable('FixletRating', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  fixletId: uuid('fixletId')
+    .notNull()
+    .references(() => fixlet.id, { onDelete: 'cascade' }),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  rating: integer('rating').notNull(), // 1-5 stars
+  review: text('review'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+}, (table) => ({
+  uniqueUserFixlet: primaryKey({ columns: [table.fixletId, table.userId] }),
+}));
+
+export type FixletRating = InferSelectModel<typeof fixletRating>;

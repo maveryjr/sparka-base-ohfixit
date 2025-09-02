@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { tool } from 'ai';
+import type { OSFamily } from '@/lib/ohfixit/os-capabilities';
 
 export interface PlaybookStep {
   id: string;
@@ -9,6 +10,17 @@ export interface PlaybookStep {
   expectedResult: string;
   troubleshooting?: string[];
   estimatedTime: string;
+  // Device-specific overrides
+  osOverrides?: Partial<Record<OSFamily, {
+    actions?: string[];
+    expectedResult?: string;
+    troubleshooting?: string[];
+    prerequisites?: string[];
+  }>>;
+  // Device capability requirements
+  requiresCapability?: string[]; // e.g., ['canRunShellScripts', 'canBrowserAutomate']
+  // Skip this step if these capabilities are missing
+  skipIfMissingCapability?: string[];
 }
 
 export interface IssuePlaybook {
@@ -22,6 +34,10 @@ export interface IssuePlaybook {
   prerequisites: string[];
   steps: PlaybookStep[];
   fallbackOptions: string[];
+  // Device-aware properties
+  supportedOS?: OSFamily[];
+  deviceRequirements?: string[];
+  capabilityRequirements?: string[];
 }
 
 // Common issue playbooks
@@ -40,6 +56,8 @@ export const ISSUE_PLAYBOOKS: IssuePlaybook[] = [
     difficulty: 'easy',
     estimatedTime: '10-15 minutes',
     prerequisites: ['Admin access to router', 'Device with Wi-Fi connection'],
+    supportedOS: ['macOS', 'Windows', 'Linux', 'Android', 'iOS'],
+    capabilityRequirements: ['canBrowserAutomate'],
     steps: [
       {
         id: 'speed-test',
@@ -96,7 +114,29 @@ export const ISSUE_PLAYBOOKS: IssuePlaybook[] = [
           'Select "Update driver" and follow prompts'
         ],
         expectedResult: 'Driver update completes successfully',
-        estimatedTime: '5 minutes'
+        estimatedTime: '5 minutes',
+        osOverrides: {
+          macOS: {
+            actions: [
+              'Open System Preferences',
+              'Go to Network settings',
+              'Select your Wi-Fi connection',
+              'Click "Advanced" and check for updates',
+              'Or visit Apple menu > System Settings > General > Software Update'
+            ],
+            expectedResult: 'Network drivers updated successfully'
+          },
+          Linux: {
+            actions: [
+              'Open Terminal',
+              'Run: sudo apt update && sudo apt upgrade (Ubuntu/Debian)',
+              'Or: sudo dnf update (Fedora/CentOS)',
+              'Restart your computer'
+            ],
+            expectedResult: 'System and network drivers updated'
+          }
+        },
+        requiresCapability: ['canRunShellScripts']
       }
     ],
     fallbackOptions: [
@@ -416,18 +456,78 @@ const GetPlaybookInput = z.object({
   symptoms: z.array(z.string()).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   playbookId: z.string().optional(),
+  deviceOS: z.enum(['macOS', 'Windows', 'Linux', 'iOS', 'Android', 'Unknown']).optional(),
+  deviceCapabilities: z.record(z.boolean()).optional(),
 });
 
 export const getPlaybook = tool({
-  description: 'Get a troubleshooting playbook by ID or filter by category, symptoms, or difficulty.',
+  description: 'Get a troubleshooting playbook by ID or filter by category, symptoms, or difficulty. Supports device-aware adaptation.',
   inputSchema: GetPlaybookInput,
-  execute: async ({ category, symptoms, difficulty, playbookId }) => {
+  execute: async ({ category, symptoms, difficulty, playbookId, deviceOS, deviceCapabilities }) => {
     if (playbookId) {
-      const playbook = ISSUE_PLAYBOOKS.find((p) => p.id === playbookId);
-      return playbook || { error: 'Playbook not found' };
+      let playbook = ISSUE_PLAYBOOKS.find((p) => p.id === playbookId);
+      if (!playbook) {
+        return { error: 'Playbook not found' };
+      }
+
+      // Adapt playbook for device if device info provided
+      if (deviceOS || deviceCapabilities) {
+        playbook = adaptPlaybookForDevice(playbook, deviceOS, deviceCapabilities);
+      }
+
+      return {
+        playbook: {
+          id: playbook.id,
+          title: playbook.title,
+          category: playbook.category,
+          description: playbook.description,
+          difficulty: playbook.difficulty,
+          estimatedTime: playbook.estimatedTime,
+          symptoms: playbook.symptoms,
+          prerequisites: playbook.prerequisites,
+          steps: playbook.steps.map(step => ({
+            id: step.id,
+            title: step.title,
+            description: step.description,
+            actions: step.actions,
+            expectedResult: step.expectedResult,
+            troubleshooting: step.troubleshooting,
+            estimatedTime: step.estimatedTime,
+          })),
+          fallbackOptions: playbook.fallbackOptions,
+        },
+        adaptedForDevice: !!(deviceOS || deviceCapabilities),
+        deviceOS,
+        deviceCapabilities,
+      };
     }
 
     let filteredPlaybooks = ISSUE_PLAYBOOKS;
+
+    // Filter by device compatibility if device info provided
+    if (deviceOS) {
+      filteredPlaybooks = filteredPlaybooks.filter((playbook) => {
+        // If playbook specifies supported OS, check compatibility
+        if (playbook.supportedOS) {
+          return playbook.supportedOS.includes(deviceOS);
+        }
+        // If no specific OS requirements, assume compatible
+        return true;
+      });
+    }
+
+    // Filter by device capabilities if provided
+    if (deviceCapabilities) {
+      filteredPlaybooks = filteredPlaybooks.filter((playbook) => {
+        // If playbook specifies capability requirements, check if device meets them
+        if (playbook.capabilityRequirements) {
+          return playbook.capabilityRequirements.every(cap =>
+            deviceCapabilities[cap] !== false
+          );
+        }
+        return true;
+      });
+    }
 
     if (category) {
       filteredPlaybooks = filteredPlaybooks.filter((p) => p.category === category);
@@ -459,6 +559,9 @@ export const getPlaybook = tool({
         symptoms: p.symptoms,
       })),
       total: filteredPlaybooks.length,
+      filteredByDevice: !!(deviceOS || deviceCapabilities),
+      deviceOS,
+      deviceCapabilities,
     };
   },
 });
@@ -468,15 +571,78 @@ const ExecutePlaybookStepInput = z.object({
   stepId: z.string(),
   completed: z.boolean().optional(),
   notes: z.string().optional(),
+  deviceOS: z.enum(['macOS', 'Windows', 'Linux', 'iOS', 'Android', 'Unknown']).optional(),
+  deviceCapabilities: z.record(z.boolean()).optional(),
 });
 
+// Device-aware playbook adaptation
+export function adaptPlaybookForDevice(
+  playbook: IssuePlaybook,
+  deviceOS?: OSFamily,
+  deviceCapabilities?: Record<string, boolean>
+): IssuePlaybook {
+  if (!deviceOS && !deviceCapabilities) {
+    return playbook;
+  }
+
+  const adaptedPlaybook = { ...playbook };
+
+  // Filter steps based on device capabilities
+  adaptedPlaybook.steps = playbook.steps.filter(step => {
+    // Skip steps that require capabilities the device doesn't have
+    if (step.skipIfMissingCapability && deviceCapabilities) {
+      const missingCapabilities = step.skipIfMissingCapability.filter(cap =>
+        !deviceCapabilities[cap]
+      );
+      if (missingCapabilities.length > 0) {
+        return false;
+      }
+    }
+
+    // Skip steps that require capabilities the device doesn't have
+    if (step.requiresCapability && deviceCapabilities) {
+      const hasRequiredCapabilities = step.requiresCapability.every(cap =>
+        deviceCapabilities[cap]
+      );
+      if (!hasRequiredCapabilities) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Adapt steps for specific OS
+  if (deviceOS) {
+    adaptedPlaybook.steps = adaptedPlaybook.steps.map(step => {
+      const osOverride = step.osOverrides?.[deviceOS];
+      if (osOverride) {
+        return {
+          ...step,
+          actions: osOverride.actions || step.actions,
+          expectedResult: osOverride.expectedResult || step.expectedResult,
+          troubleshooting: osOverride.troubleshooting || step.troubleshooting,
+        };
+      }
+      return step;
+    });
+  }
+
+  return adaptedPlaybook;
+}
+
 export const executePlaybookStep = tool({
-  description: 'Execute or mark progress on a specific playbook step and get follow-up steps.',
+  description: 'Execute or mark progress on a specific playbook step and get follow-up steps. Supports device-aware adaptation.',
   inputSchema: ExecutePlaybookStepInput,
-  execute: async ({ playbookId, stepId, completed = false, notes }) => {
-    const playbook = ISSUE_PLAYBOOKS.find((p) => p.id === playbookId);
+  execute: async ({ playbookId, stepId, completed = false, notes, deviceOS, deviceCapabilities }) => {
+    let playbook = ISSUE_PLAYBOOKS.find((p) => p.id === playbookId);
     if (!playbook) {
       return { error: 'Playbook not found' };
+    }
+
+    // Adapt playbook for device if device info provided
+    if (deviceOS || deviceCapabilities) {
+      playbook = adaptPlaybookForDevice(playbook, deviceOS, deviceCapabilities);
     }
 
     const step = playbook.steps.find((s) => s.id === stepId);
@@ -500,6 +666,8 @@ export const executePlaybookStep = tool({
       },
       completed,
       notes,
+      deviceAdapted: !!(deviceOS || deviceCapabilities),
+      deviceOS,
       nextSteps: playbook.steps
         .filter((s) => playbook.steps.indexOf(s) > playbook.steps.indexOf(step))
         .slice(0, 2)

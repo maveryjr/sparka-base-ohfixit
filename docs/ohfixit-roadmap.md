@@ -50,11 +50,15 @@ Acceptance
 
 ## Phase 3 – playbooks & Fixlet Builder (2 weeks)
 
-- Device-aware playbooks: tailor steps using `clientEnv` + device profile
-- Fixlet Builder: record executed steps into reusable fixlets; share and rerun
+- [x] Device-aware playbooks: tailor steps using `clientEnv` + device profile
+- [x] Fixlet Builder: record executed steps into reusable fixlets; share and rerun
 
 Acceptance
-- Recorded fixlets execute as playbook steps with approvals and audit artifacts
+- [x] Recorded fixlets execute as playbook steps with approvals and audit artifacts
+- [x] Device-aware playbook adaptation working with OS-specific overrides
+- [x] Fixlet sharing system with public/private toggles and granular permissions
+- [x] Fixlet Builder UI with import/export functionality
+- [x] Complete execution tracking and audit trails for fixlets
 
 ## Phase 4 – computer use and safe UI automation (2–3 weeks)
 
@@ -116,6 +120,10 @@ Acceptance
 - [x] GET `/api/ohfixit/health/results` – fetch health check results (by jobId/chatId) (stub)
 - [x] POST `/api/automation/helper/token` – mint short‑lived JWT for Desktop Helper (scoped to chat/session/action)
 - [x] POST `/api/automation/helper/report` – helper reports outcome, artifacts, and rollback handle
+- [x] GET/POST `/api/ohfixit/fixlet` – fixlet CRUD operations
+- [x] GET/PUT/DELETE `/api/ohfixit/fixlet/[id]` – individual fixlet operations
+- [x] POST/PUT `/api/ohfixit/fixlet/[id]/execute` – fixlet execution management
+- [x] GET/POST/DELETE `/api/ohfixit/fixlet/[id]/share` – fixlet sharing management
 
 ## Data models (planned)
 
@@ -126,6 +134,12 @@ Acceptance
 - [x] HealthCheck(id, chatId/userId, checkKey, status, score, details JSON, createdAt)
 - [x] DeviceProfile(id, userId, os, name, capabilities JSON, lastSeenAt, warranty JSON)
 - [x] HumanHandoffSession(id, chatId, status, operatorId, startedAt, endedAt, transcriptRef)
+- [x] Fixlet(id, title, description, category, difficulty, estimatedTime, tags, authorId, isPublic, usageCount, createdAt, updatedAt)
+- [x] FixletStep(id, fixletId, title, description, actions, expectedResult, estimatedTime, category, os, successCriteria, stepOrder)
+- [x] FixletExecution(id, fixletId, userId, chatId, status, startedAt, completedAt)
+- [x] FixletExecutionStep(id, executionId, stepId, status, startedAt, completedAt, notes, artifacts)
+- [x] FixletShare(id, fixletId, sharedByUserId, sharedWithUserId, permissions)
+- [x] FixletRating(id, fixletId, userId, rating, review)
 
 ## Consent & privacy
 
