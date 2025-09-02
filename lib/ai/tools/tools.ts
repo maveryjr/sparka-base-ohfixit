@@ -20,6 +20,9 @@ import { enhancedAutomation } from './ohfixit/enhanced-automation';
 import { oneClickFixTool } from '../../ohfixit/one-click-fixes';
 import createClientEnvTool from './ohfixit/client-env';
 import createNetworkCheckTool from './ohfixit/network-check';
+import { computerUse } from './computer-use';
+import { uiAutomation } from './ui-automation';
+import { screenshotCapture } from './screenshot-capture';
 import { getAnonymousSession } from '@/lib/anonymous-session-server';
 
 export function getTools({
@@ -91,5 +94,9 @@ export function getTools({
       messageId,
       messages: contextForLLM,
     }),
+    // Computer use tools (Phase 4)
+    computerUse,
+    uiAutomation,
+    screenshotCapture,
   };
 }

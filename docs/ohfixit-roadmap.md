@@ -62,11 +62,11 @@ Acceptance
 
 ## Phase 4 – computer use and safe UI automation (2–3 weeks)
 
-- Integrate computer-use-capable provider behind feature flag
-- Planner → Executor split with allowlist mapping and per-step approvals
+- [x] Integrate computer-use-capable provider behind feature flag
+- [x] Planner → Executor split with allowlist mapping and per-step approvals
 
 Acceptance
-- Model proposes UI steps; helper executes only mapped safe actions; screenshots + diffs logged
+- [x] Model proposes UI steps; helper executes only mapped safe actions; screenshots + diffs logged
 
 ## Phase 5 – pro channel (2–3 weeks, gated)
 

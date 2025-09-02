@@ -37,6 +37,9 @@ export const toolNameSchema = z.enum([
   'oneClickFixTool',
   'clientEnv',
   'networkCheck',
+  'computerUse',
+  'uiAutomation',
+  'screenshotCapture',
 ]);
 
 const _ = toolNameSchema.options satisfies ToolName[];
@@ -94,6 +97,10 @@ type _NetworkCheckTool = ReturnType<
   typeof import('./tools/ohfixit/network-check').default
 >;
 type networkCheckTool = InferUITool<_NetworkCheckTool>;
+// Computer use tools
+type computerUseTool = InferUITool<typeof import('./tools/computer-use')['computerUse']>;
+type uiAutomationTool = InferUITool<typeof import('./tools/ui-automation')['uiAutomation']>;
+type screenshotCaptureTool = InferUITool<typeof import('./tools/screenshot-capture')['screenshotCapture']>;
 
 export type ChatTools = {
   getWeather: weatherTool;
@@ -115,6 +122,9 @@ export type ChatTools = {
   oneClickFixTool: oneClickFixTool;
   clientEnv: clientEnvTool;
   networkCheck: networkCheckTool;
+  computerUse: computerUseTool;
+  uiAutomation: uiAutomationTool;
+  screenshotCapture: screenshotCaptureTool;
 };
 
 export type CustomUIDataTypes = {

@@ -102,6 +102,21 @@ export const toolsDefinitions: Record<ToolName, ToolDefinition> = {
     description: 'Run basic network connectivity checks',
     cost: 2,
   },
+  computerUse: {
+    name: 'computerUse',
+    description: 'Use computer to perform UI automation tasks with safety checks and approvals',
+    cost: 10,
+  },
+  uiAutomation: {
+    name: 'uiAutomation',
+    description: 'Execute safe UI automation steps with screenshot logging and rollback capability',
+    cost: 8,
+  },
+  screenshotCapture: {
+    name: 'screenshotCapture',
+    description: 'Capture screenshots before and after UI automation for audit trails',
+    cost: 2,
+  },
 };
 
 export const allTools = toolNameSchema.options;
