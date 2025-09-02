@@ -145,23 +145,33 @@ export async function POST(request: NextRequest) {
         60 * 10,
       );
       const reportUrl = '/api/automation/helper/report';
-      // Try to find latest rollback point for this action/approval
+      // Try to find latest rollback point correlated to this action/approval via ActionLog
       let rb: { id: string; method: string; data: any; createdAt: Date } | null = null;
       try {
-        const recent = await db
-          .select()
+        const rows = await db
+          .select({
+            rbId: rollbackPoint.id,
+            rbMethod: rollbackPoint.method,
+            rbData: rollbackPoint.data,
+            rbCreatedAt: rollbackPoint.createdAt,
+            alId: actionLog.id,
+            alPayload: actionLog.payload,
+            alCreatedAt: actionLog.createdAt,
+          })
           .from(rollbackPoint)
+          .innerJoin(actionLog, eq(rollbackPoint.actionLogId, actionLog.id))
           .orderBy(desc(rollbackPoint.createdAt))
-          .limit(50);
-        const match = recent.find((r: any) => {
-          // Heuristic: find rollback points whose actionLog payload refers to this approvalId or actionId
-          // We need to load the related actionLog row
-          return true; // will filter below
-        });
-        // Fallback minimal approach: pick most recent rollback point
-        if (recent.length) {
-          const r0: any = recent[0];
-          rb = { id: r0.id, method: r0.method, data: r0.data, createdAt: r0.createdAt };
+          .limit(100);
+
+        const best = rows.find((row: any) => {
+          const p = (row.alPayload ?? {}) as Record<string, any>;
+          if (approvalId && p.approvalId) return p.approvalId === approvalId;
+          if (actionId && p.actionId) return p.actionId === actionId;
+          return false;
+        }) ?? rows[0];
+
+        if (best) {
+          rb = { id: best.rbId, method: best.rbMethod, data: best.rbData, createdAt: best.rbCreatedAt } as any;
         }
       } catch (e) {
         // ignore

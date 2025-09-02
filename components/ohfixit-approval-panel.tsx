@@ -39,6 +39,8 @@ export function OhFixItApprovalPanel({ chatId }: { chatId: string }) {
   } | null>(null);
   const [status, setStatus] = useState<string>('');
   const [rollbackInfo, setRollbackInfo] = useState<{ method?: string; data?: any } | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<{ status?: string; outcome?: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -124,6 +126,7 @@ export function OhFixItApprovalPanel({ chatId }: { chatId: string }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Execute failed');
       setStatus(`Execution queued with jobId ${data.jobId}`);
+      setJobId(data.jobId || null);
     } catch (e: any) {
       setError(e?.message || 'Execute error');
     } finally {
@@ -144,6 +147,7 @@ export function OhFixItApprovalPanel({ chatId }: { chatId: string }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Rollback failed');
       setStatus(`Rollback queued with jobId ${data.jobId}`);
+      setJobId(data.jobId || null);
       if (data.rollbackPoint) {
         setRollbackInfo({ method: data.rollbackPoint.method, data: data.rollbackPoint.data });
       }
@@ -153,6 +157,30 @@ export function OhFixItApprovalPanel({ chatId }: { chatId: string }) {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!jobId) return;
+    let cancelled = false;
+    const t = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/automation/action/status?jobId=${encodeURIComponent(jobId)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Status fetch failed');
+        if (!cancelled) {
+          setJobStatus({ status: data.status, outcome: data.outcome });
+          if (data.outcome || data.status === 'cancelled') {
+            clearInterval(t);
+          }
+        }
+      } catch {
+        /* ignore transient */
+      }
+    }, 1500);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [jobId]);
 
   return (
     <div className="rounded-md border p-3 space-y-3">
@@ -226,6 +254,9 @@ export function OhFixItApprovalPanel({ chatId }: { chatId: string }) {
       )}
       {!!status && <div className="text-xs text-green-600">{status}</div>}
       {!!error && <div className="text-xs text-red-600">{error}</div>}
+      {jobStatus && (
+        <div className="text-xs text-neutral-600">Job status: {jobStatus.status || 'n/a'} • Outcome: {jobStatus.outcome || 'pending'}</div>
+      )}
       {rollbackInfo && (
         <div className="text-[10px] text-neutral-600 break-all">
           Rollback method: {rollbackInfo.method || 'n/a'}
