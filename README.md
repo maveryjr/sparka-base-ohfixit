@@ -41,6 +41,8 @@ Access every major AI assistant Claude, GPT-4, Gemini, Grok, and 20+ models thro
 
 - **📄 Document Creation** - Generate and edit documents, spreadsheets, and presentations.
 
+For maintainers: see docs/handoff-guide-steps-streaming.md for the Guide Steps dynamic + streaming implementation notes.
+
 
 ## 🛠️ Tech Stack
 

@@ -28,6 +28,7 @@ applyTo: '**'
 - Implementation patterns used: Orchestrate preview → approve → execute via central automation endpoint; conservative health→action mapping
 - Version-specific findings: AI SDK v5 requires `inputSchema` for tools (Zod or JSON Schema). Avoid `.optional()` in strict providers; prefer `.nullable()` where optionality is needed. Zod v4 `z.record` requires both key and value types, e.g. `z.record(z.string(), z.any())`.
  - Durable summary: See docs/ohfixit-handoff.md for compact technical handoff and code pointers.
+ - Streaming structured objects: `streamObject` provides `partialObjectStream` for progressive updates and `object`/`onFinish` for the final validated object. Supports `output: 'object' | 'array' | 'enum' | 'no-schema'`; `elementStream` yields array elements incrementally. Use `onError` to log stream-time errors. Reference: Vercel AI SDK docs (Context7 /vercel/ai).
 
 ## Conversation History
 - Important decisions made: Enforce one-click auto-fix through approval pipeline; persist artifacts and rollback via helper/report; conservative mappings first
@@ -79,6 +80,8 @@ applyTo: '**'
  - Refactored `lib/ai/tools/ohfixit/guide-steps.ts` to remove all hardcoded issue patterns (e.g., printer/drive mapping). Guide steps are now generated dynamically via AI (`generateObject`) against `GuidePlanSchema`, with normalization and a robust fallback. This aligns with the preference to keep troubleshooting logic model-driven rather than rule-based.
 
 - UI duplication fix: When `guideSteps` produces output, suppress verbose assistant text and render only a single wrap-up sentence in chat. Implemented in `components/message-parts.tsx` by detecting `tool-guideSteps` with `output-available` and replacing text blocks with the wrap-up line. Added missing selector import `useMessagePartsById`, typed the detection callback, and resolved a TypeScript union check by avoiding an invalid state comparison in a separate automation block.
+
+- Context7 streaming synthesis: Confirmed server patterns to stream structured objects with `streamObject` and surface partials to the UI using either DataStream protocol or `@ai-sdk/rsc` `createStreamableValue`. Noted that the project already uses `streamText` and schema-validated tools; we can extend the server route to emit guide-plan partials and keep the final tool output unchanged.
 
 ### New or Changed Files
 - `lib/ohfixit/health-fix-map.ts` – conservative mapping and `HealthFixRequestSchema`.
