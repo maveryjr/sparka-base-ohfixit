@@ -65,7 +65,7 @@ export function EditProfileModal({ open, onOpenChange, user }: EditProfileModalP
       toast.success('Profile updated successfully');
       onOpenChange(false);
       
-      // Refresh the page to update the user data in the session
+      // Force session refresh by reloading the page
       window.location.reload();
     } catch (error: any) {
       toast.error(error.message || 'Failed to update profile');
