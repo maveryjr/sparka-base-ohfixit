@@ -78,11 +78,14 @@ applyTo: '**'
  - Observed repository-wide TypeScript type errors in unrelated areas; new changes do not introduce additional errors.
  - Refactored `lib/ai/tools/ohfixit/guide-steps.ts` to remove all hardcoded issue patterns (e.g., printer/drive mapping). Guide steps are now generated dynamically via AI (`generateObject`) against `GuidePlanSchema`, with normalization and a robust fallback. This aligns with the preference to keep troubleshooting logic model-driven rather than rule-based.
 
+- UI duplication fix: When `guideSteps` produces output, suppress verbose assistant text and render only a single wrap-up sentence in chat. Implemented in `components/message-parts.tsx` by detecting `tool-guideSteps` with `output-available` and replacing text blocks with the wrap-up line. Added missing selector import `useMessagePartsById`, typed the detection callback, and resolved a TypeScript union check by avoiding an invalid state comparison in a separate automation block.
+
 ### New or Changed Files
 - `lib/ohfixit/health-fix-map.ts` – conservative mapping and `HealthFixRequestSchema`.
 - `app/api/ohfixit/health/fix/route.ts` – orchestrates preview → approve → execute via automation action endpoint.
 - `app/(chat)/chat/[id]/chat-page.tsx` – integrates `HealthCheckDashboard` with “Fix Now”.
 - `tests/unit/health.fix.route.test.ts` – unit tests for mapping/orchestration and unmapped case.
+- `components/message-parts.tsx` – added guide steps wrap-up suppression logic; fixed imports/typing; minor state check cleanup.
 
 ## Coding Patterns
 - Uses inline interfaces with function parameters

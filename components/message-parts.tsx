@@ -21,6 +21,7 @@ import {
   useMessagePartTypesById,
   useMessagePartByPartIdx,
   useMessagePartsByPartRange,
+  useMessagePartsById,
 } from '@/lib/stores/chat-store';
 
 type MessagePartsProps = {
@@ -497,8 +498,9 @@ function PureMessagePart({
 
   if (type === 'tool-automation') {
     const { toolCallId, state } = part;
-    if (state === 'output-available') {
+    {
       const { output } = part as any;
+      if (output === undefined) return null;
       if (output && typeof output === 'object' && 'error' in output) {
         return (
           <div key={toolCallId} className="text-red-500 p-2 border rounded">
@@ -618,7 +620,7 @@ function PureMessagePart({
         </div>
       );
     }
-    if (state === 'output-available') {
+    else {
       return (
         <div key={toolCallId} className="flex flex-col gap-3">
           <ResearchUpdates updates={researchUpdates} />
@@ -664,6 +666,20 @@ export function PureMessageParts({
   isReadonly,
 }: MessagePartsProps) {
   const types = useMessagePartTypesById(messageId);
+  // We also need full parts to detect if guideSteps produced an output
+  const parts = useMessagePartsById(messageId);
+
+  // Detect presence of a guideSteps tool result in this assistant message
+  const hasGuideStepsOutput = useMemo(() => {
+    try {
+      return parts.some(
+        (p: ChatMessage['parts'][number]) =>
+          p.type === 'tool-guideSteps' && (p as any).state === 'output-available',
+      );
+    } catch {
+      return false;
+    }
+  }, [parts]);
 
   type NonReasoningPartType = Exclude<
     ChatMessage['parts'][number]['type'],
@@ -691,6 +707,9 @@ export function PureMessageParts({
     return result;
   }, [types]);
 
+  // Ensure we only render the wrap-up line once when guideSteps output exists
+  let guideWrapupRendered = false;
+
   return groups.map((group, groupIdx) => {
     if (group.kind === 'reasoning') {
       const key = `message-${messageId}-reasoning-${groupIdx}`;
@@ -707,6 +726,19 @@ export function PureMessageParts({
     }
 
     if (group.kind === 'text') {
+      // If guideSteps output exists, suppress all assistant text parts and
+      // instead render a single concise wrap-up once.
+      if (hasGuideStepsOutput) {
+        if (guideWrapupRendered) return null;
+        guideWrapupRendered = true;
+        const key = `message-${messageId}-guide-wrapup-${group.index}`;
+        return (
+          <div key={key} className="text-sm text-muted-foreground">
+            Would you like me to automate these checks and actions in sequence (where feasible) or guide you step-by-step through each task on your PC?
+          </div>
+        );
+      }
+
       const key = `message-${messageId}-text-${group.index}`;
       return (
         <TextMessagePart
