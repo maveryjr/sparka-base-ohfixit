@@ -2,10 +2,11 @@
 
 import { motion } from 'motion/react';
 import { Button } from './ui/button';
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import type { ModelId } from '@/lib/ai/model-id';
 import { useSendMessage } from '@/lib/stores/chat-store';
 import { cn } from '@/lib/utils';
+import { usePhase2 } from '@/providers/phase2-provider';
 
 interface SuggestedActionsProps {
   chatId: string;
@@ -19,26 +20,37 @@ function PureSuggestedActions({
   className,
 }: SuggestedActionsProps) {
   const sendMessage = useSendMessage();
+  const { setActiveFeature, setShowPhase2Hub } = usePhase2();
+
+  const openAssist = useCallback((feature: string) => {
+    setActiveFeature(feature);
+    setShowPhase2Hub(true);
+  }, [setActiveFeature, setShowPhase2Hub]);
+
   const suggestedActions = [
     {
-      title: 'What are the advantages',
-      label: 'of using Next.js?',
-      action: 'What are the advantages of using Next.js?',
+      title: 'Run a quick',
+      label: 'health scan',
+      action: 'Please run a quick device and browser health scan.',
+      kind: 'message' as const,
     },
     {
-      title: 'Write code to',
-      label: `demonstrate djikstra's algorithm`,
-      action: `Write code to demonstrate djikstra's algorithm`,
+      title: 'Open the',
+      label: 'Automation Panel',
+      action: () => openAssist('automation-panel'),
+      kind: 'assist' as const,
     },
     {
-      title: 'Help me write an essay',
-      label: `about silicon valley`,
-      action: `Help me write an essay about silicon valley`,
+      title: 'Browse issue',
+      label: 'playbooks',
+      action: () => openAssist('issue-playbooks'),
+      kind: 'assist' as const,
     },
     {
-      title: 'What is the weather',
-      label: 'in San Francisco?',
-      action: 'What is the weather in San Francisco?',
+      title: 'Capture &',
+      label: 'redact screenshot',
+      action: () => openAssist('redaction-assist'),
+      kind: 'assist' as const,
     },
   ];
 
@@ -59,14 +71,19 @@ function PureSuggestedActions({
           <Button
             variant="ghost"
             onClick={async () => {
+              if (suggestedAction.kind === 'assist') {
+                const fn = suggestedAction.action as () => void;
+                fn();
+                return;
+              }
+
               if (!sendMessage) return;
-
               window.history.replaceState({}, '', `/chat/${chatId}`);
-
+              const text = suggestedAction.action as string;
               sendMessage(
                 {
                   role: 'user',
-                  parts: [{ type: 'text', text: suggestedAction.action }],
+                  parts: [{ type: 'text', text }],
                   metadata: {
                     selectedModel: selectedModelId,
                     createdAt: new Date(),

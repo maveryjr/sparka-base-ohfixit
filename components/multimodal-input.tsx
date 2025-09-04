@@ -55,6 +55,8 @@ import { generateUUID } from '@/lib/utils';
 import { useSaveMessageMutation } from '@/hooks/chat-sync-hooks';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { ScreenshotAnnotator } from './ohfixit/screenshot-annotator';
+import { Mic } from 'lucide-react';
+import { VoiceMode } from './ohfixit/voice-mode';
 
 function PureMultimodalInput({
   chatId,
@@ -501,6 +503,27 @@ function PureMultimodalInput({
     [annotatorState.fileName, processFiles, uploadFile, setAttachments, closeAnnotator],
   );
 
+  // Append text to input (prefer Lexical method if available)
+  const appendToInput = useCallback(
+    (text: string) => {
+      const t = (text || '').trim();
+      if (!t) return;
+      const fn = (editorRef.current as any)?.appendText as
+        | ((s: string) => void)
+        | undefined;
+      if (fn) {
+        fn(t);
+      } else {
+        const current = getInputValue();
+        const value = current ? current + ' ' + t : t;
+        handleInputChange(value);
+      }
+      // Keep focus on input for quick follow-ups
+      editorRef.current?.focus();
+    },
+    [editorRef, getInputValue, handleInputChange],
+  );
+
   return (
     <div className="relative">
       {messageIds.length === 0 &&
@@ -626,6 +649,7 @@ function PureMultimodalInput({
             submitForm={submitForm}
             uploadQueue={uploadQueue}
             onCapture={handleScreenCapture}
+            appendToInput={appendToInput}
           />
         </PromptInput>
       </div>
@@ -717,6 +741,7 @@ function PureChatInputBottomControls({
   submitForm,
   uploadQueue,
   onCapture,
+  appendToInput,
 }: {
   selectedModelId: ModelId;
   onModelChange: (modelId: ModelId) => void;
@@ -728,11 +753,39 @@ function PureChatInputBottomControls({
   submitForm: () => void;
   uploadQueue: Array<string>;
   onCapture: (file: File) => void | Promise<void>;
+  appendToInput: (text: string) => void;
 }) {
   return (
     <PromptInputToolbar className="flex flex-row justify-between min-w-0 w-full gap-1 @[400px]:gap-2 border-t">
       <PromptInputTools className="flex items-center gap-1 @[400px]:gap-2 min-w-0">
         <AttachmentsButton fileInputRef={fileInputRef} status={status} />
+        {/* Voice input popover */}
+        <Popover>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <PromptInputButton
+                  className="size-8 @[400px]:size-10"
+                  disabled={status !== 'ready'}
+                  variant="ghost"
+                >
+                  <Mic className="size-4" />
+                </PromptInputButton>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent>Voice Input</TooltipContent>
+          </Tooltip>
+          <PopoverContent className="w-80 p-3" align="start">
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Voice</div>
+              <VoiceMode
+                onTranscription={(t) => appendToInput(t)}
+                onSpeechStart={() => {}}
+                onSpeechEnd={() => {}}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
         <ScreenCaptureButton
           status={status}
           onCapture={onCapture}
@@ -780,6 +833,7 @@ const ChatInputBottomControls = memo(
     if (prevProps.uploadQueue.length !== nextProps.uploadQueue.length)
       return false;
     if (prevProps.onCapture !== nextProps.onCapture) return false;
+    if (prevProps.appendToInput !== nextProps.appendToInput) return false;
     return true;
   },
 );
