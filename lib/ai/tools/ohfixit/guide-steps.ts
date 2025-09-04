@@ -6,7 +6,7 @@ import type { ModelMessage, FileUIPart } from 'ai';
 import type { Session } from 'next-auth';
 import type { ModelId } from '@/lib/ai/model-id';
 import type { StreamWriter } from '../../types';
-import { generateObject } from 'ai';
+import { generateObject, streamObject } from 'ai';
 import { getLanguageModel } from '@/lib/ai/providers';
 import buildDiagnosticsContext from '@/lib/ohfixit/diagnostics-context';
 
@@ -201,12 +201,23 @@ export function createGuideSteps({
       });
 
       try {
-        const { object } = await generateObject({
+        const { partialObjectStream, object } = streamObject({
           model: getLanguageModel(selectedModel),
           schema: GuidePlanSchema,
           prompt,
         });
-        return normalizePlan(object);
+
+        // Stream partial updates to the UI
+        for await (const partialObject of partialObjectStream) {
+          dataStream.write({
+            type: 'data-guidePlanPartial',
+            data: partialObject,
+          });
+        }
+
+        // Wait for the final object and normalize it
+        const finalObject = await object;
+        return normalizePlan(finalObject);
       } catch (err) {
         console.error('guide-steps dynamic generation failed; using fallback', err);
         // Minimal safe fallback

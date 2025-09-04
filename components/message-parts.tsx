@@ -358,6 +358,55 @@ function PureMessagePart({
     }
   }
 
+  if (type === 'data-guidePlanPartial') {
+    const { data } = part as any;
+    if (!data) return null;
+    
+    return (
+      <div className="my-2 border rounded-lg p-4 bg-muted/20">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse" />
+          <span className="text-sm text-muted-foreground">Planning guide...</span>
+        </div>
+        
+        {data.summary && (
+          <div className="mb-4">
+            <h3 className="font-medium text-sm mb-2">Plan Summary</h3>
+            <p className="text-sm text-muted-foreground">{data.summary}</p>
+          </div>
+        )}
+        
+        {data.steps && data.steps.length > 0 && (
+          <div>
+            <h3 className="font-medium text-sm mb-2">Steps ({data.steps.length})</h3>
+            <div className="space-y-2">
+              {data.steps.map((step: any, index: number) => (
+                <div key={step?.id || index} className="border rounded p-3 bg-background/50">
+                  {step?.title && (
+                    <h4 className="font-medium text-sm mb-1">{step.title}</h4>
+                  )}
+                  {step?.rationale && (
+                    <p className="text-xs text-muted-foreground mb-2">{step.rationale}</p>
+                  )}
+                  {step?.actions && step.actions.length > 0 && (
+                    <div className="space-y-1">
+                      {step.actions.map((action: any, actionIndex: number) => (
+                        <div key={actionIndex} className="text-xs">
+                          <span className="inline-block w-2 h-2 bg-gray-400 rounded-full mr-2" />
+                          {action?.text || 'Loading action...'}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (type === 'tool-automation') {
     const { toolCallId, state } = part;
     if (state === 'input-available') {

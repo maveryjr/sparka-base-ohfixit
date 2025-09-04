@@ -141,6 +141,7 @@ export type CustomUIDataTypes = {
   clear: null;
   finish: null;
   researchUpdate: ResearchUpdate;
+  guidePlanPartial: any; // Partial streaming object from AI SDK
 };
 
 export type ChatMessage = Omit<
