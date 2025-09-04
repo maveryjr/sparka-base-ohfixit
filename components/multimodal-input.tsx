@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   useCallback,
+  useEffect,
   type ChangeEvent,
   memo,
   type Dispatch,
@@ -75,6 +76,13 @@ function PureMultimodalInput({
 }) {
   const { data: session } = useSession();
   const isMobile = useIsMobile();
+  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(true);
+  useEffect(() => {
+    try {
+      const flag = localStorage.getItem('ohfixit:voice:enabled');
+      setVoiceEnabled(flag === null ? true : flag === 'true');
+    } catch {}
+  }, []);
   const { mutate: saveChatMessage } = useSaveMessageMutation();
   const setMessages = useSetMessages();
   const messageIds = useMessageIds();
@@ -759,7 +767,8 @@ function PureChatInputBottomControls({
     <PromptInputToolbar className="flex flex-row justify-between min-w-0 w-full gap-1 @[400px]:gap-2 border-t">
       <PromptInputTools className="flex items-center gap-1 @[400px]:gap-2 min-w-0">
         <AttachmentsButton fileInputRef={fileInputRef} status={status} />
-        {/* Voice input popover */}
+        {/* Voice input popover (respects Settings preference) */}
+        {voiceEnabled && (
         <Popover>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -786,6 +795,7 @@ function PureChatInputBottomControls({
             </div>
           </PopoverContent>
         </Popover>
+        )}
         <ScreenCaptureButton
           status={status}
           onCapture={onCapture}

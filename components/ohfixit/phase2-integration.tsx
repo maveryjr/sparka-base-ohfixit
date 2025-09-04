@@ -234,7 +234,7 @@ export function Phase2Integration({ chatId, onFeatureSelect }: Phase2Integration
             <RedactionAssist
               imageUrl="/api/placeholder-screenshot"
               onRedactedImage={handleRedactedImage}
-              autoDetect={true}
+              autoDetect={(typeof window !== 'undefined' ? (localStorage.getItem('ohfixit:redaction:auto_blur') ?? 'true') : 'true') === 'true'}
             />
           </TabsContent>
 

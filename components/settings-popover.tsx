@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { User, Settings, Coins, Moon, Sun, LogOut, Key, Edit, CreditCard } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import Image from 'next/image';
 import type { User as NextAuthUser } from 'next-auth';
 import { signOut } from 'next-auth/react';
@@ -29,6 +30,24 @@ export function SettingsPopover({ user }: SettingsPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const v = localStorage.getItem('ohfixit:voice:enabled');
+      return v === null ? true : v === 'true';
+    } catch {
+      return true;
+    }
+  });
+  const [autoBlur, setAutoBlur] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const v = localStorage.getItem('ohfixit:redaction:auto_blur');
+      return v === null ? true : v === 'true';
+    } catch {
+      return true;
+    }
+  });
 
   const handleSignOut = () => {
     signOut({
@@ -173,6 +192,30 @@ export function SettingsPopover({ user }: SettingsPopoverProps) {
                 )}
                 Toggle {theme === 'light' ? 'Dark' : 'Light'} Mode
               </Button>
+
+              <div className="flex items-center justify-between px-2 py-1">
+                <div className="text-sm">Enable Voice Input</div>
+                <Checkbox
+                  checked={voiceEnabled}
+                  onCheckedChange={(v) => {
+                    const on = Boolean(v);
+                    setVoiceEnabled(on);
+                    try { localStorage.setItem('ohfixit:voice:enabled', on ? 'true' : 'false'); } catch {}
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between px-2 py-1">
+                <div className="text-sm">Auto‑detect blur regions</div>
+                <Checkbox
+                  checked={autoBlur}
+                  onCheckedChange={(v) => {
+                    const on = Boolean(v);
+                    setAutoBlur(on);
+                    try { localStorage.setItem('ohfixit:redaction:auto_blur', on ? 'true' : 'false'); } catch {}
+                  }}
+                />
+              </div>
             </div>
 
             <Separator className="mb-4" />
