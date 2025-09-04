@@ -17,6 +17,7 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any | null>(null);
   const pollingRef = useRef<number | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const summary = useMemo(() => {
     if (!result) return null;
@@ -32,73 +33,81 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
     };
   }, [result]);
 
-  useEffect(() => {
+  async function startScan() {
     let cancelled = false;
+    // Cancel any existing polling
+    if (pollingRef.current) cancelAnimationFrame(pollingRef.current);
+    pollingRef.current = null;
+    setError(null);
+    setResult(null);
+    setStatus('queued');
+    try {
+      const res = await fetch('/api/ohfixit/health/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, checks }),
+      });
+      if (!res.ok) throw new Error(`Failed to schedule: ${res.status}`);
+      const { jobId: newJobId } = await res.json();
+      if (cancelled) return;
+      setJobId(newJobId);
+      setStatus('running');
 
-    async function run() {
-      try {
-        // Kick off health scan job
-        const res = await fetch('/api/ohfixit/health/run', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chatId, checks }),
-        });
-        if (!res.ok) throw new Error(`Failed to schedule: ${res.status}`);
-        const { jobId: newJobId } = await res.json();
-        if (cancelled) return;
-        setJobId(newJobId);
-        setStatus('running');
-
-        // Poll for results
-        const poll = async () => {
-          try {
-            const r = await fetch(`/api/ohfixit/health/results?jobId=${newJobId}${chatId ? `&chatId=${encodeURIComponent(chatId)}` : ''}`);
-            if (!r.ok) throw new Error('failed to fetch results');
-            const data = await r.json();
-            if (cancelled) return;
-            setStatus((data.status || 'running') as JobStatus);
-            if (data.result) setResult(data.result);
-            if (data.status === 'completed' || data.status === 'failed') {
-              if (pollingRef.current) cancelAnimationFrame(pollingRef.current);
-              pollingRef.current = null;
-              return;
-            }
-            pollingRef.current = requestAnimationFrame(async () => {
-              // modest delay between polls
-              setTimeout(poll, 1200);
-            });
-          } catch (e: any) {
-            if (cancelled) return;
-            setError(e?.message || 'Polling error');
+      const poll = async () => {
+        try {
+          const r = await fetch(`/api/ohfixit/health/results?jobId=${newJobId}${chatId ? `&chatId=${encodeURIComponent(chatId)}` : ''}`);
+          if (!r.ok) throw new Error('failed to fetch results');
+          const data = await r.json();
+          setStatus((data.status || 'running') as JobStatus);
+          if (data.result) setResult(data.result);
+          if (data.status === 'completed' || data.status === 'failed') {
+            if (pollingRef.current) cancelAnimationFrame(pollingRef.current);
+            pollingRef.current = null;
+            return;
           }
-        };
-        poll();
-      } catch (e: any) {
-        if (cancelled) return;
-        setError(e?.message || 'Failed to start health scan');
-        setStatus('failed');
-      }
+          pollingRef.current = requestAnimationFrame(async () => {
+            setTimeout(poll, 1200);
+          });
+        } catch (e: any) {
+          setError(e?.message || 'Polling error');
+        }
+      };
+      poll();
+    } catch (e: any) {
+      setError(e?.message || 'Failed to start health scan');
+      setStatus('failed');
     }
-
-    run();
-
     return () => {
       cancelled = true;
       if (pollingRef.current) cancelAnimationFrame(pollingRef.current);
       pollingRef.current = null;
     };
-  }, [chatId, checks]);
+  }
+
+  useEffect(() => {
+    startScan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId, JSON.stringify(checks)]);
 
   return (
     <div className={cn('rounded border p-3 text-sm space-y-2', className)}>
       <div className="flex items-center justify-between">
         <div className="font-medium">Device Health Scan</div>
-        <div className="text-xs text-muted-foreground">
-          {status === 'running' && 'Running…'}
-          {status === 'queued' && 'Queued'}
-          {status === 'completed' && 'Completed'}
-          {status === 'failed' && 'Failed'}
-          {status === 'not_found' && 'No recent results'}
+        <div className="flex items-center gap-2">
+          <button
+            className="px-2 py-1 rounded text-xs border hover:bg-accent"
+            onClick={() => startScan()}
+            disabled={status === 'running'}
+          >
+            {status === 'running' ? 'Running…' : 'Re-run'}
+          </button>
+          <button
+            className="px-2 py-1 rounded text-xs border hover:bg-accent"
+            onClick={() => setShowDetails((s) => !s)}
+            disabled={!result}
+          >
+            {showDetails ? 'Hide details' : 'View details'}
+          </button>
         </div>
       </div>
 
@@ -146,6 +155,42 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
                 </li>
               ))}
           </ul>
+
+          {showDetails && (
+            <div className="mt-3">
+              <div className="text-xs text-muted-foreground mb-1">All checks</div>
+              <ul className="space-y-2">
+                {result.checks
+                  .sort((a: any, b: any) => {
+                    const rank: Record<string, number> = { critical: 0, warning: 1, healthy: 2, unknown: 3 };
+                    const diff = rank[a.status] - rank[b.status];
+                    return diff !== 0 ? diff : a.score - b.score;
+                  })
+                  .map((c: any) => (
+                    <li key={c.id} className="border rounded p-2 bg-background/50">
+                      <div className="flex items-center gap-2">
+                        <span className={cn('text-xs capitalize', c.status === 'critical' ? 'text-red-600' : c.status === 'warning' ? 'text-yellow-700' : 'text-green-700')}>{c.status}</span>
+                        <span className="font-medium">{c.name || c.id}</span>
+                        <span className="text-xs text-muted-foreground">{c.category}</span>
+                        <span className="ml-auto text-xs">Score: {c.score}</span>
+                      </div>
+                      {c.message && (
+                        <div className="text-xs mt-1">{c.message}</div>
+                      )}
+                      {c.details && (
+                        <div className="text-xs text-muted-foreground mt-1">{c.details}</div>
+                      )}
+                      {c.recommendation && (
+                        <div className="text-xs mt-1">Recommendation: {c.recommendation}</div>
+                      )}
+                      {c.estimatedFixTime && (
+                        <div className="text-xs text-muted-foreground mt-1">Est. fix time: {c.estimatedFixTime}</div>
+                      )}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -153,4 +198,3 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
 }
 
 export default HealthScan;
-
