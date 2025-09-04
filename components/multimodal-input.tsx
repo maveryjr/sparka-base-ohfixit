@@ -658,6 +658,7 @@ function PureMultimodalInput({
             uploadQueue={uploadQueue}
             onCapture={handleScreenCapture}
             appendToInput={appendToInput}
+            voiceEnabled={voiceEnabled}
           />
         </PromptInput>
       </div>
@@ -750,6 +751,7 @@ function PureChatInputBottomControls({
   uploadQueue,
   onCapture,
   appendToInput,
+  voiceEnabled,
 }: {
   selectedModelId: ModelId;
   onModelChange: (modelId: ModelId) => void;
@@ -762,6 +764,7 @@ function PureChatInputBottomControls({
   uploadQueue: Array<string>;
   onCapture: (file: File) => void | Promise<void>;
   appendToInput: (text: string) => void;
+  voiceEnabled: boolean;
 }) {
   return (
     <PromptInputToolbar className="flex flex-row justify-between min-w-0 w-full gap-1 @[400px]:gap-2 border-t">
@@ -844,6 +847,7 @@ const ChatInputBottomControls = memo(
       return false;
     if (prevProps.onCapture !== nextProps.onCapture) return false;
     if (prevProps.appendToInput !== nextProps.appendToInput) return false;
+    if (prevProps.voiceEnabled !== nextProps.voiceEnabled) return false;
     return true;
   },
 );

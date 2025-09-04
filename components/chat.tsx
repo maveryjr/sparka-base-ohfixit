@@ -8,7 +8,7 @@ import { useArtifactSelector } from '@/hooks/use-artifact';
 import { useTRPC } from '@/trpc/react';
 import { useSession } from 'next-auth/react';
 import { usePhase2 } from '@/providers/phase2-provider';
-import { Phase2Integration } from '@/components/ohfixit/phase2-integration';
+import { AssistDock } from '@/components/ohfixit/assist-dock';
 
 import { useSidebar } from '@/components/ui/sidebar';
 import type { ChatMessage } from '@/lib/ai/types';
@@ -74,14 +74,7 @@ export function Chat({
           user={session?.user}
         />
 
-        {showPhase2Hub && (
-          <div className="border-b bg-muted/30 p-4 max-h-[60vh] overflow-y-auto">
-            <Phase2Integration 
-              chatId={id}
-              onFeatureSelect={handleFeatureSelect}
-            />
-          </div>
-        )}
+        <AssistDock chatId={id} />
 
         <MessagesPane
           chatId={id}
