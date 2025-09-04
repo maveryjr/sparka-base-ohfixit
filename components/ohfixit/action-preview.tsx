@@ -11,6 +11,9 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { chatStore } from '@/lib/stores/chat-store';
+import { useChatInput } from '@/providers/chat-input-provider';
+import type { ModelId } from '@/lib/ai/model-id';
 
 type AutomationAction = import('@/lib/ai/tools/ohfixit/automation').AutomationAction;
 type AutomationPlan = import('@/lib/ai/tools/ohfixit/automation').AutomationPlan;
@@ -22,6 +25,8 @@ export function AutomationPlanView({
   plan: AutomationPlan;
   className?: string;
 }) {
+  const { selectedModelId } = useChatInput();
+  const chatId = chatStore.getState().id || null;
   const [open, setOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<AutomationAction | null>(
     null,
@@ -29,7 +34,63 @@ export function AutomationPlanView({
 
   return (
     <div className={cn('rounded border p-3 text-sm space-y-3', className)}>
-      <div className="font-medium">{plan.summary}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="font-medium">{plan.summary}</div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              try {
+                const { currentChatHelpers, getLastMessageId } = chatStore.getState();
+                const sendMessage = currentChatHelpers?.sendMessage;
+                if (!sendMessage) return;
+                const parentId = getLastMessageId();
+                const now = new Date();
+                const payload = { from: 'automation', plan };
+                sendMessage({
+                  role: 'user',
+                  parts: [{ type: 'text', text: `Save this as a Fixlet. Input JSON:\n${JSON.stringify(payload)}` }],
+                  metadata: {
+                    selectedModel: selectedModelId as ModelId,
+                    selectedTool: 'saveFixlet',
+                    createdAt: now,
+                    parentMessageId: parentId,
+                  },
+                });
+              } catch {}
+            }}
+          >
+            Save as Fixlet
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              try {
+                const { currentChatHelpers, getLastMessageId } = chatStore.getState();
+                const sendMessage = currentChatHelpers?.sendMessage;
+                if (!sendMessage) return;
+                const parentId = getLastMessageId();
+                const now = new Date();
+                const payload = chatId ? { chatId, limit: 50 } : { limit: 25 };
+                sendMessage({
+                  role: 'user',
+                  parts: [{ type: 'text', text: `Fetch artifacts for this session. Input JSON:\n${JSON.stringify(payload)}` }],
+                  metadata: {
+                    selectedModel: selectedModelId as ModelId,
+                    selectedTool: 'getActionArtifacts',
+                    createdAt: now,
+                    parentMessageId: parentId,
+                  },
+                });
+              } catch {}
+            }}
+          >
+            View artifacts
+          </Button>
+        </div>
+      </div>
       <ul className="space-y-2">
         {plan.actions.map((a) => (
           <li key={a.id} className="border rounded p-2">
