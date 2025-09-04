@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -28,6 +28,13 @@ export type AssistFeature =
 export function AssistDock({ chatId }: { chatId: string }) {
   const { showPhase2Hub, setShowPhase2Hub, activeFeature, setActiveFeature } =
     usePhase2();
+  // Ensure a sensible default feature when opened without a selection
+  // Use an effect to avoid state updates during render
+  useEffect(() => {
+    if (showPhase2Hub && !activeFeature) {
+      setActiveFeature('automation-panel');
+    }
+  }, [showPhase2Hub, activeFeature, setActiveFeature]);
 
   const title = useMemo(() => {
     switch (activeFeature) {
@@ -197,4 +204,3 @@ function PlaybooksCompact({
     </div>
   );
 }
-
