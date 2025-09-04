@@ -58,7 +58,7 @@ export function Phase2Integration({ chatId, onFeatureSelect }: Phase2Integration
       title: 'Desktop Helper',
       description: 'Native OS automation with strict sandboxing',
       icon: Monitor,
-      status: 'coming-soon',
+      status: 'available',
       category: 'automation'
     },
     {

@@ -9,6 +9,7 @@ import type { StreamWriter } from '../../types';
 import { streamObject } from 'ai';
 import { getLanguageModel } from '@/lib/ai/providers';
 import buildDiagnosticsContext from '@/lib/ohfixit/diagnostics-context';
+import { runScreenshotOcr } from './screenshot-ocr';
 
 // Schema for a single guide step
 export const GuideStepSchema = z.object({
@@ -192,6 +193,18 @@ export function createGuideSteps({
         chatId,
       });
 
+      // Try to extract OCR hints from attachments (redacted) to sharpen the plan
+      let ocrHints: string | undefined;
+      try {
+        const atts = (inputAttachments || attachments) as any;
+        if (Array.isArray(atts) && atts.length > 0) {
+          const ocr = await runScreenshotOcr(atts);
+          if (ocr.redactedText && ocr.redactedText.trim().length > 0) {
+            ocrHints = ocr.redactedText.slice(0, 800);
+          }
+        }
+      } catch {}
+
       const prompt = buildGuidePlanPrompt({
         goal,
         contextHint,
@@ -216,7 +229,11 @@ export function createGuideSteps({
         }
 
         // Wait for the final object and normalize it
+        // Inject OCR hints by enhancing the summary if present
         const finalObject = await object;
+        if (ocrHints && finalObject?.summary) {
+          finalObject.summary = `${finalObject.summary}\n(Screenshot hints: ${ocrHints})`;
+        }
         return normalizePlan(finalObject);
       } catch (err) {
         console.error('guide-steps dynamic generation failed; using fallback', err);

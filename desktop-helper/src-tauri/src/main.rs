@@ -211,6 +211,16 @@ impl AppState {
 }
 
 #[tauri::command]
+async fn get_health_status() -> Result<serde_json::Value, String> {
+    Ok(serde_json::json!({
+        "status": "healthy",
+        "version": "0.1.0",
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "actions_available": 7
+    }))
+}
+
+#[tauri::command]
 async fn execute_rollback(
     app: AppHandle,
     state: tauri::State<'_, Mutex<AppState>>,
@@ -545,7 +555,7 @@ fn emit_status(app: &AppHandle, message: &str, status_type: &str) {
 fn main() {
     tauri::Builder::default()
         .manage(Mutex::new(AppState::new()))
-        .invoke_handler(tauri::generate_handler![execute_action, execute_rollback])
+        .invoke_handler(tauri::generate_handler![execute_action, execute_rollback, get_health_status])
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
         .run(tauri::generate_context!())
