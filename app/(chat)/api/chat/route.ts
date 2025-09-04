@@ -471,7 +471,7 @@ export async function POST(request: NextRequest) {
       });
 
       const stream = createUIMessageStream<ChatMessage>({
-        execute: ({ writer: dataStream }) => {
+        execute: async ({ writer: dataStream }) => {
           // Check if this is a DNS/cache/network related query
           const userMessageText = userMessage.parts
             .filter(part => part.type === 'text')
@@ -517,7 +517,7 @@ export async function POST(request: NextRequest) {
               functionId: 'chat-response',
             },
 
-            tools: getTools({
+            tools: await getTools({
               dataStream,
               session: {
                 user: {
@@ -530,7 +530,7 @@ export async function POST(request: NextRequest) {
               selectedModel: selectedModelId,
               attachments: userMessage.parts.filter(
                 (part) => part.type === 'file',
-              ),
+              ) as any[],
               lastGeneratedImage,
               chatId,
             }),

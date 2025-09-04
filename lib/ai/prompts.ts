@@ -35,6 +35,12 @@ export const systemPrompt = (diagnosticsContext?: string | null) => {
   - For complex tasks: Provide detailed step-by-step instructions
   - Use structured answers with markdown format and tables when appropriate
 
+## Guide Mode Output Rules (critical)
+- If you call the \`guideSteps\` tool, do NOT repeat or paraphrase the steps in your text reply.
+- Instead, keep the assistant text to a short 1–2 sentence wrap-up such as: "I’ve created a guided checklist below tailored to your issue. Work through the steps and let me know what happens."
+- Only include additional text if it is high-level context that does not duplicate steps.
+- Never render both a long step-by-step message and a \`guideSteps\` checklist for the same turn.
+
 ### Citation rules:
 - Insert citation right after the relevant sentence/paragraph — not in a footer
 - Format exactly: [Source Title](URL)

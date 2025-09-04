@@ -13,6 +13,7 @@ import { CodeInterpreterMessage } from './code-interpreter-message';
 import { GeneratedImage } from './generated-image';
 import { ResearchUpdates } from './message-annotations';
 import { GuideSteps } from '@/components/ohfixit/guide-steps';
+import { HealthScan } from '@/components/ohfixit/health-scan';
 import { AutomationPlanView } from '@/components/ohfixit/action-preview';
 import { AutomationResult } from '@/components/ohfixit/automation-result';
 import type { ChatMessage } from '@/lib/ai/types';
@@ -21,6 +22,7 @@ import {
   useMessagePartTypesById,
   useMessagePartByPartIdx,
   useMessagePartsByPartRange,
+  useMessagePartsById,
 } from '@/lib/stores/chat-store';
 
 type MessagePartsProps = {
@@ -357,12 +359,93 @@ function PureMessagePart({
     }
   }
 
+  if (type === 'tool-healthScan') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Scheduling health scan…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      // The tool output contains hints (chatId/checks); the component will run and poll via API.
+      const { output } = part as any;
+      return <HealthScan chatId={output?.chatId ?? null} checks={output?.checks} />;
+    }
+  }
+
+  if (type === 'data-guidePlanPartial') {
+    const { data } = part as any;
+    if (!data) return null;
+    
+    return (
+      <div className="my-2 border rounded-lg p-4 bg-muted/20">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse" />
+          <span className="text-sm text-muted-foreground">Planning guide...</span>
+        </div>
+        
+        {data.summary && (
+          <div className="mb-4">
+            <h3 className="font-medium text-sm mb-2">Plan Summary</h3>
+            <p className="text-sm text-muted-foreground">{data.summary}</p>
+          </div>
+        )}
+        
+        {data.steps && data.steps.length > 0 && (
+          <div>
+            <h3 className="font-medium text-sm mb-2">Steps ({data.steps.length})</h3>
+            <div className="space-y-2">
+              {data.steps.map((step: any, index: number) => (
+                <div key={step?.id || index} className="border rounded p-3 bg-background/50">
+                  {step?.title && (
+                    <h4 className="font-medium text-sm mb-1">{step.title}</h4>
+                  )}
+                  {step?.rationale && (
+                    <p className="text-xs text-muted-foreground mb-2">{step.rationale}</p>
+                  )}
+                  {step?.actions && step.actions.length > 0 && (
+                    <div className="space-y-1">
+                      {step.actions.map((action: any, actionIndex: number) => (
+                        <div key={actionIndex} className="text-xs">
+                          <span className="inline-block w-2 h-2 bg-gray-400 rounded-full mr-2" />
+                          {action?.text || 'Loading action...'}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (type === 'tool-automation') {
     const { toolCallId, state } = part;
     if (state === 'input-available') {
       return (
         <div key={toolCallId} className="text-muted-foreground text-sm">
           Preparing an automation plan…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return <AutomationPlanView plan={output} className="my-2" />;
+    }
+  }
+
+  if (type === 'tool-guideToAutomation') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Converting guide into an automation plan…
         </div>
       );
     }
@@ -497,8 +580,9 @@ function PureMessagePart({
 
   if (type === 'tool-automation') {
     const { toolCallId, state } = part;
-    if (state === 'output-available') {
+    {
       const { output } = part as any;
+      if (output === undefined) return null;
       if (output && typeof output === 'object' && 'error' in output) {
         return (
           <div key={toolCallId} className="text-red-500 p-2 border rounded">
@@ -618,7 +702,7 @@ function PureMessagePart({
         </div>
       );
     }
-    if (state === 'output-available') {
+    else {
       return (
         <div key={toolCallId} className="flex flex-col gap-3">
           <ResearchUpdates updates={researchUpdates} />
@@ -664,6 +748,20 @@ export function PureMessageParts({
   isReadonly,
 }: MessagePartsProps) {
   const types = useMessagePartTypesById(messageId);
+  // We also need full parts to detect if guideSteps produced an output
+  const parts = useMessagePartsById(messageId);
+
+  // Detect presence of a guideSteps tool result in this assistant message
+  const hasGuideStepsOutput = useMemo(() => {
+    try {
+      return parts.some(
+        (p: ChatMessage['parts'][number]) =>
+          p.type === 'tool-guideSteps' && (p as any).state === 'output-available',
+      );
+    } catch {
+      return false;
+    }
+  }, [parts]);
 
   type NonReasoningPartType = Exclude<
     ChatMessage['parts'][number]['type'],
@@ -691,6 +789,9 @@ export function PureMessageParts({
     return result;
   }, [types]);
 
+  // Ensure we only render the wrap-up line once when guideSteps output exists
+  let guideWrapupRendered = false;
+
   return groups.map((group, groupIdx) => {
     if (group.kind === 'reasoning') {
       const key = `message-${messageId}-reasoning-${groupIdx}`;
@@ -707,6 +808,19 @@ export function PureMessageParts({
     }
 
     if (group.kind === 'text') {
+      // If guideSteps output exists, suppress all assistant text parts and
+      // instead render a single concise wrap-up once.
+      if (hasGuideStepsOutput) {
+        if (guideWrapupRendered) return null;
+        guideWrapupRendered = true;
+        const key = `message-${messageId}-guide-wrapup-${group.index}`;
+        return (
+          <div key={key} className="text-sm text-muted-foreground">
+            Would you like me to automate these checks and actions in sequence (where feasible) or guide you step-by-step through each task on your PC?
+          </div>
+        );
+      }
+
       const key = `message-${messageId}-text-${group.index}`;
       return (
         <TextMessagePart

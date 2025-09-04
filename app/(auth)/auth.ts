@@ -172,6 +172,17 @@ export const {
     }) {
       if (session.user && token.id) {
         session.user.id = token.id;
+        
+        // Refresh user data from database to get latest name
+        try {
+          const dbUserArray = await getUserByEmail(session.user.email!);
+          if (dbUserArray.length > 0) {
+            session.user.name = dbUserArray[0].name;
+            session.user.image = dbUserArray[0].image;
+          }
+        } catch (error) {
+          console.error('Error refreshing user data in session callback:', error);
+        }
       } else if (!token.id) {
         console.error('Token ID missing in session callback');
       }

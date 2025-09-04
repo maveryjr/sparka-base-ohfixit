@@ -8,7 +8,7 @@ import { ShareButton } from './share-button';
 import { Share, LogIn, Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { SidebarUserNav } from './sidebar-user-nav';
+import { SettingsPopover } from './settings-popover';
 import type { User } from 'next-auth';
 import { CollectClientDiagnostics } from '@/components/ohfixit/collect-client-diagnostics';
 import { useChatInput } from '@/providers/chat-input-provider';
@@ -151,13 +151,14 @@ function PureChatHeader({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center"
+            title="View source code on GitHub"
           >
             <GitIcon />
           </a>
         </Button>
 
         {isAuthenticated && user ? (
-          <SidebarUserNav user={user} />
+          <SettingsPopover user={user} />
         ) : (
           <Tooltip>
             <TooltipTrigger asChild>

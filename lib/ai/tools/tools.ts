@@ -13,7 +13,8 @@ import { generateImage } from '@/lib/ai/tools/generate-image';
 import type { ModelId } from '@/lib/ai/model-id';
 import type { StreamWriter } from '../types';
 import { deepResearch } from './deep-research/deep-research';
-import { guideSteps } from './ohfixit/guide-steps';
+import { createGuideSteps } from './ohfixit/guide-steps';
+import { healthScan } from './ohfixit/health-scan';
 import { automation } from './ohfixit/automation';
 import { getPlaybook, executePlaybookStep } from './ohfixit/issue-playbooks';
 import { enhancedAutomation } from './ohfixit/enhanced-automation';
@@ -24,8 +25,9 @@ import { computerUse } from './computer-use';
 import { uiAutomation } from './ui-automation';
 import { screenshotCapture } from './screenshot-capture';
 import { getAnonymousSession } from '@/lib/anonymous-session-server';
+import { guideToAutomation } from './ohfixit/guide-to-automation';
 
-export function getTools({
+export async function getTools({
   dataStream,
   session,
   messageId,
@@ -45,11 +47,23 @@ export function getTools({
   chatId: string;
 }) {
   const anonymousIdPromise = getAnonymousSession().then((s) => s?.id || null).catch(() => null);
+  const anonymousId = await anonymousIdPromise;
+
   return {
     // Put automation tool FIRST to make it prominent
     automation,
     getWeather,
-    guideSteps,
+    guideSteps: createGuideSteps({
+      session: { ...session, anonymousId } as any,
+      dataStream,
+      messageId,
+      selectedModel,
+      attachments,
+      contextForLLM,
+      chatId,
+    }),
+    healthScan,
+    guideToAutomation,
     // OhFixIt Phase 2 tools
     getPlaybook,
     executePlaybookStep,
