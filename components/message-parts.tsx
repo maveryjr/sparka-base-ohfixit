@@ -13,6 +13,7 @@ import { CodeInterpreterMessage } from './code-interpreter-message';
 import { GeneratedImage } from './generated-image';
 import { ResearchUpdates } from './message-annotations';
 import { GuideSteps } from '@/components/ohfixit/guide-steps';
+import { HealthScan } from '@/components/ohfixit/health-scan';
 import { AutomationPlanView } from '@/components/ohfixit/action-preview';
 import { AutomationResult } from '@/components/ohfixit/automation-result';
 import type { ChatMessage } from '@/lib/ai/types';
@@ -358,6 +359,22 @@ function PureMessagePart({
     }
   }
 
+  if (type === 'tool-healthScan') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Scheduling health scan…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      // The tool output contains hints (chatId/checks); the component will run and poll via API.
+      const { output } = part as any;
+      return <HealthScan chatId={output?.chatId ?? null} checks={output?.checks} />;
+    }
+  }
+
   if (type === 'data-guidePlanPartial') {
     const { data } = part as any;
     if (!data) return null;
@@ -413,6 +430,22 @@ function PureMessagePart({
       return (
         <div key={toolCallId} className="text-muted-foreground text-sm">
           Preparing an automation plan…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return <AutomationPlanView plan={output} className="my-2" />;
+    }
+  }
+
+  if (type === 'tool-guideToAutomation') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Converting guide into an automation plan…
         </div>
       );
     }

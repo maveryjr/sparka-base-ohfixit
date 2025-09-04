@@ -66,6 +66,16 @@ export const toolsDefinitions: Record<ToolName, ToolDefinition> = {
     description: 'Return a step-by-step user guide plan',
     cost: 1,
   },
+  guideToAutomation: {
+    name: 'guideToAutomation',
+    description: 'Convert a guide plan to an executable automation plan',
+    cost: 2,
+  },
+  healthScan: {
+    name: 'healthScan',
+    description: 'Schedule a device health scan and stream results',
+    cost: 2,
+  },
   automation: {
     name: 'automation',
     description:

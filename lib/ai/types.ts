@@ -30,6 +30,8 @@ export const toolNameSchema = z.enum([
   'generateImage',
   'deepResearch',
   'guideSteps',
+  'guideToAutomation',
+  'healthScan',
   'automation',
   'getPlaybook',
   'executePlaybookStep',
@@ -52,6 +54,8 @@ export const frontendToolsSchema = z.enum([
   'generateImage',
   'createDocument',
   'guideSteps',
+  // 'guideToAutomation' is invoked from UI flows, not user-selectable
+  'healthScan',
   // Note: automation is not directly user-selectable as a primary tool in MVP.
 ]);
 
@@ -83,6 +87,8 @@ type codeInterpreterTool = InferUITool<typeof codeInterpreter>;
 type retrieveTool = InferUITool<typeof retrieve>;
 // Diagnostics + OhFixIt tools
 type guideStepsTool = InferUITool<typeof import('./tools/ohfixit/guide-steps')['guideSteps']>;
+type guideToAutomationTool = InferUITool<typeof import('./tools/ohfixit/guide-to-automation')['guideToAutomation']>;
+type healthScanTool = InferUITool<typeof import('./tools/ohfixit/health-scan')['healthScan']>;
 type automationTool = InferUITool<typeof import('./tools/ohfixit/automation')['automation']>;
 type getPlaybookTool = InferUITool<typeof import('./tools/ohfixit/issue-playbooks')['getPlaybook']>;
 type executePlaybookStepTool = InferUITool<typeof import('./tools/ohfixit/issue-playbooks')['executePlaybookStep']>;
@@ -115,6 +121,8 @@ export type ChatTools = {
   codeInterpreter: codeInterpreterTool;
   retrieve: retrieveTool;
   guideSteps: guideStepsTool;
+  guideToAutomation: guideToAutomationTool;
+  healthScan: healthScanTool;
   automation: automationTool;
   getPlaybook: getPlaybookTool;
   executePlaybookStep: executePlaybookStepTool;
@@ -141,7 +149,7 @@ export type CustomUIDataTypes = {
   clear: null;
   finish: null;
   researchUpdate: ResearchUpdate;
-  guidePlanPartial: any; // Partial streaming object from AI SDK
+  guidePlanPartial: Partial<import('./tools/ohfixit/guide-steps').GuidePlan>;
 };
 
 export type ChatMessage = Omit<

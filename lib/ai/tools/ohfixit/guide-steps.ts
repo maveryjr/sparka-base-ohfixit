@@ -6,7 +6,7 @@ import type { ModelMessage, FileUIPart } from 'ai';
 import type { Session } from 'next-auth';
 import type { ModelId } from '@/lib/ai/model-id';
 import type { StreamWriter } from '../../types';
-import { generateObject, streamObject } from 'ai';
+import { streamObject } from 'ai';
 import { getLanguageModel } from '@/lib/ai/providers';
 import buildDiagnosticsContext from '@/lib/ohfixit/diagnostics-context';
 

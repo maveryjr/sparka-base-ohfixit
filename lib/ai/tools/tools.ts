@@ -14,6 +14,7 @@ import type { ModelId } from '@/lib/ai/model-id';
 import type { StreamWriter } from '../types';
 import { deepResearch } from './deep-research/deep-research';
 import { createGuideSteps } from './ohfixit/guide-steps';
+import { healthScan } from './ohfixit/health-scan';
 import { automation } from './ohfixit/automation';
 import { getPlaybook, executePlaybookStep } from './ohfixit/issue-playbooks';
 import { enhancedAutomation } from './ohfixit/enhanced-automation';
@@ -24,6 +25,7 @@ import { computerUse } from './computer-use';
 import { uiAutomation } from './ui-automation';
 import { screenshotCapture } from './screenshot-capture';
 import { getAnonymousSession } from '@/lib/anonymous-session-server';
+import { guideToAutomation } from './ohfixit/guide-to-automation';
 
 export async function getTools({
   dataStream,
@@ -60,6 +62,8 @@ export async function getTools({
       contextForLLM,
       chatId,
     }),
+    healthScan,
+    guideToAutomation,
     // OhFixIt Phase 2 tools
     getPlaybook,
     executePlaybookStep,
