@@ -16,6 +16,8 @@ import { GuideSteps } from '@/components/ohfixit/guide-steps';
 import { HealthScan } from '@/components/ohfixit/health-scan';
 import { AutomationPlanView } from '@/components/ohfixit/action-preview';
 import { AutomationResult } from '@/components/ohfixit/automation-result';
+import { ActionArtifacts } from '@/components/ohfixit/action-artifacts';
+import { AuditTrail } from '@/components/ohfixit/audit-trail';
 import type { ChatMessage } from '@/lib/ai/types';
 import {
   chatStore,
@@ -375,6 +377,46 @@ function PureMessagePart({
     }
   }
 
+  if (type === 'tool-getActionArtifacts') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Loading artifacts…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (output?.error) {
+        return (
+          <div key={toolCallId} className="text-red-500 p-2 border rounded">
+            Error: {String(output.error)}
+          </div>
+        );
+      }
+      return (
+        <ActionArtifacts artifacts={output?.artifacts || []} />
+      );
+    }
+  }
+
+  if (type === 'tool-getConsentLog') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Loading audit timeline…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return <AuditTrail events={(output.events || []).map((e: any) => ({ id: e.id, createdAt: e.createdAt, type: e.type, actionType: e.actionType, status: e.status, kind: e.kind, summary: e.summary }))} />;
+    }
+  }
+
   if (type === 'data-guidePlanPartial') {
     const { data } = part as any;
     if (!data) return null;
@@ -504,6 +546,12 @@ function PureMessagePart({
                 {typeof r.latencyMs === 'number' && (
                   <span className="text-muted-foreground">{r.latencyMs} ms</span>
                 )}
+                {r.status && (
+                  <span className="text-muted-foreground">HTTP {r.status}</span>
+                )}
+                {r.reason && (
+                  <span className="text-muted-foreground">{r.reason}</span>
+                )}
                 {r.error && (
                   <span className="text-muted-foreground">{r.error}</span>
                 )}
@@ -567,6 +615,33 @@ function PureMessagePart({
           </ul>
           {output.recommendations && (
             <div className="text-xs text-muted-foreground">{output.recommendations[0]}</div>
+          )}
+        </div>
+      );
+    }
+  }
+
+  if (type === 'tool-analyzeScript') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Analyzing script risk…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return (
+        <div key={toolCallId} className="rounded border p-3 text-sm">
+          <div className="font-medium mb-1">Script Risk: {output.level}</div>
+          <div className="text-xs text-muted-foreground mb-1">Requires consent: {String(output.requiresConsent)}</div>
+          {output.factors?.length > 0 && (
+            <div className="text-xs">Factors: {output.factors.join(', ')}</div>
+          )}
+          {output.mitigations?.length > 0 && (
+            <div className="text-xs text-muted-foreground">Mitigations: {output.mitigations.join(', ')}</div>
           )}
         </div>
       );

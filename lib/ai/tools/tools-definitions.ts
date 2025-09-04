@@ -102,6 +102,26 @@ export const toolsDefinitions: Record<ToolName, ToolDefinition> = {
     description: 'Find and execute one-click fixes for common technical issues',
     cost: 3,
   },
+  getActionArtifacts: {
+    name: 'getActionArtifacts',
+    description: 'Fetch action artifacts for audit and review',
+    cost: 1,
+  },
+  getConsentLog: {
+    name: 'getConsentLog',
+    description: 'View consent and action audit timeline',
+    cost: 1,
+  },
+  analyzeScript: {
+    name: 'analyzeScript',
+    description: 'Static risk analysis for scripts with mitigations',
+    cost: 1,
+  },
+  saveFixlet: {
+    name: 'saveFixlet',
+    description: 'Save a troubleshooting plan as a reusable Fixlet',
+    cost: 2,
+  },
   clientEnv: {
     name: 'clientEnv',
     description: 'Read consented client diagnostics snapshot',

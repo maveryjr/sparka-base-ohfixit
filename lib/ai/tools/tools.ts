@@ -26,6 +26,10 @@ import { uiAutomation } from './ui-automation';
 import { screenshotCapture } from './screenshot-capture';
 import { getAnonymousSession } from '@/lib/anonymous-session-server';
 import { guideToAutomation } from './ohfixit/guide-to-automation';
+import { getActionArtifacts } from './ohfixit/get-action-artifacts';
+import { getConsentLog } from './ohfixit/get-consent-log';
+import { analyzeScript } from './ohfixit/analyze-script';
+import { saveFixlet } from './ohfixit/fixlet-save';
 
 export async function getTools({
   dataStream,
@@ -64,6 +68,10 @@ export async function getTools({
     }),
     healthScan,
     guideToAutomation,
+    getActionArtifacts,
+    getConsentLog,
+    analyzeScript,
+    saveFixlet,
     // OhFixIt Phase 2 tools
     getPlaybook,
     executePlaybookStep,
