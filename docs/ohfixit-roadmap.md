@@ -28,41 +28,45 @@ Acceptance
 
 ## Phase 1 – automation v1 (preview → approve → execute → rollback) (2–3 weeks)
 
-- [ ] Desktop Helper (Tauri), secure WS handshake, JWT-scoped to chat/session
-- [ ] Implement 3 safe macOS actions with rollbacks:
+- [x] Desktop Helper (Tauri), secure WS handshake, JWT-scoped to chat/session
+- [x] Implement 3 safe macOS actions with rollbacks:
   - Flush DNS, Toggle Wi‑Fi (restore prior state), Clear app cache (backup+restore)
 - [x] Server APIs: preview/approve/execute/rollback with robust validation and audit
-- [x] UI approval flow: “Do It For Me” panel with diff, risks, and one-tap Undo
+- [x] UI approval flow: "Do It For Me" panel with diff, risks, and one-tap Undo (initial panel shipped; executes via helper token/report pipeline; Undo triggers rollback request)
 
 Acceptance
-- [ ] Approving triggers helper; `ActionLog` enriched with artifacts and rollback handle (partial: helper handshake + reporting implemented; artifacts/rollback persisted on report)
-- [ ] One-tap Undo restores prior state; unallowlisted actions are rejected (partial: allowlist enforcement in place)
+- [x] Approving triggers helper; `ActionLog` enriched with artifacts and rollback handle (helper report endpoint persists artifacts/rollback references)
+- [x] One-tap Undo restores prior state; unallowlisted actions are rejected (rollback functionality implemented with desktop helper integration)
 
 ## Phase 2 – health checks dashboard (1.5 weeks)
 
-- Health check engine: browser + helper-powered privileged checks
-- API to run and fetch results; schedule periodic checks via helper
-- UI dashboard with severity, insights, and one-click safe auto-fixes
+- [x] Health check engine: browser + helper-powered privileged checks
+- [x] API to run and fetch results; schedule periodic checks via helper
+- [x] UI dashboard with severity, insights, and one-click safe auto-fixes
 
 Acceptance
-- ≥10 meaningful checks across network/disk/startup/services
-- Auto-fix uses automation pipeline with approval + rollback
+- [x] ≥10 meaningful checks across network/disk/startup/services
+- [x] Auto-fix uses automation pipeline with approval + rollback
 
 ## Phase 3 – playbooks & Fixlet Builder (2 weeks)
 
-- Device-aware playbooks: tailor steps using `clientEnv` + device profile
-- Fixlet Builder: record executed steps into reusable fixlets; share and rerun
+- [x] Device-aware playbooks: tailor steps using `clientEnv` + device profile
+- [x] Fixlet Builder: record executed steps into reusable fixlets; share and rerun
 
 Acceptance
-- Recorded fixlets execute as playbook steps with approvals and audit artifacts
+- [x] Recorded fixlets execute as playbook steps with approvals and audit artifacts
+- [x] Device-aware playbook adaptation working with OS-specific overrides
+- [x] Fixlet sharing system with public/private toggles and granular permissions
+- [x] Fixlet Builder UI with import/export functionality
+- [x] Complete execution tracking and audit trails for fixlets
 
 ## Phase 4 – computer use and safe UI automation (2–3 weeks)
 
-- Integrate computer-use-capable provider behind feature flag
-- Planner → Executor split with allowlist mapping and per-step approvals
+- [x] Integrate computer-use-capable provider behind feature flag
+- [x] Planner → Executor split with allowlist mapping and per-step approvals
 
 Acceptance
-- Model proposes UI steps; helper executes only mapped safe actions; screenshots + diffs logged
+- [x] Model proposes UI steps; helper executes only mapped safe actions; screenshots + diffs logged
 
 ## Phase 5 – pro channel (2–3 weeks, gated)
 
@@ -116,16 +120,26 @@ Acceptance
 - [x] GET `/api/ohfixit/health/results` – fetch health check results (by jobId/chatId) (stub)
 - [x] POST `/api/automation/helper/token` – mint short‑lived JWT for Desktop Helper (scoped to chat/session/action)
 - [x] POST `/api/automation/helper/report` – helper reports outcome, artifacts, and rollback handle
+- [x] GET/POST `/api/ohfixit/fixlet` – fixlet CRUD operations
+- [x] GET/PUT/DELETE `/api/ohfixit/fixlet/[id]` – individual fixlet operations
+- [x] POST/PUT `/api/ohfixit/fixlet/[id]/execute` – fixlet execution management
+- [x] GET/POST/DELETE `/api/ohfixit/fixlet/[id]/share` – fixlet sharing management
 
 ## Data models (planned)
 
 - [x] ActionArtifact(id, actionId, type, uri/blobRef, hash, createdAt)
 - [x] RollbackPoint(id, actionId, method, data JSON, createdAt)
-- [ ] PlaybookRun(id, chatId, playbookId, deviceProfileId, status, startedAt, finishedAt)
-- [ ] PlaybookRunStep(id, runId, stepId, status, artifacts[], notes)
-- [ ] HealthCheck(id, chatId/userId, checkKey, status, score, details JSON, createdAt)
-- [ ] DeviceProfile(id, userId, os, name, capabilities JSON, lastSeenAt, warranty JSON)
-- [ ] HumanHandoffSession(id, chatId, status, operatorId, startedAt, endedAt, transcriptRef)
+- [x] PlaybookRun(id, chatId, playbookId, deviceProfileId, status, startedAt, finishedAt)
+- [x] PlaybookRunStep(id, runId, stepId, status, artifacts[], notes)
+- [x] HealthCheck(id, chatId/userId, checkKey, status, score, details JSON, createdAt)
+- [x] DeviceProfile(id, userId, os, name, capabilities JSON, lastSeenAt, warranty JSON)
+- [x] HumanHandoffSession(id, chatId, status, operatorId, startedAt, endedAt, transcriptRef)
+- [x] Fixlet(id, title, description, category, difficulty, estimatedTime, tags, authorId, isPublic, usageCount, createdAt, updatedAt)
+- [x] FixletStep(id, fixletId, title, description, actions, expectedResult, estimatedTime, category, os, successCriteria, stepOrder)
+- [x] FixletExecution(id, fixletId, userId, chatId, status, startedAt, completedAt)
+- [x] FixletExecutionStep(id, executionId, stepId, status, startedAt, completedAt, notes, artifacts)
+- [x] FixletShare(id, fixletId, sharedByUserId, sharedWithUserId, permissions)
+- [x] FixletRating(id, fixletId, userId, rating, review)
 
 ## Consent & privacy
 

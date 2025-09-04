@@ -1,6 +1,7 @@
 import { generateUUID } from './utils';
 import type { ChatMessage } from './ai/types';
 import { uploadFile } from './blob';
+import { BLOB_FILE_PREFIX } from './constants';
 import type { FileUIPart } from 'ai';
 
 function cloneMessages<
@@ -201,7 +202,11 @@ export async function cloneFileUIPart(part: FileUIPart): Promise<FileUIPart> {
 
     // Remove any existing prefix if it somehow got into the filename
     if (filename.startsWith('sparka-ai/files/')) {
+      // Backward-compat: strip old prefix
       filename = filename.replace('sparka-ai/files/', '');
+    }
+    if (filename.startsWith(BLOB_FILE_PREFIX)) {
+      filename = filename.replace(BLOB_FILE_PREFIX, '');
     }
 
     const newBlob = await uploadFile(

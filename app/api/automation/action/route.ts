@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { generateActionPreview } from '@/lib/ohfixit/allowlist';
 import { logAction } from '@/lib/ohfixit/logger';
 import { db } from '@/lib/db/client';
-import { actionLog } from '@/lib/db/schema';
+import { actionLog, rollbackPoint } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { resolveActorIds } from '@/lib/ohfixit/logger';
 import { signAutomationToken } from '@/lib/ohfixit/jwt';
@@ -145,16 +145,47 @@ export async function POST(request: NextRequest) {
         60 * 10,
       );
       const reportUrl = '/api/automation/helper/report';
+      // Try to find latest rollback point correlated to this action/approval via ActionLog
+      let rb: { id: string; method: string; data: any; createdAt: Date } | null = null;
+      try {
+        const rows = await db
+          .select({
+            rbId: rollbackPoint.id,
+            rbMethod: rollbackPoint.method,
+            rbData: rollbackPoint.data,
+            rbCreatedAt: rollbackPoint.createdAt,
+            alId: actionLog.id,
+            alPayload: actionLog.payload,
+            alCreatedAt: actionLog.createdAt,
+          })
+          .from(rollbackPoint)
+          .innerJoin(actionLog, eq(rollbackPoint.actionLogId, actionLog.id))
+          .orderBy(desc(rollbackPoint.createdAt))
+          .limit(100);
+
+        const best = rows.find((row: any) => {
+          const p = (row.alPayload ?? {}) as Record<string, any>;
+          if (approvalId && p.approvalId) return p.approvalId === approvalId;
+          if (actionId && p.actionId) return p.actionId === actionId;
+          return false;
+        }) ?? rows[0];
+
+        if (best) {
+          rb = { id: best.rbId, method: best.rbMethod, data: best.rbData, createdAt: best.rbCreatedAt } as any;
+        }
+      } catch (e) {
+        // ignore
+      }
       // Enqueue rollback via desktop helper (future), reference prior rollback point
       const rows = await logAction({
         chatId: chatId ?? 'provisional',
         actionType: 'script_recommendation',
         status: 'cancelled',
         summary: `Rollback for ${actionId}`,
-        payload: { actionId, approvalId: approvalId ?? null, jobId, executionHost: 'desktop-helper' },
+        payload: { actionId, approvalId: approvalId ?? null, jobId, executionHost: 'desktop-helper', rollbackPoint: rb },
       }).catch(() => [] as any);
       const actionLogId = rows?.[0]?.id ?? null;
-      return NextResponse.json({ status: 'queued', jobId, actionLogId, rollbackOf: approvalId ?? actionId, helperToken, reportUrl, expiresIn: 600 });
+      return NextResponse.json({ status: 'queued', jobId, actionLogId, rollbackOf: approvalId ?? actionId, rollbackPoint: rb, helperToken, reportUrl, expiresIn: 600 });
     }
 
     return NextResponse.json({ error: 'Unsupported operation' }, { status: 400 });

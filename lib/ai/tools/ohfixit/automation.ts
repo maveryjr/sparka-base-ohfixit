@@ -67,45 +67,101 @@ export type AutomationInputs = z.infer<typeof AutomationInputsSchema>;
 
 export const automation: Tool<AutomationInputs, AutomationPlan> = tool({
   description:
-    'Proposes a safe, consent-gated action plan to resolve the user\'s issue. Actions include open_url, dom_instruction, and script_recommendation.',
+    'TOOL FOR SYSTEM MAINTENANCE: Use when users ask to clear DNS cache, fix Wi-Fi, restart Finder, clear caches, or troubleshoot network issues. PROVIDES SAFE AUTOMATED SOLUTIONS with user approval required. DO NOT give manual instructions - use this tool instead.',
   inputSchema: AutomationInputsSchema,
   execute: async ({ goal, contextHint }): Promise<AutomationPlan> => {
-    // MVP scaffold: produce a conservative set of actions with clear previews
-    const actions: AutomationAction[] = [
-      {
-        type: 'open_url',
-        id: 'open-help',
-        title: 'Open the official help/troubleshooting page',
-        url: 'https://support.google.com/chrome/?hl=en#topic=7439538',
-        target: '_blank',
-        rationale:
-          'Checking the official troubleshooting guide can quickly resolve common problems.',
-        preview: 'Open help site in a new tab',
-      },
-      {
-        type: 'dom_instruction',
-        id: 'dom-refresh',
-        title: 'Refresh the current page and clear temporary state',
-        instruction:
-          'Use the app\'s refresh or reload button. If issues persist, sign out and sign back in within the app UI.',
-        caution:
-          'Refreshing may clear unsaved inputs. Ensure you\'ve copied important text first.',
-      },
-      {
+    const goalLower = goal.toLowerCase();
+    const actions: AutomationAction[] = [];
+
+    // Analyze the goal and add relevant actions
+    if (goalLower.includes('dns') || goalLower.includes('name resolution') || goalLower.includes('domain') ||
+        goalLower.includes('clear dns') || goalLower.includes('flush dns') || goalLower.includes('dns cache')) {
+      // DNS-related issues
+      actions.push({
         type: 'script_recommendation',
         id: 'script-dns-flush',
-        title: 'Optional: Flush DNS cache (macOS)',
+        title: 'Flush DNS Cache (macOS)',
         shell: 'bash',
         os: 'macos',
         script: 'sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder',
-        explanation:
-          'If you suspect DNS resolution problems, flushing the DNS cache can help. This requires admin privileges.',
-        dryRun: true,
-        safetyNotes: 'Review the command and run it only if you understand the implications.',
-      },
-    ];
+        explanation: 'Flush the DNS cache to resolve name resolution issues and force fresh DNS lookups.',
+        dryRun: false,
+        safetyNotes: 'Requires administrator privileges. Safe operation that only clears cached DNS entries.',
+      });
+    }
 
-    const summary = `Automation plan for: ${goal}${contextHint ? ` (context: ${contextHint})` : ''}. Review the actions below. Nothing runs without your approval.`;
+    if (goalLower.includes('wifi') || goalLower.includes('network') || goalLower.includes('internet') || goalLower.includes('connect')) {
+      // Network/Wi-Fi issues
+      actions.push({
+        type: 'script_recommendation',
+        id: 'script-wifi-toggle',
+        title: 'Toggle Wi-Fi (macOS)',
+        shell: 'bash',
+        os: 'macos',
+        script: 'networksetup -setairportpower en0 off; sleep 2; networksetup -setairportpower en0 on',
+        explanation: 'Toggle Wi-Fi off and back on to reset the network interface and resolve connectivity issues.',
+        dryRun: false,
+        safetyNotes: 'Temporarily disconnects from Wi-Fi network for about 10 seconds.',
+      });
+    }
+
+    if (goalLower.includes('cache') || goalLower.includes('slow') || goalLower.includes('performance')) {
+      // Cache/storage issues
+      actions.push({
+        type: 'script_recommendation',
+        id: 'script-clear-cache',
+        title: 'Clear Application Cache (macOS)',
+        shell: 'bash',
+        os: 'macos',
+        script: 'find ~/Library/Caches -name "*.cache" -type f -delete 2>/dev/null || true',
+        explanation: 'Clear application cache files to free up disk space and improve performance.',
+        dryRun: false,
+        safetyNotes: 'Applications may rebuild caches on next launch. No user data is affected.',
+      });
+    }
+
+    if (goalLower.includes('finder') || goalLower.includes('desktop') || goalLower.includes('files')) {
+      // Finder/Desktop issues
+      actions.push({
+        type: 'script_recommendation',
+        id: 'script-restart-finder',
+        title: 'Restart Finder (macOS)',
+        shell: 'bash',
+        os: 'macos',
+        script: 'killall Finder',
+        explanation: 'Restart the Finder application to refresh the desktop and file views.',
+        dryRun: false,
+        safetyNotes: 'Temporarily closes all Finder windows. Safe operation.',
+      });
+    }
+
+    // If no specific actions were matched, provide general troubleshooting
+    if (actions.length === 0) {
+      actions.push({
+        type: 'open_url',
+        id: 'open-help',
+        title: 'Open macOS Support',
+        url: 'https://support.apple.com/macos',
+        target: '_blank',
+        rationale: 'Access official Apple support documentation for your issue.',
+        preview: 'Open Apple Support in new tab',
+      });
+    }
+
+    // Always include a refresh action as a safe fallback
+    if (actions.length < 3) {
+      actions.push({
+        type: 'dom_instruction',
+        id: 'dom-refresh',
+        title: 'Refresh Current Page',
+        instruction: 'Click the refresh/reload button in your browser or use Cmd+R.',
+        caution: 'This may clear any unsaved form data on the current page.',
+      });
+    }
+
+    const summary = actions.length === 1
+      ? `I can help you with that! Here's a safe automated solution for your ${goal} issue. Click "Approve" to proceed with the automated fix.`
+      : `I found ${actions.length} safe solutions for your ${goal} issue. Review the options below and approve the ones you want to execute.`;
 
     return { summary, actions };
   },

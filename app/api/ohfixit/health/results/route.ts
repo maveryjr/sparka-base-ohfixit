@@ -1,29 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/app/(auth)/auth';
+import { z } from 'zod';
+import { logAction } from '@/lib/ohfixit/logger';
 
 // Access the in-memory stub store created by the run route
 const g = globalThis as any;
 g.__ohfixit_health_jobs = g.__ohfixit_health_jobs || new Map<string, { status: 'queued' | 'running' | 'completed' | 'failed'; createdAt: number; result?: any }>();
-
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const jobId = searchParams.get('jobId');
-    if (!jobId) {
-      return NextResponse.json({ error: 'jobId is required' }, { status: 400 });
-    }
-    const job = g.__ohfixit_health_jobs.get(jobId);
-    if (!job) {
-      return NextResponse.json({ error: 'job not found' }, { status: 404 });
-    }
-    return NextResponse.json({ jobId, status: job.status, result: job.result ?? null });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Failed to fetch results' }, { status: 400 });
-  }
-}
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/(auth)/auth';
-import { z } from 'zod';
-import { logAction } from '@/lib/ohfixit/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,29 +18,73 @@ export async function GET(request: NextRequest) {
     const jobId = searchParams.get('jobId');
     const chatId = searchParams.get('chatId');
 
-    const querySchema = z.object({ jobId: z.string().nullable(), chatId: z.string().nullable() });
+    const querySchema = z.object({
+      jobId: z.string().nullable(),
+      chatId: z.string().nullable()
+    });
     querySchema.parse({ jobId, chatId });
 
-    // TODO: fetch real results from persistence; for now return stubbed sample
-    const results = [
-      { key: 'network', status: 'pass', score: 0.92, details: { latencyMs: 18, packetLoss: 0 } },
-      { key: 'disk', status: 'warn', score: 0.65, details: { freeGB: 8, recommendedCleanupGB: 12 } },
-      { key: 'startup', status: 'pass', score: 0.9, details: { entries: 7, recommendedDisable: 2 } },
-      { key: 'services', status: 'pass', score: 0.95, details: { stoppedCritical: 0 } },
-    ];
+    // Check if we have a specific job in memory
+    if (jobId) {
+      const job = g.__ohfixit_health_jobs.get(jobId);
+      if (job) {
+        return NextResponse.json({
+          jobId,
+          status: job.status,
+          result: job.result ?? null,
+          chatId,
+          progress: job.status === 'running' ? 'Running health checks...' : undefined
+        });
+      }
+    }
 
-    // Optional: log fetch event (not essential, but useful for audit trail completeness)
-    await logAction({
-      chatId: chatId ?? 'provisional',
-      actionType: 'script_recommendation',
-      status: 'proposed',
-      summary: 'Health results fetched',
-      payload: { jobId, count: results.length },
-    }).catch(() => {});
+    // Return recent health check results for the user/chat
+    const recentJobs = Array.from(g.__ohfixit_health_jobs.entries())
+      .map(([id, job]) => ({ jobId: id, ...job }))
+      .filter(job => {
+        // Filter by user or chat context
+        const matchesUser = job.userId === session.user.id;
+        const matchesChat = chatId && job.chatId === chatId;
+        return matchesUser || matchesChat;
+      })
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 1); // Get most recent
 
-    return NextResponse.json({ jobId, chatId, results, createdAt: new Date().toISOString() });
+    if (recentJobs.length > 0 && recentJobs[0].result) {
+      return NextResponse.json({
+        jobId: recentJobs[0].jobId,
+        status: recentJobs[0].status,
+        result: recentJobs[0].result,
+        chatId,
+        isRecent: true
+      });
+    }
+
+    // No recent results, return empty state
+    const emptyResult = {
+      overallScore: 0,
+      overallStatus: 'unknown' as const,
+      totalChecks: 0,
+      healthyCount: 0,
+      warningCount: 0,
+      criticalCount: 0,
+      checks: [],
+      systemInfo: null,
+      lastRunTime: null,
+      nextRecommendedCheck: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    };
+
+    return NextResponse.json({
+      jobId: null,
+      chatId,
+      status: 'not_found',
+      result: emptyResult,
+      message: 'No health check results found. Run a health check first.'
+    });
   } catch (err: any) {
     console.error('Health results error:', err);
-    return NextResponse.json({ error: err?.message ?? 'Failed to fetch health results' }, { status: 400 });
+    return NextResponse.json({
+      error: err?.message ?? 'Failed to fetch health results'
+    }, { status: 400 });
   }
 }

@@ -1,10 +1,10 @@
-# Testing Instructions for Sparka Features
+# Testing Instructions for Oh Fix It Features
 
-This document provides comprehensive testing instructions for all major features in the Sparka chat application.
+This document provides comprehensive testing instructions for all major features in the Oh Fix It chat application.
 
 ## Prerequisites
 
-1. Go to `sparka.ai` and login with GitHub / Google
+1. Go to `ohfixit.app` and login with GitHub / Google
 
 Or 
 
@@ -23,7 +23,7 @@ Or
 4. Test removing individual attachments before sending
 5. Send message with prompt: "What's in the image?"
 
-**Example:** https://www.sparka.ai/share/6dd8f1d7-57d1-4f1c-8a44-30f04f09eb95
+**Example:** https://www.ohfixit.app/share/6dd8f1d7-57d1-4f1c-8a44-30f04f09eb95
 
 ![Image upload test](demo/image.png)
 
@@ -33,7 +33,7 @@ Or
 4. Send message with prompt: "What's in the PDF?"
 5. Verify PDF can be opened/viewed in chat
 
-**Example:** https://www.sparka.ai/share/2c8f35d3-67bc-4eec-8351-04eb2904d6a0
+**Example:** https://www.ohfixit.app/share/2c8f35d3-67bc-4eec-8351-04eb2904d6a0
 
 ![PDF upload test](demo/image-1.png)
 
@@ -43,7 +43,7 @@ Or
 1. Send prompt: "Create document with an image of a kitty playing in the beach" (sorry, there's a bug in routing and it considers images as documents)
 2. Verify AI generates and displays image correctly
 
-**Example:** https://www.sparka.ai/share/3c69ed0f-249f-4d5b-a824-6e2458c6ccd7
+**Example:** https://www.ohfixit.app/share/3c69ed0f-249f-4d5b-a824-6e2458c6ccd7
 
 ![AI image generation test](demo/image-2.png)
 
@@ -53,7 +53,7 @@ Or
 1. Send prompt: "Write code for a hello world in Python in a document" (Only Python supported for highlights)
 2. Verify syntax highlighting appears correctly
 
-**Example:** https://www.sparka.ai/share/9f1fc4b1-e738-4337-9344-f433a82b62f4
+**Example:** https://www.ohfixit.app/share/9f1fc4b1-e738-4337-9344-f433a82b62f4
 
 ![Syntax highlighting test](demo/image-3.png)
 
@@ -74,7 +74,7 @@ Or
 5. The last message received is displayed when conversation loads
 6. Messages are attached to the correct branch
 
-**Example:** https://www.sparka.ai/share/e266e83e-6df1-497a-9b86-710e729e55b5
+**Example:** https://www.ohfixit.app/share/e266e83e-6df1-497a-9b86-710e729e55b5
 
 ![Chat branching test](demo/image-5.png)
 
@@ -90,7 +90,7 @@ Or
 3. Test saving conversation as logged-in user
 4. Test saving conversation as anonymous user
 
-**Example:** https://www.sparka.ai/share/e266e83e-6df1-497a-9b86-710e729e55b5
+**Example:** https://www.ohfixit.app/share/e266e83e-6df1-497a-9b86-710e729e55b5
 
 ![Share link access test](demo/image-11.png)
 ![Share link save test](demo/image-12.png)
@@ -113,7 +113,7 @@ Or
    - "What are the current stock prices for tech companies?"
 3. Open the search info panel (above assistant message)
 
-**Example:** https://www.sparka.ai/share/5f5c1376-d41c-4d5b-bfe8-c304f5c4f7e1
+**Example:** https://www.ohfixit.app/share/5f5c1376-d41c-4d5b-bfe8-c304f5c4f7e1
 
 ![Web search test](demo/image-15.png)
 
@@ -121,7 +121,7 @@ Or
 1. Send prompt: "What's https://cloneathon.t3.chat?"
 2. Verify URL content is processed correctly
 
-**Example:** https://www.sparka.ai/share/bcc91bb0-d255-4d2b-ac9a-d6a839f6248e
+**Example:** https://www.ohfixit.app/share/bcc91bb0-d255-4d2b-ac9a-d6a839f6248e
 
 
 ![URL processing](demo/image-16.png)

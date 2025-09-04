@@ -31,8 +31,15 @@ export const toolNameSchema = z.enum([
   'deepResearch',
   'guideSteps',
   'automation',
+  'getPlaybook',
+  'executePlaybookStep',
+  'enhancedAutomation',
+  'oneClickFixTool',
   'clientEnv',
   'networkCheck',
+  'computerUse',
+  'uiAutomation',
+  'screenshotCapture',
 ]);
 
 const _ = toolNameSchema.options satisfies ToolName[];
@@ -77,6 +84,10 @@ type retrieveTool = InferUITool<typeof retrieve>;
 // Diagnostics + OhFixIt tools
 type guideStepsTool = InferUITool<typeof import('./tools/ohfixit/guide-steps')['guideSteps']>;
 type automationTool = InferUITool<typeof import('./tools/ohfixit/automation')['automation']>;
+type getPlaybookTool = InferUITool<typeof import('./tools/ohfixit/issue-playbooks')['getPlaybook']>;
+type executePlaybookStepTool = InferUITool<typeof import('./tools/ohfixit/issue-playbooks')['executePlaybookStep']>;
+type enhancedAutomationTool = InferUITool<typeof import('./tools/ohfixit/enhanced-automation')['enhancedAutomation']>;
+type oneClickFixTool = InferUITool<typeof import('../../ohfixit/one-click-fixes')['oneClickFixTool']>;
 // For factory tools, we reference the Tool type by creating a temporary type helper
 type _ClientEnvTool = ReturnType<
   typeof import('./tools/ohfixit/client-env').default
@@ -86,6 +97,10 @@ type _NetworkCheckTool = ReturnType<
   typeof import('./tools/ohfixit/network-check').default
 >;
 type networkCheckTool = InferUITool<_NetworkCheckTool>;
+// Computer use tools
+type computerUseTool = InferUITool<typeof import('./tools/computer-use')['computerUse']>;
+type uiAutomationTool = InferUITool<typeof import('./tools/ui-automation')['uiAutomation']>;
+type screenshotCaptureTool = InferUITool<typeof import('./tools/screenshot-capture')['screenshotCapture']>;
 
 export type ChatTools = {
   getWeather: weatherTool;
@@ -101,8 +116,15 @@ export type ChatTools = {
   retrieve: retrieveTool;
   guideSteps: guideStepsTool;
   automation: automationTool;
+  getPlaybook: getPlaybookTool;
+  executePlaybookStep: executePlaybookStepTool;
+  enhancedAutomation: enhancedAutomationTool;
+  oneClickFixTool: oneClickFixTool;
   clientEnv: clientEnvTool;
   networkCheck: networkCheckTool;
+  computerUse: computerUseTool;
+  uiAutomation: uiAutomationTool;
+  screenshotCapture: screenshotCaptureTool;
 };
 
 export type CustomUIDataTypes = {

@@ -55,11 +55,19 @@ export async function GET(
   let streamIds: string[] = [];
 
   if (redisPublisher) {
-    const keyPattern = isAuthenticated
+    const newPattern = isAuthenticated
+      ? `ohfixit:stream:${chatId}:*`
+      : `ohfixit:anonymous-stream:${chatId}:*`;
+    const oldPattern = isAuthenticated
       ? `sparka-ai:stream:${chatId}:*`
       : `sparka-ai:anonymous-stream:${chatId}:*`;
 
-    const keys = await redisPublisher.keys(keyPattern);
+    const [newKeys, oldKeys] = await Promise.all([
+      redisPublisher.keys(newPattern),
+      redisPublisher.keys(oldPattern),
+    ]);
+
+    const keys = [...new Set([...(newKeys || []), ...(oldKeys || [])])];
     streamIds = keys
       .map((key: string) => {
         const parts = key.split(':');

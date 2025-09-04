@@ -1,14 +1,14 @@
 <div align="center">
 
-<img src="public/icon.svg" alt="Sparka AI" width="64" height="64">
+<img src="public/icon.svg" alt="Oh Fix It" width="64" height="64">
 
-# Sparka AI-Chat-new
+# Oh Fix It - Tech Helper
 
 **AI for everyone, from everyone**
 
 *Multi-provider AI Chat - access Claude, ChatGPT, Gemini, and Grok with advanced features, open-source and production-ready.*
 
-[**Try Sparka AI**](https://sparka.ai)
+[**Try Oh Fix It**](https://ohfixit.app)
 
 
 </div>
@@ -21,9 +21,6 @@ Access every major AI assistant Claude, GPT-4, Gemini, Grok, and 20+ models thro
 ## ✨ Features
 
 - **🤖 Multi-Model Chat** - Access 100+ AI models including Claude, GPT-5, Gemini, and Grok in one interface.
-
-- **🔐 Authentication & Sync** - Secure authentication with chat history sync across all devices.
-
 - **🎯 Easy to Try** - Try the interface and some features without creating an account.
 
 - **📎 Attachment Support** - Upload and analyze images, PDFs, and documents in conversations.
@@ -47,17 +44,27 @@ Access every major AI assistant Claude, GPT-4, Gemini, Grok, and 20+ models thro
 
 ## 🛠️ Tech Stack
 
-Sparka AI is built with modern technologies for scalability and performance:
+Oh Fix It is built with modern technologies for scalability and performance:
 
 ### **Frontend**
 - **Next.js 15**: App Router with React Server Components
 - **TypeScript**: Full type safety and developer experience
+## Development
+   - OhFixIt Automation (Phase 1 slice)
+      - Set OHFIXIT_JWT_SECRET in your environment (falls back to NEXTAUTH_SECRET if set).
+      - Open a chat page and use the "Do It For Me" panel to:
+         - List allowlisted actions, preview diffs/commands and risks
+         - Approve (mints a short-lived helper token) and Execute (queues via helper/report pipeline)
+         - Undo triggers a rollback request (helper should report artifacts and rollback handles)
+         - Audit timeline renders recent consent, diagnostics snapshots, and action logs.
+      - Desktop Helper integration
+         - Handshake: POST /api/automation/helper/handshake with Authorization: Bearer <helperToken> to verify claims and register presence.
+         - Reporting: POST /api/automation/helper/report with Authorization: Bearer <helperToken> and JSON payload { actionLogId?, actionId?, success, output, artifacts[], rollbackPoint }.
+
 - **Tailwind CSS**: Responsive, utility-first styling
 - **Radix UI**: Accessible component primitives
 - **Framer Motion**: Smooth animations and transitions
 - **Zustand**: Lightweight state management
-
-### **Backend**
 - **Vercel AI SDK**: Unified AI provider integration
 - **tRPC**: End-to-end typesafe APIs
 - **Drizzle ORM**: Type-safe database operations
@@ -80,8 +87,8 @@ Sparka AI is built with modern technologies for scalability and performance:
 
 1. **Clone and Install**
    ```bash
-   git clone https://github.com/franciscomoretti/sparka.git
-   cd sparka
+   git clone https://github.com/maveryjr/sparka-base-ohfixit.git
+   cd sparka-base-ohfixit
    bun install
    ```
 
@@ -101,12 +108,12 @@ Sparka AI is built with modern technologies for scalability and performance:
    bun dev
    ```
 
-Visit [http://localhost:3000](http://localhost:3000) to start using Sparka AI locally.
+Visit [http://localhost:3000](http://localhost:3000) to start using Oh Fix It locally.
 
 
 ## 🙏 Acknowledgements
 
-Sparka AI was built on the shoulders of giants. We're deeply grateful to these outstanding open source projects:
+Oh Fix It was built on the shoulders of giants. We're deeply grateful to these outstanding open source projects:
 
 - **[Vercel AI Chatbot](https://github.com/vercel/ai-chatbot)** - Core architecture and AI SDK integration patterns
 - **[Scira](https://github.com/zaidmukaddam/scira)** - AI-powered search engine

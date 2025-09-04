@@ -2,7 +2,7 @@
 
 ## 1) Conversation Overview
 - Primary Objectives:
-  - Begin and complete Issue #9: Trust, Consent, and Audit Trail for OhFixIt MVP in Sparka AI.
+  - Begin and complete Issue #9: Trust, Consent, and Audit Trail for OhFixIt MVP in Oh Fix It.
   - Integrate consent management, audit logging, and an audit timeline UI, referencing `docs/ohfixit-integration-issue.md`.
 - Session Context:
   - Prior milestones landed Screen Capture + Annotator, Diagnostics toolkit + consent, Diagnostics context injection, and “Guide Me” tool + UI.

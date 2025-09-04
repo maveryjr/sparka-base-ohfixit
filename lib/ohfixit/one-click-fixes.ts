@@ -274,13 +274,23 @@ export const ONE_CLICK_FIXES: OneClickFix[] = [
 // One-click fix matcher and executor
 export const oneClickFixTool = tool({
   description: 'Find and execute one-click fixes for common technical issues',
-  parameters: z.object({
+  inputSchema: z.object({
     issue: z.string().min(3).max(500).describe('Description of the technical issue'),
     platform: z.enum(['windows', 'macos', 'linux', 'web']).optional(),
     urgency: z.enum(['low', 'medium', 'high']).default('medium'),
     allowRiskyFixes: z.boolean().default(false)
   }),
-  execute: async ({ issue, platform, urgency, allowRiskyFixes }) => {
+  execute: async ({
+    issue,
+    platform,
+    urgency = 'medium',
+    allowRiskyFixes = false
+  }: {
+    issue: string;
+    platform?: 'windows' | 'macos' | 'linux' | 'web';
+    urgency?: 'low' | 'medium' | 'high';
+    allowRiskyFixes?: boolean;
+  }) => {
     // Find matching fixes
     const matchingFixes = findMatchingFixes(issue, platform, allowRiskyFixes);
     

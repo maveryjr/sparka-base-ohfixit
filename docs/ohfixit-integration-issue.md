@@ -1,10 +1,10 @@
-# Integrate OhFixIt Tech Helper into Sparka AI (MVP + Phases)
+# Integrate OhFixIt Tech Helper into Oh Fix It (MVP + Phases)
 
-OhFixIt is a screen-aware tech helper that can see what the user sees, diagnose problems, explain fixes in plain language, and—when permitted—perform the necessary actions. This issue aligns the OhFixIt concept with the existing Sparka AI codebase and elevates it into a practical, safe, and delightful product for everyday technical support.
+OhFixIt is a screen-aware tech helper that can see what the user sees, diagnose problems, explain fixes in plain language, and—when permitted—perform the necessary actions. This issue aligns the OhFixIt concept with the existing Oh Fix It codebase and elevates it into a practical, safe, and delightful product for everyday technical support.
 
-> Status: Planning (MVP scope defined). This spec maps to existing components and calls out concrete additions. Many conversational foundations are already implemented in Sparka.
+> Status: Planning (MVP scope defined). This spec maps to existing components and calls out concrete additions. Many conversational foundations are already implemented in Oh Fix It.
 
-## Current Capabilities Mapping (Already in Sparka)
+## Current Capabilities Mapping (Already in Oh Fix It)
 
 - Conversational foundation
   - Streaming responses and resumability: `streamText`, `createUIMessageStream`, `ResumableStreamContext`, Redis-backed resume

@@ -58,7 +58,7 @@ export const NetworkActionSchema = z.object({
   actions: z.array(z.object({
     action: z.enum(['reset_adapter', 'flush_dns', 'release_renew', 'ping_test']),
     target: z.string().optional(),
-    parameters: z.record(z.any()).optional()
+    parameters: z.record(z.string(), z.any()).optional()
   })),
   explanation: z.string(),
   requiresRestart: z.boolean().default(false)
@@ -93,7 +93,7 @@ export type AutomationExecutionPlan = z.infer<typeof AutomationExecutionPlanSche
 // Enhanced automation tool with "Do It For Me" capabilities
 export const enhancedAutomation = tool({
   description: 'Generate comprehensive "Do It For Me" automation plans with browser actions, system commands, and file operations',
-  parameters: z.object({
+  inputSchema: z.object({
     problem: z.string().min(3).max(500).describe('The technical problem to solve'),
     userOS: z.enum(['windows', 'macos', 'linux']).optional(),
     browserInfo: z.string().optional(),
@@ -101,13 +101,20 @@ export const enhancedAutomation = tool({
     allowSystemCommands: z.boolean().default(false),
     allowFileOperations: z.boolean().default(false)
   }),
-  execute: async ({ 
-    problem, 
-    userOS = 'macos', 
-    browserInfo, 
+  execute: async ({
+    problem,
+    userOS = 'macos',
+    browserInfo,
     automationLevel = 'conservative',
     allowSystemCommands = false,
-    allowFileOperations = false 
+    allowFileOperations = false
+  }: {
+    problem: string;
+    userOS?: 'windows' | 'macos' | 'linux';
+    browserInfo?: string;
+    automationLevel?: 'conservative' | 'moderate' | 'aggressive';
+    allowSystemCommands?: boolean;
+    allowFileOperations?: boolean;
   }): Promise<AutomationExecutionPlan> => {
     
     const planId = `plan-${Date.now()}`;

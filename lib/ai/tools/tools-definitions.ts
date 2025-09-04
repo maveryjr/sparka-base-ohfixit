@@ -69,8 +69,28 @@ export const toolsDefinitions: Record<ToolName, ToolDefinition> = {
   automation: {
     name: 'automation',
     description:
-      'Propose a safe, consent-gated action plan (open URL, DOM instruction, or script recommendation).',
+      'Propose SAFE, CONSENT-GATED system actions for macOS troubleshooting (DNS, Wi-Fi, cache, Finder). ALWAYS requires user approval.',
     cost: 2,
+  },
+  getPlaybook: {
+    name: 'getPlaybook',
+    description: 'Get a pre-built troubleshooting playbook for common issues',
+    cost: 1,
+  },
+  executePlaybookStep: {
+    name: 'executePlaybookStep',
+    description: 'Execute a specific step from a troubleshooting playbook',
+    cost: 3,
+  },
+  enhancedAutomation: {
+    name: 'enhancedAutomation',
+    description: 'Generate comprehensive automation plans with browser actions and system commands',
+    cost: 5,
+  },
+  oneClickFixTool: {
+    name: 'oneClickFixTool',
+    description: 'Find and execute one-click fixes for common technical issues',
+    cost: 3,
   },
   clientEnv: {
     name: 'clientEnv',
@@ -80,6 +100,21 @@ export const toolsDefinitions: Record<ToolName, ToolDefinition> = {
   networkCheck: {
     name: 'networkCheck',
     description: 'Run basic network connectivity checks',
+    cost: 2,
+  },
+  computerUse: {
+    name: 'computerUse',
+    description: 'Use computer to perform UI automation tasks with safety checks and approvals',
+    cost: 10,
+  },
+  uiAutomation: {
+    name: 'uiAutomation',
+    description: 'Execute safe UI automation steps with screenshot logging and rollback capability',
+    cost: 8,
+  },
+  screenshotCapture: {
+    name: 'screenshotCapture',
+    description: 'Capture screenshots before and after UI automation for audit trails',
     cost: 2,
   },
 };
