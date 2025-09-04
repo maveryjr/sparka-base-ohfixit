@@ -27,6 +27,7 @@ applyTo: '**'
 - Best practices discovered: Prefer dynamic = 'force-dynamic' for helper endpoints; cache: 'no-store' for POST; strict iss/aud on JWT; approval TTL ≈10m
 - Implementation patterns used: Orchestrate preview → approve → execute via central automation endpoint; conservative health→action mapping
 - Version-specific findings: To be appended after Context7 pass
+ - Durable summary: See docs/ohfixit-handoff.md for compact technical handoff and code pointers.
 
 ## Conversation History
 - Important decisions made: Enforce one-click auto-fix through approval pipeline; persist artifacts and rollback via helper/report; conservative mappings first
@@ -37,6 +38,7 @@ applyTo: '**'
 ## Notes
 - Environment: Requires OHFIXIT_JWT_SECRET (or NEXTAUTH_SECRET) for helper JWT
 - Next steps: Expand mappings; privileged checks via helper; stabilize type errors; add tests per new mapping
+ - Handoff: A durable summary capturing architecture, endpoints, data models, and next steps is available at docs/ohfixit-handoff.md.
 ---
 applyTo: '**'
 ---
