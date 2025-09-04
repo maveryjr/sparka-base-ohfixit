@@ -76,6 +76,7 @@ applyTo: '**'
 - Wired `HealthCheckDashboard` into chat page with onFixIssue handler calling the new API.
 - Added unit test for health auto-fix route.
  - Observed repository-wide TypeScript type errors in unrelated areas; new changes do not introduce additional errors.
+ - Refactored `lib/ai/tools/ohfixit/guide-steps.ts` to remove all hardcoded issue patterns (e.g., printer/drive mapping). Guide steps are now generated dynamically via AI (`generateObject`) against `GuidePlanSchema`, with normalization and a robust fallback. This aligns with the preference to keep troubleshooting logic model-driven rather than rule-based.
 
 ### New or Changed Files
 - `lib/ohfixit/health-fix-map.ts` – conservative mapping and `HealthFixRequestSchema`.
@@ -118,6 +119,7 @@ applyTo: '**'
 - Privileged helper-backed checks (firewall, OS updates, antivirus)
 - Verify fixlet import/export endpoints and device-aware playbooks
 - Implement computer-use executor with artifact capture
+ - Consider adding streaming object generation for guide steps for better UX; add unit tests to validate schema conformity and id normalization.
 
 ## Implementation Priorities
 1. Desktop Helper (Tauri) for privileged operations
