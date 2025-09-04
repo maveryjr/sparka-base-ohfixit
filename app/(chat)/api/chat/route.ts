@@ -411,9 +411,48 @@ export async function POST(request: NextRequest) {
     const modelMessages = convertToModelMessages(messagesWithoutReasoning);
 
     // TODO: remove this when the gateway provider supports URLs
-    const contextForLLM =
-      await replaceFilePartUrlByBinaryDataInMessages(modelMessages);
-    log.debug({ contextForLLM }, 'context prepared');
+    let contextForLLM: any;
+    try {
+      contextForLLM = await replaceFilePartUrlByBinaryDataInMessages(modelMessages);
+      
+      // Validate image data size and format
+      for (const message of contextForLLM) {
+        if (typeof message.content !== 'string' && Array.isArray(message.content)) {
+          for (const part of message.content) {
+            if (part.type === 'image' && part.image instanceof Uint8Array) {
+              const imageSizeInMB = part.image.length / (1024 * 1024);
+              log.debug({ imageSizeInMB, mediaType: part.mediaType }, 'Image processed');
+              
+              // Check if image is too large (most providers have ~20MB limit)
+              if (imageSizeInMB > 20) {
+                log.warn({ imageSizeInMB }, 'Image too large for processing');
+                return Response.json(
+                  {
+                    code: 'bad_request:chat',
+                    message: 'Image file is too large. Please use an image smaller than 20MB.',
+                    cause: `Image size: ${imageSizeInMB.toFixed(2)}MB`,
+                  },
+                  { status: 400 },
+                );
+              }
+            }
+          }
+        }
+      }
+      
+      log.debug('Image processing completed successfully');
+    } catch (imageError) {
+      log.error({ imageError }, 'Failed to process image attachments');
+      return Response.json(
+        {
+          code: 'bad_request:chat',
+          message: 'Failed to process image attachment. Please try with a different image.',
+          cause: imageError instanceof Error ? imageError.message : 'Image processing failed',
+        },
+        { status: 400 },
+      );
+    }
+    
     log.debug({ activeTools }, 'active tools');
 
     // Create AbortController with 55s timeout for credit cleanup
@@ -535,7 +574,23 @@ export async function POST(request: NextRequest) {
               chatId,
             }),
             onError: (error) => {
-              log.error({ error }, 'streamText error');
+              log.error({ 
+                error, 
+                errorMessage: error instanceof Error ? error.message : 'Unknown error',
+                errorStack: error instanceof Error ? error.stack : undefined,
+                errorName: error instanceof Error ? error.name : 'Unknown',
+                errorCause: error instanceof Error ? error.cause : undefined
+              }, 'streamText error');
+              
+              // Log additional context for image-related errors
+              const hasImages = contextForLLM.some((msg: any) => 
+                Array.isArray(msg.content) && 
+                msg.content.some((part: any) => part.type === 'image')
+              );
+              
+              if (hasImages) {
+                log.error('Error occurred while processing message with images');
+              }
             },
             abortSignal: abortController.signal, // Pass abort signal to streamText
             ...(modelDefinition.features?.fixedTemperature
