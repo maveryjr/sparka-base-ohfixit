@@ -31,6 +31,28 @@ export function AutomationPlanView({
   const [selectedAction, setSelectedAction] = useState<AutomationAction | null>(
     null,
   );
+  function assessRisk(script?: string) {
+    if (!script) return { level: 'low' as const, factors: [], mitigations: [] };
+    const patterns: Array<{ re: RegExp; label: string; mitigation: string; level: 'low'|'medium'|'high' }>= [
+      { re: /(rm\s+-rf\s+\/?(?!\/tmp\b|\.)\S+)/i, label: 'Recursive delete', mitigation: 'Confirm target path and backup', level: 'high' },
+      { re: /:\\Windows\\System32|\/System\//i, label: 'System path change', mitigation: 'Avoid system directories', level: 'high' },
+      { re: /(sudo\s+|Start-Process\s+Power\w*\s+-Verb\s+RunAs)/i, label: 'Privilege escalation', mitigation: 'Prompt user and log consent', level: 'medium' },
+      { re: /(netsh\s+|ifconfig\s+|networksetup\s+)/i, label: 'Network reconfiguration', mitigation: 'Warn about connectivity drop', level: 'medium' },
+      { re: /(killall\s+|Stop-Process\s+)/i, label: 'Process termination', mitigation: 'Ensure safe targets', level: 'low' },
+    ];
+    const factors: string[] = [];
+    const mitigations: string[] = [];
+    let level: 'low'|'medium'|'high' = 'low';
+    patterns.forEach(p => {
+      if (p.re.test(script)) {
+        factors.push(p.label);
+        mitigations.push(p.mitigation);
+        if (p.level === 'high') level = 'high';
+        else if (p.level === 'medium' && level !== 'high') level = 'medium';
+      }
+    });
+    return { level, factors, mitigations };
+  }
 
   return (
     <div className={cn('rounded border p-3 text-sm space-y-3', className)}>
@@ -211,6 +233,20 @@ export function AutomationPlanView({
                     Shell: {selectedAction.shell}
                     {selectedAction.os ? ` · OS: ${selectedAction.os}` : ''}
                   </div>
+                  {(() => {
+                    const r = assessRisk(selectedAction.script);
+                    return (
+                      <div className="mt-2">
+                        <div className="text-xs">Risk: <span className={r.level === 'high' ? 'text-red-600' : r.level === 'medium' ? 'text-yellow-700' : 'text-green-700'}>{r.level}</span></div>
+                        {r.factors.length > 0 && (
+                          <div className="text-xs text-muted-foreground">Factors: {r.factors.join(', ')}</div>
+                        )}
+                        {r.mitigations.length > 0 && (
+                          <div className="text-xs">Mitigations: {r.mitigations.join(', ')}</div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {selectedAction.explanation && (
                     <div className="mt-1">{selectedAction.explanation}</div>
                   )}

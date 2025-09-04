@@ -11,14 +11,14 @@ How to use:
 
 ## Milestone 0 — Quick Wins (P0)
 
-- [ ] Types: Strongly type guide streaming partials (P0)
+- [x] Types: Strongly type guide streaming partials (P0)
   - Change `guidePlanPartial: any` to `Partial<import('./tools/ohfixit/guide-steps').GuidePlan>`.
     - File: `lib/ai/types.ts`
   - Remove unused import `generateObject`.
     - File: `lib/ai/tools/ohfixit/guide-steps.ts`
   - Acceptance: TypeScript passes; no `any` for guide plan stream.
 
-- [ ] Deterministic JSON tools mode (P1)
+- [x] Deterministic JSON tools mode (P1)
   - Add optional deterministic mode flag (seed/temperature) for schema‑constrained tools to stabilize tests.
   - Files: `lib/ai/providers.ts`, `lib/ai/model-features.ts` (feature flag), and pass through from tool constructors where helpful.
   - Acceptance: Can enable lower temperature and stable sampling for tools like `guideSteps` from config.
@@ -31,16 +31,16 @@ How to use:
 Goal: One‑click device health summary with actionable fixes and persistence.
 
 - Server tool
-  - [ ] Add `lib/ai/tools/ohfixit/health-scan.ts`
+  - [x] Add `lib/ai/tools/ohfixit/health-scan.ts`
     - Wrap `healthCheckEngine` to run `runAllChecks()` and persist per‑check results into `HealthCheck` table.
     - Input: `{ includeCategories?: ('system'|'network'|'security'|'performance'|'browser')[] }` (optional filter).
     - Output: summary + checks (match `HealthCheckSummary`).
     - Record a `ConsentEvent` if this exposes previously unshared client diagnostics.
 - Tool registration
-  - [ ] Register in `lib/ai/tools/tools.ts` and add name to `lib/ai/types.ts` + `lib/ai/tools/tools-definitions.ts`.
+  - [x] Register in `lib/ai/tools/tools.ts` and add name to `lib/ai/types.ts` + `lib/ai/tools/tools-definitions.ts`.
 - UI
-  - [ ] Add UI component `components/ohfixit/health-scan.tsx` to render summary, counts, and top critical items.
-  - [ ] Handle `tool-healthScan` in `components/message-parts.tsx` similarly to existing OhFixIt tools.
+  - [x] Add UI component `components/ohfixit/health-scan.tsx` to render summary, counts, and top critical items.
+  - [x] Handle `tool-healthScan` in `components/message-parts.tsx` similarly to existing OhFixIt tools.
 - Acceptance
   - Run, renders a compact summary, persists rows to `HealthCheck`, and links to fixes (fallback to `guideSteps`/`oneClickFixTool`).
 
@@ -48,11 +48,11 @@ Goal: One‑click device health summary with actionable fixes and persistence.
 Goal: Convert a generated guide into an executable automation plan with approvals and logging.
 
 - Mapping tool
-  - [ ] Add `lib/ai/tools/ohfixit/guide-to-automation.ts` that accepts a `GuidePlan` (or message reference) and maps actions to `AutomationAction` entries (open_url, dom_instruction, script_recommendation).
-  - [ ] On execution, create `ActionLog` entries for each mapped action with `status='proposed'`, `executionHost` set appropriately, and attach `RollbackPoint` for risky/script actions.
+  - [x] Add `lib/ai/tools/ohfixit/guide-to-automation.ts` that accepts a `GuidePlan` (or message reference) and maps actions to `AutomationAction` entries (open_url, dom_instruction, script_recommendation).
+  - [x] On execution, create `ActionLog` entries for each mapped action with `status='proposed'`, `executionHost` set appropriately, and attach `RollbackPoint` for risky/script actions.
 - UI glue
-  - [ ] Update `components/ohfixit/guide-steps.tsx` to show a “Run Automatically” CTA when steps are present; posting to a handler that calls the tool and then renders the standard Automation plan component.
-  - [ ] Ensure `components/message-parts.tsx` wrap‑up text remains shown once to avoid double content.
+  - [x] Update `components/ohfixit/guide-steps.tsx` to show a “Run Automatically” CTA when steps are present; posting to a handler that calls the tool and then renders the standard Automation plan component.
+  - [x] Ensure `components/message-parts.tsx` wrap‑up text remains shown once to avoid double content.
 - Acceptance
   - From a guide output, clicking “Run Automatically” creates an automation plan mirroring guide steps and shows approval buttons per action.
 
@@ -60,12 +60,12 @@ Goal: Convert a generated guide into an executable automation plan with approval
 Goal: Extract meaningful error text from screenshots and mask PII before model use.
 
 - Tool
-  - [ ] Add `lib/ai/tools/ohfixit/screenshot-ocr.ts` (server‑only) using an OCR provider (pluggable). Inputs: attachment IDs; Output: extracted text + redaction map.
-  - [ ] Redact sensitive patterns (emails, phone, secrets) before passing into prompt context.
+  - [x] Add `lib/ai/tools/ohfixit/screenshot-ocr.ts` (server‑only) using an OCR provider (pluggable). Inputs: attachment IDs; Output: extracted text + redaction map.
+  - [x] Redact sensitive patterns (emails, phone, secrets) before passing into prompt context.
 - Integration
-  - [ ] In `guide-steps.ts`, if attachments exist, optionally call OCR tool first and inject the textual hints into `buildGuidePlanPrompt` context.
+  - [x] In `guide-steps.ts`, if attachments exist, optionally call OCR tool first and inject the textual hints into `buildGuidePlanPrompt` context.
 - UI
-  - [ ] Add a compact “Extracted from screenshot” expandable in `components/ohfixit/guide-steps.tsx`.
+  - [x] Add a compact “Extracted from screenshot” expandable in `components/ohfixit/guide-steps.tsx`.
 - Acceptance
   - With a screenshot attached, the guide uses extracted text and displays redacted excerpt.
 
@@ -73,10 +73,10 @@ Goal: Extract meaningful error text from screenshots and mask PII before model u
 Goal: Unified viewer for artifacts (screenshots/logs/diffs) tied to actions for audit/diagnostics.
 
 - Tool
-  - [ ] Add `lib/ai/tools/ohfixit/get-action-artifacts.ts` to fetch `ActionArtifact` by `actionLogId` or `chatId`.
+  - [x] Add `lib/ai/tools/ohfixit/get-action-artifacts.ts` to fetch `ActionArtifact` by `actionLogId` or `chatId`.
 - UI
-  - [ ] Add `components/ohfixit/action-artifacts.tsx` to render timeline with thumbnails and metadata (hash/uri).
-  - [ ] Add case in `components/message-parts.tsx` for `tool-getActionArtifacts`.
+  - [x] Add `components/ohfixit/action-artifacts.tsx` to render timeline with thumbnails and metadata (hash/uri).
+  - [x] Add case in `components/message-parts.tsx` for `tool-getActionArtifacts`.
 - Acceptance
   - After an automation run with screenshots/logs, artifacts appear in an ordered, filterable list.
 
@@ -84,9 +84,9 @@ Goal: Unified viewer for artifacts (screenshots/logs/diffs) tied to actions for 
 Goal: Display a transparent “consent receipt” timeline for user trust.
 
 - Tool
-  - [ ] Add `lib/ai/tools/ohfixit/get-consent-log.ts` to query `ConsentEvent` and related `ActionLog` for a chat.
+  - [x] Add `lib/ai/tools/ohfixit/get-consent-log.ts` to query `ConsentEvent` and related `ActionLog` for a chat.
 - UI
-  - [ ] Add `components/ohfixit/audit-trail.tsx` to show event types, payload summaries, timestamps.
+  - [x] Add `components/ohfixit/audit-trail.tsx` to show event types, payload summaries, timestamps.
 - Acceptance
   - User can see exactly what was captured and why, per chat.
 
@@ -94,11 +94,11 @@ Goal: Display a transparent “consent receipt” timeline for user trust.
 Goal: Enrich `networkCheck` with captive portal detection, DNS issues, TLS handshake failures, and hop latency hints.
 
 - Backend
-  - [ ] Extend `NetworkCheckInput` to include `{ deep?: boolean }`.
-  - [ ] Add captive portal heuristic (e.g., fetch `http://example.com` expecting redirect), TLS probe (HEAD to known HTTPS with error capture), and latency sampling.
-  - [ ] Persist `NetworkDiagnostics` as today via `setNetworkDiagnostics`.
+  - [x] Extend `NetworkCheckInput` to include `{ deep?: boolean }`.
+  - [x] Add captive portal heuristic (e.g., fetch `http://example.com` expecting redirect), TLS probe (HEAD to known HTTPS with error capture), and latency sampling.
+  - [x] Persist `NetworkDiagnostics` as today via `setNetworkDiagnostics`.
 - UI
-  - [ ] Expand network check renderer in `components/message-parts.tsx` to surface new fields (reason codes, hints).
+  - [x] Expand network check renderer in `components/message-parts.tsx` to surface new fields (reason codes, hints).
 - Acceptance
   - Deep mode highlights captive portal or DNS/TLS trouble with a short next‑step suggestion.
 
@@ -106,10 +106,10 @@ Goal: Enrich `networkCheck` with captive portal detection, DNS issues, TLS hands
 Goal: Pre‑execution static risk analysis for scripts with automatic rollback capture.
 
 - Tool
-  - [ ] Add `lib/ai/tools/ohfixit/analyze-script.ts` that reuses `ScriptGenerator` risk model and enforces allowlist.
-  - [ ] If execution is approved, create a `RollbackPoint` before execution and log details.
+  - [x] Add `lib/ai/tools/ohfixit/analyze-script.ts` that reuses `ScriptGenerator` risk model and enforces allowlist.
+  - [x] If execution is approved, create a `RollbackPoint` before execution and log details.
 - UI
-  - [ ] Show risk badge and mitigation list when proposing script actions (inside `AutomationPlanView`).
+  - [x] Show risk badge and mitigation list when proposing script actions (inside `AutomationPlanView`).
 - Acceptance
   - Every proposed script displays risk with mitigations and creates rollback metadata upon approval.
 
@@ -121,11 +121,11 @@ Goal: Pre‑execution static risk analysis for scripts with automatic rollback c
 Goal: Save successful plans as reusable Fixlets.
 
 - Tool
-  - [ ] Add `lib/ai/tools/ohfixit/fixlet.ts` with `saveFixlet(plan|steps)` and optional tags.
+  - [x] Add `lib/ai/tools/ohfixit/fixlet.ts` with `saveFixlet(plan|steps)` and optional tags.
 - UI
-  - [ ] Add a “Save as Fixlet” CTA to automation/guide UIs; create `components/ohfixit/fixlet-save.tsx`.
+  - [x] Add a “Save as Fixlet” CTA to automation/guide UIs; create `components/ohfixit/fixlet-save.tsx`.
 - Persistence
-  - [ ] Use `Fixlet`, `FixletStep`, `FixletExecution*` tables (`lib/db/schema.ts`).
+  - [x] Use `Fixlet`, `FixletStep`, `FixletExecution*` tables (`lib/db/schema.ts`).
 - Acceptance
   - A plan can be saved; later discoverable and executable with step tracking.
 
@@ -133,10 +133,10 @@ Goal: Save successful plans as reusable Fixlets.
 Goal: Promote `clientEnv` snapshots into `DeviceProfile` to adapt future playbooks.
 
 - Tool
-  - [ ] Add `lib/ai/tools/ohfixit/upsert-device-profile.ts` to infer OS/capabilities and upsert.
+  - [x] Add `lib/ai/tools/ohfixit/upsert-device-profile.ts` to infer OS/capabilities and upsert. (Integrated into clientEnv tool)
 - Integration
-  - [ ] Call after successful `clientEnv` read (only when consent true).
-  - [ ] Pass `deviceOS`/capabilities into `getPlaybook` for adaptation.
+  - [x] Call after successful `clientEnv` read (only when consent true).
+  - [x] Pass `deviceOS`/capabilities into `getPlaybook` for adaptation.
 - Acceptance
   - Future playbooks filter/adapt to profile and capabilities.
 
@@ -144,9 +144,9 @@ Goal: Promote `clientEnv` snapshots into `DeviceProfile` to adapt future playboo
 Goal: Launch live support escalation flow with audit and transcript slot.
 
 - Tool
-  - [ ] Add `lib/ai/tools/ohfixit/start-handoff.ts` to create `HumanHandoffSession` and return a join link/token placeholder.
+  - [x] Add `lib/ai/tools/ohfixit/start-handoff.ts` to create `HumanHandoffSession` and return a join link/token placeholder.
 - UI
-  - [ ] Add `components/ohfixit/handoff.tsx` banner and status updates.
+  - [x] Add `components/ohfixit/handoff.tsx` banner and status updates.
 - Acceptance
   - Starting handoff creates a session record and shows status in UI.
 
@@ -154,9 +154,9 @@ Goal: Launch live support escalation flow with audit and transcript slot.
 Goal: Meta‑tool to choose best pathway among `guideSteps`, `getPlaybook`, `oneClickFixTool`, `automation`.
 
 - Tool
-  - [ ] Add `lib/ai/tools/orchestrate.ts` that inspects goal/context/attachments and calls sub‑tools, streams a unified plan.
+  - [x] Add `lib/ai/tools/orchestrate.ts` that inspects goal/context/attachments and calls sub‑tools, streams a unified plan.
 - UI
-  - [ ] Render orchestrator output similarly to guide/automation with provenance chips (which subtool produced which step).
+  - [x] Render orchestrator output similarly to guide/automation with provenance chips (which subtool produced which step).
 - Acceptance
   - For ambiguous requests, orchestrator produces a cohesive plan that may include guide steps, quick fixes, and automation proposals.
 
@@ -168,10 +168,10 @@ Goal: Meta‑tool to choose best pathway among `guideSteps`, `getPlaybook`, `one
 Goal: Ask 1–2 targeted follow‑ups when playbook match is ambiguous.
 
 - Backend
-  - [ ] Extend `getPlaybook` to optionally return `clarifyingQuestions` when multiple candidates are close.
+  - [x] Extend `getPlaybook` to optionally return `clarifyingQuestions` when multiple candidates are close.
   - [ ] If a user responds, call `getPlaybook` again with answers to re‑rank.
 - UI
-  - [ ] Render clarifying questions in the chat flow and wire the answers as tool input.
+  - [x] Render clarifying questions in the chat flow and wire the answers as tool input.
 - Acceptance
   - Ambiguous symptom queries trigger 1–2 clarifying questions before returning a refined playbook.
 
@@ -179,9 +179,9 @@ Goal: Ask 1–2 targeted follow‑ups when playbook match is ambiguous.
 Goal: “Guide me” mode with DOM highlights and scroll‑to actions using `uiAutomation`.
 
 - Client overlay
-  - [ ] Add a lightweight overlay component to draw rectangles/highlights for selectors and attach labels.
+  - [x] Add a lightweight overlay component to draw rectangles/highlights for selectors and attach labels.
 - Tool contract
-  - [ ] Extend `uiAutomation` to optionally “preview” actions and emit overlay hints instead of running them.
+  - [x] Extend `uiAutomation` to optionally “preview” actions and emit overlay hints instead of running them.
 - Acceptance
   - A step can visually highlight where to click/type with an overlay before execution.
 
@@ -189,10 +189,10 @@ Goal: “Guide me” mode with DOM highlights and scroll‑to actions using `uiA
 
 ## Global Integration Tasks (apply per new tool)
 
-- [ ] Add tool to `lib/ai/tools/tools.ts` and to `lib/ai/types.ts` (`toolNameSchema`, `frontendToolsSchema` if user‑selectable, `ChatTools` type) and to `lib/ai/tools/tools-definitions.ts` (name, description, cost).
-- [ ] Add renderer case to `components/message-parts.tsx` (loading + output states, errors).
-- [ ] If relevant, add or reuse a small UI under `components/ohfixit/*` to keep message‑parts lean.
-- [ ] Persist artifacts/logs via `ActionLog`, `ActionArtifact`, `RollbackPoint`, `ConsentEvent` as applicable.
+- [x] Add tool to `lib/ai/tools/tools.ts` and to `lib/ai/types.ts` (`toolNameSchema`, `frontendToolsSchema` if user‑selectable, `ChatTools` type) and to `lib/ai/tools/tools-definitions.ts` (name, description, cost).
+- [x] Add renderer case to `components/message-parts.tsx` (loading + output states, errors).
+- [x] If relevant, add or reuse a small UI under `components/ohfixit/*` to keep message‑parts lean.
+- [x] Persist artifacts/logs via `ActionLog`, `ActionArtifact`, `RollbackPoint`, `ConsentEvent` as applicable.
 - [ ] Update README with a brief feature description and how to trigger it.
 
 ---
@@ -248,4 +248,3 @@ Goal: “Guide me” mode with DOM highlights and scroll‑to actions using `uiA
 - Cross‑device device‑profile sync and selection.
 - Automated regression tests for tool JSON outputs against zod schemas.
 - Cost telemetry hooks using `tools-definitions.ts` cost metadata.
-

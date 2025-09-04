@@ -175,6 +175,7 @@ export type CustomUIDataTypes = {
   finish: null;
   researchUpdate: ResearchUpdate;
   guidePlanPartial: Partial<import('./tools/ohfixit/guide-steps').GuidePlan>;
+  guideOcrHint: string;
 };
 
 export type ChatMessage = Omit<

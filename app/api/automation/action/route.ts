@@ -77,6 +77,17 @@ export async function POST(request: NextRequest) {
         payload: { actionId, approvalId: id, expiresAt: expiresAt.toISOString(), preview },
       }).catch(() => [] as any);
       const actionLogId = rows?.[0]?.id ?? null;
+      // Create a rollback point stub at approval time (pre-execution snapshot)
+      try {
+        if (actionLogId) {
+          await db.insert(rollbackPoint).values({
+            actionLogId,
+            method: 'pre-exec-approval',
+            data: { preview },
+            createdAt: new Date(),
+          } as any);
+        }
+      } catch {}
       return NextResponse.json({ approvalId: id, actionLogId, status: 'approved', actionId, chatId, expiresAt: expiresAt.toISOString(), helperToken, reportUrl, expiresIn: 600 });
     }
 
@@ -127,6 +138,17 @@ export async function POST(request: NextRequest) {
         payload: { actionId, approvalId: approvalId ?? null, jobId, executionHost: 'desktop-helper' },
       }).catch(() => [] as any);
       const actionLogId = rows?.[0]?.id ?? null;
+      // Create a rollback point snapshot just before execution
+      try {
+        if (actionLogId) {
+          await db.insert(rollbackPoint).values({
+            actionLogId,
+            method: 'pre-exec',
+            data: { approvalId, actionId },
+            createdAt: new Date(),
+          } as any);
+        }
+      } catch {}
       return NextResponse.json({ status: 'queued', jobId, actionLogId, actionId, approvalId: approvalId ?? null, helperToken, reportUrl, expiresIn: 600 });
     }
 

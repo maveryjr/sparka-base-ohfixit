@@ -364,6 +364,17 @@ function PureMessagePart({
     }
   }
 
+  if (type === 'data-guideOcrHint') {
+    const { data } = part as any;
+    if (!data) return null;
+    return (
+      <details className="my-2 rounded border p-3 text-sm bg-muted/30">
+        <summary className="cursor-pointer text-xs font-medium">Extracted from screenshot (redacted)</summary>
+        <pre className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">{data}</pre>
+      </details>
+    );
+  }
+
   if (type === 'tool-healthScan') {
     const { toolCallId, state } = part;
     if (state === 'input-available') {
@@ -417,6 +428,49 @@ function PureMessagePart({
       const { output } = part as any;
       if (!output) return null;
       return <AuditTrail events={(output.events || []).map((e: any) => ({ id: e.id, createdAt: e.createdAt, type: e.type, actionType: e.actionType, status: e.status, kind: e.kind, summary: e.summary }))} />;
+    }
+  }
+
+  if (type === 'tool-getPlaybook') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Finding playbooks…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      const playbooks = output.playbooks || (output.playbook ? [output.playbook] : []);
+      return (
+        <div key={toolCallId} className="rounded border p-3 text-sm space-y-2">
+          <div className="font-medium">Playbooks</div>
+          {output.clarifyingQuestions && output.clarifyingQuestions.length > 0 && (
+            <div className="p-2 bg-amber-50 rounded">
+              <div className="text-xs text-amber-900 mb-1">Clarify to improve match:</div>
+              <ul className="list-disc ml-5 text-xs space-y-1">
+                {output.clarifyingQuestions.map((q: string, i: number) => (
+                  <li key={i}>{q}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <ul className="space-y-2">
+            {playbooks.map((p: any) => (
+              <li key={p.id} className="border rounded p-2 bg-background/50">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{p.title}</span>
+                  <span className="text-xs text-muted-foreground">{p.category}</span>
+                  <span className="ml-auto text-xs">{p.estimatedTime}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">{p.description}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
     }
   }
 

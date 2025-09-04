@@ -458,12 +458,25 @@ const GetPlaybookInput = z.object({
   playbookId: z.string().optional(),
   deviceOS: z.enum(['macOS', 'Windows', 'Linux', 'iOS', 'Android', 'Unknown']).optional(),
   deviceCapabilities: z.record(z.boolean()).optional(),
+  chatId: z.string().optional(),
 });
 
 export const getPlaybook = tool({
   description: 'Get a troubleshooting playbook by ID or filter by category, symptoms, or difficulty. Supports device-aware adaptation.',
   inputSchema: GetPlaybookInput,
-  execute: async ({ category, symptoms, difficulty, playbookId, deviceOS, deviceCapabilities }) => {
+  execute: async ({ category, symptoms, difficulty, playbookId, deviceOS, deviceCapabilities, chatId }) => {
+    // If device info not provided, try to infer from diagnostics snapshot for this chat
+    if (!deviceOS && chatId) {
+      try {
+        const { getRecordByChat } = await import('@/lib/ohfixit/diagnostics-store');
+        const { detectOS } = await import('@/lib/ohfixit/os-capabilities');
+        const rec = await getRecordByChat({ chatId, userId: undefined, anonymousId: undefined });
+        const ua = rec?.client?.data?.userAgent || '';
+        const platform = rec?.client?.data?.platform;
+        const os = detectOS(ua, platform) as any;
+        deviceOS = (['macOS','Windows','Linux','iOS','Android'].includes(os) ? os : 'Unknown') as any;
+      } catch {}
+    }
     if (playbookId) {
       let playbook = ISSUE_PLAYBOOKS.find((p) => p.id === playbookId);
       if (!playbook) {

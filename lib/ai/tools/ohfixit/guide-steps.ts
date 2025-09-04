@@ -230,12 +230,18 @@ export function createGuideSteps({
           });
         }
 
+        // If OCR hints exist, push a one-time hint message before final output
+        if (ocrHints) {
+          dataStream.write({
+            type: 'data-guideOcrHint',
+            data: ocrHints,
+          });
+        }
+
         // Wait for the final object and normalize it
         // Inject OCR hints by enhancing the summary if present
         const finalObject = await object;
-        if (ocrHints && finalObject?.summary) {
-          finalObject.summary = `${finalObject.summary}\n(Screenshot hints: ${ocrHints})`;
-        }
+        // Keep final output clean; hints are shown via a separate UI data part
         return normalizePlan(finalObject);
       } catch (err) {
         console.error('guide-steps dynamic generation failed; using fallback', err);
