@@ -1,7 +1,7 @@
 {
-  "name": "Sparka AI - AI for everyone, from everyone",
-  "short_name": "Sparka AI",
-  "description": "Multi-provider AI Chat - access Claude, ChatGPT, Gemini, and Grok with advanced features, open-source and production-ready.",
+  "name": "Oh Fix It - AI Tech Helper",
+  "short_name": "Oh Fix It",
+  "description": "Oh Fix It is a screen-aware tech helper that diagnoses problems, explains fixes, and performs safe actions with consent.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

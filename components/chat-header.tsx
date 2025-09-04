@@ -147,7 +147,7 @@ function PureChatHeader({
         </Tooltip>
         <Button variant="ghost" size="sm" className="p-2 h-8 w-8" asChild>
           <a
-            href="https://github.com/franciscomoretti/sparka"
+            href="https://github.com/maveryjr/sparka-base-ohfixit"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center"

@@ -1,14 +1,14 @@
 <div align="center">
 
-<img src="public/icon.svg" alt="Sparka AI" width="64" height="64">
+<img src="public/icon.svg" alt="Oh Fix It" width="64" height="64">
 
-# Sparka AI-Chat-new
+# Oh Fix It - Tech Helper
 
 **AI for everyone, from everyone**
 
 *Multi-provider AI Chat - access Claude, ChatGPT, Gemini, and Grok with advanced features, open-source and production-ready.*
 
-[**Try Sparka AI**](https://sparka.ai)
+[**Try Oh Fix It**](https://ohfixit.app)
 
 
 </div>
@@ -44,7 +44,7 @@ Access every major AI assistant Claude, GPT-4, Gemini, Grok, and 20+ models thro
 
 ## 🛠️ Tech Stack
 
-Sparka AI is built with modern technologies for scalability and performance:
+Oh Fix It is built with modern technologies for scalability and performance:
 
 ### **Frontend**
 - **Next.js 15**: App Router with React Server Components
@@ -87,8 +87,8 @@ Sparka AI is built with modern technologies for scalability and performance:
 
 1. **Clone and Install**
    ```bash
-   git clone https://github.com/franciscomoretti/sparka.git
-   cd sparka
+   git clone https://github.com/maveryjr/sparka-base-ohfixit.git
+   cd sparka-base-ohfixit
    bun install
    ```
 
@@ -108,12 +108,12 @@ Sparka AI is built with modern technologies for scalability and performance:
    bun dev
    ```
 
-Visit [http://localhost:3000](http://localhost:3000) to start using Sparka AI locally.
+Visit [http://localhost:3000](http://localhost:3000) to start using Oh Fix It locally.
 
 
 ## 🙏 Acknowledgements
 
-Sparka AI was built on the shoulders of giants. We're deeply grateful to these outstanding open source projects:
+Oh Fix It was built on the shoulders of giants. We're deeply grateful to these outstanding open source projects:
 
 - **[Vercel AI Chatbot](https://github.com/vercel/ai-chatbot)** - Core architecture and AI SDK integration patterns
 - **[Scira](https://github.com/zaidmukaddam/scira)** - AI-powered search engine

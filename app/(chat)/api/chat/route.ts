@@ -76,7 +76,7 @@ export function getStreamContext() {
     try {
       globalStreamContext = createResumableStreamContext({
         waitUntil: after,
-        keyPrefix: 'sparka-ai:resumable-stream',
+  keyPrefix: 'ohfixit:resumable-stream',
         ...(redisPublisher && redisSubscriber
           ? {
               publisher: redisPublisher,
@@ -433,8 +433,8 @@ export async function POST(request: NextRequest) {
       // Record this new stream so we can resume later - use Redis for all users
       if (redisPublisher) {
         const keyPrefix = isAnonymous
-          ? `sparka-ai:anonymous-stream:${chatId}:${streamId}`
-          : `sparka-ai:stream:${chatId}:${streamId}`;
+          ? `ohfixit:anonymous-stream:${chatId}:${streamId}`
+          : `ohfixit:stream:${chatId}:${streamId}`;
 
         await redisPublisher.setEx(
           keyPrefix,
@@ -665,8 +665,13 @@ export async function POST(request: NextRequest) {
         // Set TTL on Redis keys to auto-expire after 10 minutes
         if (redisPublisher) {
           try {
-            const keyPattern = `sparka-ai:resumable-stream:rs:sentinel:${streamId}*`;
-            const keys = await redisPublisher.keys(keyPattern);
+            const newPattern = `ohfixit:resumable-stream:rs:sentinel:${streamId}*`;
+            const oldPattern = `sparka-ai:resumable-stream:rs:sentinel:${streamId}*`;
+            const [newKeys, oldKeys] = await Promise.all([
+              redisPublisher.keys(newPattern),
+              redisPublisher.keys(oldPattern),
+            ]);
+            const keys = [...new Set([...(newKeys || []), ...(oldKeys || [])])];
             if (keys.length > 0) {
               // Set 5 minute expiration on all stream-related keys
               await Promise.all(
@@ -681,11 +686,17 @@ export async function POST(request: NextRequest) {
         try {
           // Clean up stream info from Redis for all users
           if (redisPublisher) {
-            const keyPrefix = isAnonymous
-              ? `sparka-ai:anonymous-stream:${chatId}:${streamId}`
-              : `sparka-ai:stream:${chatId}:${streamId}`;
+            const prefixes = isAnonymous
+              ? [
+                  `ohfixit:anonymous-stream:${chatId}:${streamId}`,
+                  `sparka-ai:anonymous-stream:${chatId}:${streamId}`,
+                ]
+              : [
+                  `ohfixit:stream:${chatId}:${streamId}`,
+                  `sparka-ai:stream:${chatId}:${streamId}`,
+                ];
 
-            await redisPublisher.expire(keyPrefix, 300);
+            await Promise.all(prefixes.map((k) => redisPublisher.expire(k, 300)));
           }
         } catch (cleanupError) {
           log.error({ cleanupError }, 'Failed to cleanup stream record');

@@ -9,16 +9,16 @@ import { TRPCReactProvider } from '@/trpc/react';
 import { Phase2Provider } from '@/providers/phase2-provider';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://sparka.ai'),
-  title: 'Sparka AI - AI for everyone, from everyone',
+  metadataBase: new URL('https://ohfixit.app'),
+  title: 'Oh Fix It - AI Tech Helper',
   description:
-    'Multi-provider AI Chat - access Claude, ChatGPT, Gemini, and Grok with advanced features, open-source and production-ready.',
+    'Oh Fix It is a screen-aware tech helper that diagnoses problems, explains fixes, and performs safe actions with consent.',
   openGraph: {
-    siteName: 'Sparka AI',
-    url: 'https://sparka.ai',
-    title: 'Sparka AI - AI for everyone, from everyone',
+    siteName: 'Oh Fix It',
+    url: 'https://ohfixit.app',
+    title: 'Oh Fix It - AI Tech Helper',
     description:
-      'Multi-provider AI Chat - access Claude, ChatGPT, Gemini, and Grok with advanced features, open-source and production-ready.',
+      'Oh Fix It is a screen-aware tech helper that diagnoses problems, explains fixes, and performs safe actions with consent.',
   },
 };
 

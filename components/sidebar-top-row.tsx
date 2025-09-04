@@ -21,12 +21,12 @@ export function SidebarTopRow() {
       <span className="text-lg font-semibold hover:bg-muted rounded-md cursor-pointer flex items-center gap-2 p-1">
         <Image
           src="/icon.svg"
-          alt="Sparka AI"
+          alt="Oh Fix It"
           width={24}
           height={24}
           className="w-6 h-6"
         />
-        {(open || openMobile) && 'Sparka'}
+        {(open || openMobile) && 'Oh Fix It'}
       </span>
     </Link>
   );

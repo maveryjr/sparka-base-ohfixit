@@ -39,6 +39,15 @@ applyTo: '**'
 - Environment: Requires OHFIXIT_JWT_SECRET (or NEXTAUTH_SECRET) for helper JWT
 - Next steps: Expand mappings; privileged checks via helper; stabilize type errors; add tests per new mapping
  - Handoff: A durable summary capturing architecture, endpoints, data models, and next steps is available at docs/ohfixit-handoff.md.
+
+## Branding
+- Rebranded application from "Sparka AI" to "Oh Fix It" across codebase.
+- Updated site metadata, PWA manifest, UI labels, README/docs, and GitHub links.
+- Internal prefixes updated:
+	- appPrefix: `ohfixit`
+	- Redis keys: `ohfixit:*`
+	- Blob storage prefix: `ohfixit/files/`
+- Backward-compat: kept legacy string handling where necessary (e.g., stripping `sparka-ai/files/` in clone helpers) to avoid breaking existing data.
 ---
 applyTo: '**'
 ---
