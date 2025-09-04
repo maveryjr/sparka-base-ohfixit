@@ -8,6 +8,8 @@ import type { UiToolName } from '@/lib/ai/types';
 import { ChatSystem } from '@/components/chat-system';
 import OhFixItApprovalPanel from '@/components/ohfixit-approval-panel';
 import OhFixItAuditTimeline from '@/components/ohfixit-audit-timeline';
+import { HealthCheckDashboard } from '@/components/ohfixit/health-check-dashboard';
+import { toast } from 'sonner';
 
 // moved to components/chat-system
 
@@ -58,6 +60,25 @@ export function ChatPage({ id }: { id: string }) {
     <>
       <div className="mb-3 space-y-3">
         <OhFixItApprovalPanel chatId={chat.id} />
+        <HealthCheckDashboard
+          autoRun={false}
+          onFixIssue={async (checkId) => {
+            try {
+              const res = await fetch('/api/ohfixit/health/fix', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ chatId: chat.id, checkId }),
+              });
+              const json = await res.json();
+              if (!res.ok) {
+                throw new Error(json?.error || 'Auto-fix failed');
+              }
+              toast.success('Auto-fix queued');
+            } catch (e: any) {
+              toast.error(e?.message || 'Failed to queue auto-fix');
+            }
+          }}
+        />
         <OhFixItAuditTimeline chatId={chat.id} />
       </div>
       <ChatSystem

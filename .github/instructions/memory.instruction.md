@@ -4,17 +4,69 @@ applyTo: '**'
 
 # User Memory
 
+## User Preferences
+- Programming languages: TypeScript, JavaScript
+- Code style preferences: Conservative, minimal diffs, Zod for validation, Drizzle for DB, App Router patterns
+- Development environment: VS Code on macOS, zsh shell
+- Communication style: Concise but thorough, skimmable checklists, actionable summaries
+
+## Project Context
+- Current project type: Next.js App Router full‑stack web app
+- Tech stack: Next.js (App Router), React 19, TypeScript, Drizzle ORM + Postgres, Tailwind, Vitest, Playwright
+- Architecture patterns: API route handlers, server actions, allowlist-driven automation pipeline, audit logging
+- Key requirements: Approval workflow (preview → approve → execute → rollback), helper JWT, audit artifacts/rollback points, health check engine & dashboard, Fixlets lifecycle
+
+## Coding Patterns
+- Preferred patterns and practices: Zod schemas for inputs/outputs, typed DB access via Drizzle, strict JWT iss/aud, dynamic=no-store for mutation routes, small incremental changes
+- Code organization preferences: lib/ohfixit/* for domain logic; app/api/* for endpoints; components/* for UI; tests under tests/
+- Testing approaches: Vitest for unit tests, Playwright for E2E; test happy path + unmapped/edge cases
+- Documentation style: Roadmap-driven with acceptance criteria, durable handoff summaries
+
+## Context7 Research History
+- Libraries researched on Context7: Pending quick refresh for Next.js route handlers, Drizzle ORM, jose JWT
+- Best practices discovered: Prefer dynamic = 'force-dynamic' for helper endpoints; cache: 'no-store' for POST; strict iss/aud on JWT; approval TTL ≈10m
+- Implementation patterns used: Orchestrate preview → approve → execute via central automation endpoint; conservative health→action mapping
+- Version-specific findings: To be appended after Context7 pass
+
+## Conversation History
+- Important decisions made: Enforce one-click auto-fix through approval pipeline; persist artifacts and rollback via helper/report; conservative mappings first
+- Recurring questions or topics: Verification that roadmap checkmarks reflect real implementations; health checks coverage; Fixlet lifecycle
+- Solutions that worked well: Centralized automation/action route with audit logging; zod-validated mapping and orchestration route; UI wiring for Fix Now
+- Things to avoid or that didn't work: Ad‑hoc execution paths bypassing approvals; broad/unscoped JWTs
+
+## Notes
+- Environment: Requires OHFIXIT_JWT_SECRET (or NEXTAUTH_SECRET) for helper JWT
+- Next steps: Expand mappings; privileged checks via helper; stabilize type errors; add tests per new mapping
+---
+applyTo: '**'
+---
+
+# User Memory
+
 ## Project Context
 - Current project: OhFixIt implementation within a Next.js chat application
 - Tech stack: Next.js, Vercel AI SDK, Drizzle + Postgres, TypeScript
 - Purpose: Automated troubleshooting and system maintenance with consent-by-design
-- Current implementation status: Phase 0 and partial Phase 1 complete
+ - Current implementation status: Phase 0 complete; Phase 1 largely implemented; Phase 2 partially implemented (auto-fix via automation pipeline)
 
 ## OhFixIt Implementation Status
 - **Phase 0 (Complete)**: Foundation with audit models, allowlist, minimal tooling
-- **Phase 1 (Partial)**: Server APIs implemented (preview/approve/execute/rollback, helper token/report). UI "Do It For Me" panel pending. Desktop Helper handshake (JWT) partially in place; artifacts/rollback persisted on report.
-- **Phase 2**: Health checks dashboard (stubbed APIs, comprehensive engine exists)
+ - **Phase 1 (Largely Complete)**: Server APIs implemented (preview/approve/execute/rollback, helper token/report/status). UI approval panel present. Desktop Helper handshake (JWT) in place; artifacts/rollback persisted on report.
+ - **Phase 2 (In Progress)**: Health checks engine and run/results APIs implemented; HealthCheckDashboard wired. One-click safe auto-fix flows through preview → approve → execute via `/api/ohfixit/health/fix` and reuses automation pipeline with rollback.
 - **Phase 3-9**: Not implemented yet
+
+## Recent Updates (this session)
+- Added health auto-fix orchestration using the automation pipeline (preview → approve → execute) via new API: POST `/api/ohfixit/health/fix`.
+- Created conservative mapping from select health checks to allowlisted actions (dns-health → flush-dns-macos, network-connectivity → toggle-wifi-macos, temp-files → clear-system-logs).
+- Wired `HealthCheckDashboard` into chat page with onFixIssue handler calling the new API.
+- Added unit test for health auto-fix route.
+ - Observed repository-wide TypeScript type errors in unrelated areas; new changes do not introduce additional errors.
+
+### New or Changed Files
+- `lib/ohfixit/health-fix-map.ts` – conservative mapping and `HealthFixRequestSchema`.
+- `app/api/ohfixit/health/fix/route.ts` – orchestrates preview → approve → execute via automation action endpoint.
+- `app/(chat)/chat/[id]/chat-page.tsx` – integrates `HealthCheckDashboard` with “Fix Now”.
+- `tests/unit/health.fix.route.test.ts` – unit tests for mapping/orchestration and unmapped case.
 
 ## Coding Patterns
 - Uses inline interfaces with function parameters
@@ -34,6 +86,8 @@ applyTo: '**'
 ## Context7 Research History
 - Next.js App Router and route handlers used for APIs; Drizzle ORM schemas for audit tables.
 - JWT via jose for helper tokens; acceptance: short-lived tokens and scoped claims.
+- Drizzle ORM Postgres patterns reviewed (Context7) for schema/query usage; ensured new code conforms to existing patterns.
+ - Verified allowlist and desktop-helper alignment patterns for safe automation.
 
 ## Conversation History
 - Roadmap file `docs/ohfixit-roadmap.md` dictates phased plan; this session focuses on continuing Phase 1 acceptance criteria.
@@ -41,6 +95,14 @@ applyTo: '**'
 ## Notes
 - Acceptance tracking:
 	- Phase 1: Approving triggers helper; ActionLog enriched with artifacts and rollback handle (helper/report implemented). One-tap Undo to be wired in UI later.
+	- Phase 2: Auto-fix now routes through the automation pipeline with approval + rollback available for mapped checks; expand mappings next.
+
+## Known Gaps / Follow-ups
+- Stabilize TypeScript typecheck (numerous pre-existing errors)
+- Expand health→action mappings conservatively and parameterize safely
+- Privileged helper-backed checks (firewall, OS updates, antivirus)
+- Verify fixlet import/export endpoints and device-aware playbooks
+- Implement computer-use executor with artifact capture
 
 ## Implementation Priorities
 1. Desktop Helper (Tauri) for privileged operations
