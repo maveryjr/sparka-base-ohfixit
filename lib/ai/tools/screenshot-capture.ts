@@ -27,7 +27,7 @@ This tool provides comprehensive screenshot capture capabilities:
 - Metadata logging for compliance
 
 Screenshots are automatically stored as audit artifacts and can be referenced in the conversation.`,
-  parameters: screenshotCaptureSchema,
+  inputSchema: screenshotCaptureSchema,
   execute: async ({ timing, region, includeCursor, format, quality }) => {
     log.info({ timing, region, includeCursor, format, quality }, 'Screenshot capture tool executed');
 

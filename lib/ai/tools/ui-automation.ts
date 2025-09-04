@@ -7,7 +7,7 @@ const log = createModuleLogger('ui-automation-tool');
 export const uiAutomationSchema = z.object({
   action: z.string().describe('The specific UI action to perform'),
   element: z.string().describe('The UI element to target (CSS selector, accessibility label, etc.)'),
-  parameters: z.record(z.any()).optional().describe('Additional parameters for the action'),
+  parameters: z.record(z.string(), z.any()).optional().describe('Additional parameters for the action'),
   screenshotBefore: z.boolean().default(true).describe('Whether to capture screenshot before action'),
   screenshotAfter: z.boolean().default(true).describe('Whether to capture screenshot after action'),
 });
@@ -27,7 +27,8 @@ Available actions:
 - select: Choose options from dropdowns/menus
 - scroll: Scroll to specific positions
 - wait: Wait for elements to appear/become interactive`,
-  parameters: uiAutomationSchema,
+  
+  inputSchema: uiAutomationSchema,
   execute: async ({ action, element, parameters, screenshotBefore, screenshotAfter }) => {
     log.info({ action, element, parameters, screenshotBefore, screenshotAfter }, 'UI automation tool executed');
 

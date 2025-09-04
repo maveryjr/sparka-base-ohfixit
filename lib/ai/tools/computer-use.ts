@@ -21,7 +21,7 @@ Features:
 - Rollback capability for reversible actions
 
 The tool will first analyze the request and create a safe execution plan, then require user approval before executing any steps.`,
-  parameters: computerUseSchema,
+  inputSchema: computerUseSchema,
   execute: async ({ task, targetApplication, safetyCheck }) => {
     log.info({ task, targetApplication, safetyCheck }, 'Computer use tool executed');
 
@@ -71,11 +71,20 @@ async function createExecutionPlan(task: string, targetApplication?: string, saf
   return plan;
 }
 
-async function analyzeTaskForSteps(task: string, targetApplication?: string, safetyCheck: boolean = true) {
+type PlanStep = {
+  id: string;
+  description: string;
+  action: string;
+  requiresApproval: boolean;
+  risk: 'low' | 'medium' | 'high';
+  rollbackStrategy?: 'none' | 'restore_previous_value' | 'restore_previous_selection';
+};
+
+async function analyzeTaskForSteps(task: string, targetApplication?: string, safetyCheck: boolean = true): Promise<PlanStep[]> {
   // This is a simplified implementation
   // In production, this would use AI to analyze the task and generate appropriate steps
 
-  const steps = [
+  const steps: PlanStep[] = [
     {
       id: 'step_1',
       description: 'Take initial screenshot for audit trail',
@@ -131,7 +140,7 @@ async function analyzeTaskForSteps(task: string, targetApplication?: string, saf
   return steps;
 }
 
-function calculateEstimatedDuration(steps: any[]): string {
+function calculateEstimatedDuration(steps: PlanStep[]): string {
   const baseTime = 30; // 30 seconds base
   const timePerStep = 15; // 15 seconds per step
   const totalSeconds = baseTime + (steps.length * timePerStep);

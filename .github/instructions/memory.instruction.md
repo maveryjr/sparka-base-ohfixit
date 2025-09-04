@@ -23,10 +23,10 @@ applyTo: '**'
 - Documentation style: Roadmap-driven with acceptance criteria, durable handoff summaries
 
 ## Context7 Research History
-- Libraries researched on Context7: Pending quick refresh for Next.js route handlers, Drizzle ORM, jose JWT
+- Libraries researched on Context7: Vercel AI SDK v5 (tools, tool(), streamText), Zod v4 usage nuances
 - Best practices discovered: Prefer dynamic = 'force-dynamic' for helper endpoints; cache: 'no-store' for POST; strict iss/aud on JWT; approval TTL ≈10m
 - Implementation patterns used: Orchestrate preview → approve → execute via central automation endpoint; conservative health→action mapping
-- Version-specific findings: To be appended after Context7 pass
+- Version-specific findings: AI SDK v5 requires `inputSchema` for tools (Zod or JSON Schema). Avoid `.optional()` in strict providers; prefer `.nullable()` where optionality is needed. Zod v4 `z.record` requires both key and value types, e.g. `z.record(z.string(), z.any())`.
  - Durable summary: See docs/ohfixit-handoff.md for compact technical handoff and code pointers.
 
 ## Conversation History
@@ -67,6 +67,10 @@ applyTo: '**'
 - **Phase 3-9**: Not implemented yet
 
 ## Recent Updates (this session)
+- Fixed chat image-upload crash caused by AI SDK tool schema mismatch. Several tools used `parameters` instead of required `inputSchema` leading to runtime `_zod` undefined error during tool schema access.
+- Updated tools: `lib/ai/tools/screenshot-capture.ts`, `lib/ai/tools/ui-automation.ts`, `lib/ai/tools/computer-use.ts` to use `inputSchema`; corrected Zod v4 `z.record` signatures; added `PlanStep` typing.
+- Performed Context7 research to confirm AI SDK v5 tool schema requirements and Zod v4 patterns.
+- Added note to audit remaining tools and add regression tests for image attachments and tool schema validation.
 - Added health auto-fix orchestration using the automation pipeline (preview → approve → execute) via new API: POST `/api/ohfixit/health/fix`.
 - Created conservative mapping from select health checks to allowlisted actions (dns-health → flush-dns-macos, network-connectivity → toggle-wifi-macos, temp-files → clear-system-logs).
 - Wired `HealthCheckDashboard` into chat page with onFixIssue handler calling the new API.
