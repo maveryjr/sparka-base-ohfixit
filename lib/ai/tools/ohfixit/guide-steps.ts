@@ -214,10 +214,12 @@ export function createGuideSteps({
       });
 
       try {
+        const temp = process.env.AI_JSON_TEMP ? Number(process.env.AI_JSON_TEMP) : undefined;
         const { partialObjectStream, object } = streamObject({
           model: getLanguageModel(selectedModel),
           schema: GuidePlanSchema,
           prompt,
+          ...(typeof temp === 'number' && !Number.isNaN(temp) ? { temperature: temp } : {}),
         });
 
         // Stream partial updates to the UI

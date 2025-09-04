@@ -15,6 +15,7 @@ export const sheetDocumentHandler = createDocumentHandler<'sheet'>({
   }) => {
     let draftContent = '';
 
+    const temp = process.env.AI_JSON_TEMP ? Number(process.env.AI_JSON_TEMP) : undefined;
     const { fullStream } = streamObject({
       model: getLanguageModel(selectedModel),
       system: sheetPrompt,
@@ -23,6 +24,7 @@ export const sheetDocumentHandler = createDocumentHandler<'sheet'>({
       schema: z.object({
         csv: z.string().describe('CSV data'),
       }),
+      ...(typeof temp === 'number' && !Number.isNaN(temp) ? { temperature: temp } : {}),
     });
 
     for await (const delta of fullStream) {
@@ -60,6 +62,7 @@ export const sheetDocumentHandler = createDocumentHandler<'sheet'>({
   }) => {
     let draftContent = '';
 
+    const temp2 = process.env.AI_JSON_TEMP ? Number(process.env.AI_JSON_TEMP) : undefined;
     const { fullStream } = streamObject({
       model: getLanguageModel(selectedModel),
       system: updateDocumentPrompt(document.content, 'sheet'),
@@ -68,6 +71,7 @@ export const sheetDocumentHandler = createDocumentHandler<'sheet'>({
       schema: z.object({
         csv: z.string(),
       }),
+      ...(typeof temp2 === 'number' && !Number.isNaN(temp2) ? { temperature: temp2 } : {}),
     });
 
     for await (const delta of fullStream) {

@@ -15,6 +15,7 @@ export const codeDocumentHandler = createDocumentHandler<'code'>({
   }) => {
     let draftContent = '';
 
+    const temp = process.env.AI_JSON_TEMP ? Number(process.env.AI_JSON_TEMP) : undefined;
     const { fullStream } = streamObject({
       model: getLanguageModel(selectedModel),
       system: codePrompt,
@@ -23,6 +24,7 @@ export const codeDocumentHandler = createDocumentHandler<'code'>({
       schema: z.object({
         code: z.string(),
       }),
+      ...(typeof temp === 'number' && !Number.isNaN(temp) ? { temperature: temp } : {}),
     });
 
     for await (const delta of fullStream) {
@@ -54,6 +56,7 @@ export const codeDocumentHandler = createDocumentHandler<'code'>({
   }) => {
     let draftContent = '';
 
+    const temp2 = process.env.AI_JSON_TEMP ? Number(process.env.AI_JSON_TEMP) : undefined;
     const { fullStream } = streamObject({
       model: getLanguageModel(selectedModel),
       system: updateDocumentPrompt(document.content || '', 'code'),
@@ -62,6 +65,7 @@ export const codeDocumentHandler = createDocumentHandler<'code'>({
       schema: z.object({
         code: z.string(),
       }),
+      ...(typeof temp2 === 'number' && !Number.isNaN(temp2) ? { temperature: temp2 } : {}),
     });
 
     for await (const delta of fullStream) {
