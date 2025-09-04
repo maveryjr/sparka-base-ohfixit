@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 use chrono::Utc;
 use reqwest::Client;
+use base64::{Engine as _, engine::general_purpose};
 
 // JWT Claims structure for OhFixIt tokens
 #[derive(Debug, Serialize, Deserialize)]
@@ -352,11 +353,12 @@ async fn execute_action(
                 log::error!("Failed to report result: {}", e);
             }
 
+            let artifacts = create_artifacts(&action_id, &output);
             Ok(ActionResult {
                 success,
                 message: output.clone(),
-                error: if success { None } else { Some(output) },
-                artifacts: Some(create_artifacts(&action_id, &output)),
+                error: if success { None } else { Some(output.clone()) },
+                artifacts: Some(artifacts),
                 rollback_id: if action.reversible { Some(uuid::Uuid::new_v4().to_string()) } else { None },
             })
         }
@@ -444,7 +446,7 @@ async fn report_result(
             data: serde_json::json!({
                 "action_id": action_id,
                 "timestamp": Utc::now().to_rfc3339(),
-                "output_hash": base64::encode(output.as_bytes())
+                "output_hash": general_purpose::STANDARD.encode(output.as_bytes())
             })
         })
     } else {
@@ -522,12 +524,12 @@ async fn report_rollback_result(
     }
 }
 
-fn create_artifacts(action_id: &str, output: &str) -> Vec<ActionArtifact> {
+fn create_artifacts(_action_id: &str, output: &str) -> Vec<ActionArtifact> {
     vec![
         ActionArtifact {
             artifact_type: "execution_log".to_string(),
             uri: None,
-            hash: Some(base64::encode(output.as_bytes())),
+            hash: Some(general_purpose::STANDARD.encode(output.as_bytes())),
             data: Some(output.to_string()),
         }
     ]

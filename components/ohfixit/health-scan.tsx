@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { chatStore } from '@/lib/stores/chat-store';
+import type { ModelId } from '@/lib/ai/model-id';
+import { useChatInput } from '@/providers/chat-input-provider';
 
 type Props = {
   chatId?: string | null;
@@ -12,6 +15,7 @@ type Props = {
 type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'not_found';
 
 export function HealthScan({ chatId = null, checks, className }: Props) {
+  const { selectedModelId } = useChatInput();
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<JobStatus>('queued');
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +36,47 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
       totalChecks: result.totalChecks,
     };
   }, [result]);
+
+  function sendQuickFix(issue: string) {
+    try {
+      const { currentChatHelpers, getLastMessageId } = chatStore.getState();
+      const sendMessage = currentChatHelpers?.sendMessage;
+      if (!sendMessage) return;
+      const parentId = getLastMessageId();
+      const now = new Date();
+      sendMessage({
+        role: 'user',
+        parts: [{ type: 'text', text: `Problem: ${issue}. Find and show one-click fixes I can run.` }],
+        metadata: {
+          selectedModel: selectedModelId as ModelId,
+          selectedTool: 'oneClickFixTool',
+          createdAt: now,
+          parentMessageId: parentId,
+        },
+      });
+    } catch {}
+  }
+
+  function sendGuideForCheck(check: any) {
+    try {
+      const { currentChatHelpers, getLastMessageId } = chatStore.getState();
+      const sendMessage = currentChatHelpers?.sendMessage;
+      if (!sendMessage) return;
+      const parentId = getLastMessageId();
+      const now = new Date();
+      const goal = `Fix "${check.name || check.id}" (${check.category}). ${check.message || ''}`.slice(0, 280);
+      sendMessage({
+        role: 'user',
+        parts: [{ type: 'text', text: `Goal: ${goal}` }],
+        metadata: {
+          selectedModel: selectedModelId as ModelId,
+          selectedTool: 'guideSteps',
+          createdAt: now,
+          parentMessageId: parentId,
+        },
+      });
+    } catch {}
+  }
 
   async function startScan() {
     let cancelled = false;
@@ -146,12 +191,28 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
               })
               .slice(0, 3)
               .map((c: any) => (
-                <li key={c.id} className={cn('flex items-center gap-2',
+                <li key={c.id} className={cn('flex items-center gap-2 flex-wrap',
                   c.status === 'critical' ? 'text-red-600' : c.status === 'warning' ? 'text-yellow-700' : 'text-green-700'
                 )}>
                   <span className="text-xs capitalize">{c.status}</span>
                   <span className="font-medium">{c.name || c.id}</span>
                   <span className="text-xs text-muted-foreground truncate">{c.message}</span>
+                  {(c.status === 'critical' || c.status === 'warning') && (
+                    <>
+                      <button
+                        className="ml-auto px-2 py-0.5 rounded text-xs border hover:bg-accent"
+                        onClick={() => sendQuickFix(`${c.name || c.id}: ${c.message || ''}`)}
+                      >
+                        Quick fix
+                      </button>
+                      <button
+                        className="px-2 py-0.5 rounded text-xs border hover:bg-accent"
+                        onClick={() => sendGuideForCheck(c)}
+                      >
+                        Open guide
+                      </button>
+                    </>
+                  )}
                 </li>
               ))}
           </ul>
@@ -185,6 +246,22 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
                       )}
                       {c.estimatedFixTime && (
                         <div className="text-xs text-muted-foreground mt-1">Est. fix time: {c.estimatedFixTime}</div>
+                      )}
+                      {(c.status === 'critical' || c.status === 'warning') && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <button
+                            className="px-2 py-0.5 rounded text-xs border hover:bg-accent"
+                            onClick={() => sendQuickFix(`${c.name || c.id}: ${c.message || ''}`)}
+                          >
+                            Quick fix
+                          </button>
+                          <button
+                            className="px-2 py-0.5 rounded text-xs border hover:bg-accent"
+                            onClick={() => sendGuideForCheck(c)}
+                          >
+                            Open guide
+                          </button>
+                        </div>
                       )}
                     </li>
                   ))}

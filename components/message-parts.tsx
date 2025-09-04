@@ -515,6 +515,64 @@ function PureMessagePart({
     }
   }
 
+  if (type === 'tool-oneClickFixTool') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Looking for one-click fixes…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      if (output.error) {
+        return (
+          <div key={toolCallId} className="text-red-500 p-2 border rounded">
+            Error: {String(output.error)}
+          </div>
+        );
+      }
+      if (output.found === false) {
+        return (
+          <div key={toolCallId} className="rounded border p-3 text-sm">
+            <div className="font-medium mb-1">No matching quick fixes</div>
+            <ul className="list-disc ml-5 text-xs text-muted-foreground">
+              {(output.suggestions || []).map((s: string, i: number) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
+      const fixes = output.fixes || [];
+      return (
+        <div key={toolCallId} className="rounded border p-3 text-sm space-y-2">
+          <div className="font-medium">One-click fixes</div>
+          <ul className="space-y-2">
+            {fixes.map((f: any) => (
+              <li key={f.id} className="border rounded p-2 bg-background/50">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{f.title}</span>
+                  <span className="text-xs text-muted-foreground">{f.category}</span>
+                  <span className="ml-auto text-xs">{f.estimatedTime}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Risk: {f.riskLevel}</div>
+                {f.description && (
+                  <div className="text-xs mt-1">{f.description}</div>
+                )}
+              </li>
+            ))}
+          </ul>
+          {output.recommendations && (
+            <div className="text-xs text-muted-foreground">{output.recommendations[0]}</div>
+          )}
+        </div>
+      );
+    }
+  }
+
   if (type === 'tool-stockChart') {
     const { toolCallId, state } = part;
     if (state === 'input-available') {

@@ -54,8 +54,9 @@ export const frontendToolsSchema = z.enum([
   'generateImage',
   'createDocument',
   'guideSteps',
-  // 'guideToAutomation' is invoked from UI flows, not user-selectable
+  'guideToAutomation',
   'healthScan',
+  'oneClickFixTool',
   // Note: automation is not directly user-selectable as a primary tool in MVP.
 ]);
 
