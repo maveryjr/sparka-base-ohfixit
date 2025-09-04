@@ -18,6 +18,8 @@ import { AutomationPlanView } from '@/components/ohfixit/action-preview';
 import { AutomationResult } from '@/components/ohfixit/automation-result';
 import { ActionArtifacts } from '@/components/ohfixit/action-artifacts';
 import { AuditTrail } from '@/components/ohfixit/audit-trail';
+import { HandoffBanner } from '@/components/ohfixit/handoff';
+import { OrchestratorPlan } from '@/components/ohfixit/orchestrator-plan';
 import type { ChatMessage } from '@/lib/ai/types';
 import {
   chatStore,
@@ -414,6 +416,38 @@ function PureMessagePart({
       const { output } = part as any;
       if (!output) return null;
       return <AuditTrail events={(output.events || []).map((e: any) => ({ id: e.id, createdAt: e.createdAt, type: e.type, actionType: e.actionType, status: e.status, kind: e.kind, summary: e.summary }))} />;
+    }
+  }
+
+  if (type === 'tool-startHandoff') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Starting human handoff…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return <HandoffBanner session={output} />;
+    }
+  }
+
+  if (type === 'tool-orchestrate') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Planning best next steps…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return <OrchestratorPlan summary={output.summary} items={output.items || []} />;
     }
   }
 

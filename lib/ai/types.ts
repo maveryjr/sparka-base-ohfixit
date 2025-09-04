@@ -41,6 +41,8 @@ export const toolNameSchema = z.enum([
   'getConsentLog',
   'analyzeScript',
   'saveFixlet',
+  'orchestrate',
+  'startHandoff',
   'clientEnv',
   'networkCheck',
   'computerUse',
@@ -65,6 +67,8 @@ export const frontendToolsSchema = z.enum([
   'getConsentLog',
   'analyzeScript',
   'saveFixlet',
+  'orchestrate',
+  'startHandoff',
   // Note: automation is not directly user-selectable as a primary tool in MVP.
 ]);
 
@@ -107,6 +111,8 @@ type getActionArtifactsTool = InferUITool<typeof import('./tools/ohfixit/get-act
 type getConsentLogTool = InferUITool<typeof import('./tools/ohfixit/get-consent-log')['getConsentLog']>;
 type analyzeScriptTool = InferUITool<typeof import('./tools/ohfixit/analyze-script')['analyzeScript']>;
 type saveFixletTool = InferUITool<typeof import('./tools/ohfixit/fixlet-save')['saveFixlet']>;
+type orchestrateTool = InferUITool<typeof import('./tools/orchestrate')['orchestrate']>;
+type startHandoffTool = InferUITool<typeof import('./tools/ohfixit/start-handoff')['startHandoff']>;
 // For factory tools, we reference the Tool type by creating a temporary type helper
 type _ClientEnvTool = ReturnType<
   typeof import('./tools/ohfixit/client-env').default
@@ -145,6 +151,8 @@ export type ChatTools = {
   getConsentLog: getConsentLogTool;
   analyzeScript: analyzeScriptTool;
   saveFixlet: saveFixletTool;
+  orchestrate: orchestrateTool;
+  startHandoff: startHandoffTool;
   clientEnv: clientEnvTool;
   networkCheck: networkCheckTool;
   computerUse: computerUseTool;

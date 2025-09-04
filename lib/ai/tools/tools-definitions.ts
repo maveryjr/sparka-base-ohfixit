@@ -122,6 +122,16 @@ export const toolsDefinitions: Record<ToolName, ToolDefinition> = {
     description: 'Save a troubleshooting plan as a reusable Fixlet',
     cost: 2,
   },
+  orchestrate: {
+    name: 'orchestrate',
+    description: 'Suggests the best next tools based on goal and urgency',
+    cost: 1,
+  },
+  startHandoff: {
+    name: 'startHandoff',
+    description: 'Start a human handoff session',
+    cost: 1,
+  },
   clientEnv: {
     name: 'clientEnv',
     description: 'Read consented client diagnostics snapshot',

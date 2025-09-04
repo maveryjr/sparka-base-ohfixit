@@ -548,7 +548,7 @@ export const getPlaybook = tool({
       );
     }
 
-    return {
+    const response: any = {
       playbooks: filteredPlaybooks.map((p) => ({
         id: p.id,
         title: p.title,
@@ -563,6 +563,16 @@ export const getPlaybook = tool({
       deviceOS,
       deviceCapabilities,
     };
+
+    // Clarify-loop: if many candidates and no strong filters, ask 1–2 questions
+    if (!category && (!symptoms || symptoms.length === 0) && filteredPlaybooks.length > 1) {
+      response.clarifyingQuestions = [
+        'Is this issue occurring on Wi‑Fi or Ethernet?',
+        'Is the problem limited to one app/site or affects all?',
+      ];
+    }
+
+    return response;
   },
 });
 
