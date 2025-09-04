@@ -106,6 +106,13 @@ interface IssuePattern {
 }
 
 const ISSUE_PATTERNS: IssuePattern[] = [
+  // Windows drive mapping conflicts
+  {
+    pattern: /(local device name is already in use|ERROR_ALREADY_ASSIGNED|drive mapping conflict|net use)/i,
+    category: 'windows_drive_mapping_conflict',
+    errorCode: '85',
+    description: 'Network drive mapping conflict (The local device name is already in use)'
+  },
   // Printer errors
   {
     pattern: /(?:0x000004005|cannot connect to network printer|printer installation stuck|HP LaserJet|Hewlett-Packard)/i,
@@ -169,14 +176,14 @@ const ISSUE_PATTERNS: IssuePattern[] = [
     pattern: /(?:code 10|code 28|code 31|code 39|code 41|code 43)/i,
     category: 'driver_error',
     description: 'Device Manager error codes'
-  },
+      return [
   // Application errors
   {
     pattern: /(?:application not responding|app frozen|program not responding)/i,
     category: 'application_error',
     description: 'Application freezing or not responding'
-  },
-  {
+            { kind: 'instruction' as const, text: 'Restart the affected application or system component.' },
+            { kind: 'instruction' as const, text: 'Check if the issue persists after restart.' },
     pattern: /(?:runtime error|exception|crash|has stopped working)/i,
     category: 'application_error',
     description: 'Application crash or runtime error'
@@ -185,12 +192,12 @@ const ISSUE_PATTERNS: IssuePattern[] = [
   {
     pattern: /(?:ERR_CONNECTION_REFUSED|connection refused|site cannot be reached)/i,
     category: 'browser_error',
-    description: 'Browser connection refused error'
-  },
-  {
-    pattern: /(?:ERR_CONNECTION_TIMED_OUT|connection timed out)/i,
-    category: 'browser_error',
-    description: 'Browser connection timeout error'
+            { kind: 'instruction' as const, text: 'Open Command Prompt as Administrator.' },
+            { kind: 'instruction' as const, text: 'List network mappings: `net use`' },
+            { kind: 'instruction' as const, text: 'List logical disks: `wmic logicaldisk get name,providername`' },
+            { kind: 'instruction' as const, text: 'Optional — list volumes: `diskpart` ➜ `list volume` (then `exit`)' },
+            { kind: 'instruction' as const, text: 'Optional (PowerShell) — list PSDrives: `Get-PSDrive -PSProvider FileSystem`' },
+            { kind: 'instruction' as const, text: 'Check for subst mappings: `subst`' }
   },
   // Hardware errors
   {
@@ -199,15 +206,101 @@ const ISSUE_PATTERNS: IssuePattern[] = [
     description: 'Blue screen of death or system crash'
   },
   {
-    pattern: /(?:overheating|temperature|thermal|fan not working)/i,
-    category: 'hardware_error',
-    description: 'Hardware overheating or thermal issue'
-  }
-];
+            { kind: 'instruction' as const, text: 'If G: appears in `net use`, remove it: `net use G: /delete /yes`' },
+            { kind: 'instruction' as const, text: 'If G: is a local volume (from `wmic`/`diskpart`), eject/unmount or change its letter.' },
+            { kind: 'instruction' as const, text: 'If a subst exists for G:, remove it: `subst G: /d`' },
+            { kind: 'instruction' as const, text: 'If a PSDrive named G exists, remove it: `Remove-PSDrive -Name G`' },
+            { kind: 'instruction' as const, text: 'If multiple mappings exist, carefully clear all network mappings: `net use * /delete` (then re-create only the desired one)' }
 
 // Generate specific steps based on detected issue category
 function generateStepsForIssue(category: string, errorCode?: string, context?: string): GuideStep[] {
   switch (category) {
+    case 'windows_drive_mapping_conflict':
+      return [
+        {
+          actions: []
+          actions: [
+            { kind: 'instruction', text: 'Restart the affected application or system component.' },
+            { kind: 'instruction', text: 'Check if the issue persists after restart.' },
+          ],
+          fallback: 'If the issue remains after restart, proceed to specific diagnostics.'
+        },
+            { kind: 'instruction' as const, text: 'Review sign-in/login scripts or Group Policy Preferences that map G: at logon; ensure they skip if already mapped.' },
+            { kind: 'instruction' as const, text: 'Check startup tasks or scripts for repeated mapping commands without cleanup.' }
+          title: 'Enumerate current drives and mappings',
+          rationale: 'Identify what is already using the target drive letter (e.g., G:).',
+          actions: [
+            { kind: 'instruction', text: 'Open Command Prompt as Administrator.' },
+            { kind: 'instruction', text: 'List network mappings: `net use`' },
+            { kind: 'instruction', text: 'List logical disks: `wmic logicaldisk get name,providername`' },
+            { kind: 'instruction', text: 'Optional — list volumes: `diskpart` ➜ `list volume` (then `exit`)' },
+            { kind: 'instruction', text: 'Optional (PowerShell) — list PSDrives: `Get-PSDrive -PSProvider FileSystem`' },
+            { kind: 'instruction' as const, text: 'Run `net use` to confirm G: points to the expected path and Status is OK.' },
+            { kind: 'instruction' as const, text: 'If the problem recurs, check Event Viewer (System and Applications) for drive mapping events.' }
+          fallback: 'Proceed to clear any conflicting or stale mappings found.'
+        },
+        {
+          id: 'clear-conflicts',
+          title: 'Clear conflicting or stale mappings',
+          rationale: 'Remove mappings that occupy the letter or conflict with the desired network path.',
+          actions: [
+            { kind: 'instruction', text: 'If G: appears in `net use`, remove it: `net use G: /delete /yes`' },
+            { kind: 'instruction' as const, text: 'If a local/removable device uses G:, reassign it to another letter or disconnect it.' },
+            { kind: 'instruction' as const, text: 'If a subst drive frequently uses the path, remove the subst or choose a different letter for the network share.' },
+            { kind: 'instruction' as const, text: 'As a workaround, map to a different letter (e.g., Z:) and update scripts/expectations accordingly.' }
+            { kind: 'instruction', text: 'If multiple mappings exist, carefully clear all network mappings: `net use * /delete` (then re-create only the desired one)' }
+          ],
+          fallback: 'After clearing conflicts, re-map the network drive.'
+        },
+        {
+          id: 'remap-reliably',
+            { kind: 'instruction' as const, text: 'Map after ensuring G: is free: `net use G: "\\\\server\\share" /persistent:yes`' },
+            { kind: 'instruction' as const, text: 'If credentials are needed: `net use G: "\\\\server\\share" /user:DOMAIN\\user password /persistent:yes`' },
+            { kind: 'instruction' as const, text: 'If G: keeps conflicting, temporarily map to Z: to verify the share works, then investigate why G: is in use.' }
+            { kind: 'instruction', text: 'Map after ensuring G: is free: `net use G: \\\\\\\\\\u{005C} `' }
+          ].slice(0,1) // placeholder overwritten below
+        },
+        {
+          id: 'policy-scripts',
+          title: 'Optional checks for policy/script interference',
+          rationale: 'Login scripts or Group Policy Preferences can auto-map drives repeatedly.',
+          actions: [
+            { kind: 'instruction', text: 'Review sign-in/login scripts or Group Policy Preferences that map G: at logon; ensure they skip if already mapped.' },
+            { kind: 'instruction', text: 'Check startup tasks or scripts for repeated mapping commands without cleanup.' }
+          ],
+          fallback: 'If policies/scripts are clean, verify mapping success and logs.'
+        },
+        {
+          id: 'verify-and-log',
+          title: 'Verification and logging',
+          rationale: 'Confirm the mapping and gather evidence if the issue recurs.',
+          actions: [
+            { kind: 'instruction', text: 'Run `net use` to confirm G: points to the expected path and Status is OK.' },
+            { kind: 'instruction', text: 'If the problem recurs, check Event Viewer (System and Applications) for drive mapping events.' }
+          ],
+          fallback: 'If intermittent, consider workarounds below.'
+        },
+        {
+          id: 'workarounds',
+          title: 'Troubleshooting pitfalls and workarounds',
+          rationale: 'Provide alternatives if G: must remain free or is frequently occupied.',
+          actions: [
+            { kind: 'instruction', text: 'If a local/removable device uses G:, reassign it to another letter or disconnect it.' },
+            { kind: 'instruction', text: 'If a subst drive frequently uses the path, remove the subst or choose a different letter for the network share.' },
+            { kind: 'instruction', text: 'As a workaround, map to a different letter (e.g., Z:) and update scripts/expectations accordingly.' }
+          ]
+        }
+      ].map((s) => {
+        // Fill the remap step commands (delayed to avoid escaping noise above)
+        if (s.id === 'remap-reliably') {
+          s.actions = [
+            { kind: 'instruction', text: 'Map after ensuring G: is free: `net use G: "\\\\\\\Eir\\d" /persistent:yes`' },
+            { kind: 'instruction', text: 'If credentials are needed: `net use G: "\\\\\\\Eir\\d" /user:DOMAIN\\user password /persistent:yes`' },
+            { kind: 'instruction', text: 'If G: keeps conflicting, temporarily map to Z: to verify the share works, then investigate why G: is in use.' }
+          ];
+        }
+        return s;
+      });
     case 'printer_error':
       if (errorCode === '0x000004005') {
         return [
