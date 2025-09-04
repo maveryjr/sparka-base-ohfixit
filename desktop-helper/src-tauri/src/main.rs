@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 use chrono::Utc;
 use reqwest::Client;
+use base64::{Engine as _, engine::general_purpose};
 
 // JWT Claims structure for OhFixIt tokens
 #[derive(Debug, Serialize, Deserialize)]
@@ -210,6 +211,16 @@ impl AppState {
 }
 
 #[tauri::command]
+async fn get_health_status() -> Result<serde_json::Value, String> {
+    Ok(serde_json::json!({
+        "status": "healthy",
+        "version": "0.1.0",
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "actions_available": 7
+    }))
+}
+
+#[tauri::command]
 async fn execute_rollback(
     app: AppHandle,
     state: tauri::State<'_, Mutex<AppState>>,
@@ -352,11 +363,12 @@ async fn execute_action(
                 log::error!("Failed to report result: {}", e);
             }
 
+            let artifacts = create_artifacts(&action_id, &output);
             Ok(ActionResult {
                 success,
                 message: output.clone(),
-                error: if success { None } else { Some(output) },
-                artifacts: Some(create_artifacts(&action_id, &output)),
+                error: if success { None } else { Some(output.clone()) },
+                artifacts: Some(artifacts),
                 rollback_id: if action.reversible { Some(uuid::Uuid::new_v4().to_string()) } else { None },
             })
         }
@@ -444,7 +456,7 @@ async fn report_result(
             data: serde_json::json!({
                 "action_id": action_id,
                 "timestamp": Utc::now().to_rfc3339(),
-                "output_hash": base64::encode(output.as_bytes())
+                "output_hash": general_purpose::STANDARD.encode(output.as_bytes())
             })
         })
     } else {
@@ -522,12 +534,12 @@ async fn report_rollback_result(
     }
 }
 
-fn create_artifacts(action_id: &str, output: &str) -> Vec<ActionArtifact> {
+fn create_artifacts(_action_id: &str, output: &str) -> Vec<ActionArtifact> {
     vec![
         ActionArtifact {
             artifact_type: "execution_log".to_string(),
             uri: None,
-            hash: Some(base64::encode(output.as_bytes())),
+            hash: Some(general_purpose::STANDARD.encode(output.as_bytes())),
             data: Some(output.to_string()),
         }
     ]
@@ -543,7 +555,7 @@ fn emit_status(app: &AppHandle, message: &str, status_type: &str) {
 fn main() {
     tauri::Builder::default()
         .manage(Mutex::new(AppState::new()))
-        .invoke_handler(tauri::generate_handler![execute_action, execute_rollback])
+        .invoke_handler(tauri::generate_handler![execute_action, execute_rollback, get_health_status])
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
         .run(tauri::generate_context!())

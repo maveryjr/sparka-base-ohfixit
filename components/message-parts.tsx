@@ -16,6 +16,11 @@ import { GuideSteps } from '@/components/ohfixit/guide-steps';
 import { HealthScan } from '@/components/ohfixit/health-scan';
 import { AutomationPlanView } from '@/components/ohfixit/action-preview';
 import { AutomationResult } from '@/components/ohfixit/automation-result';
+import { ActionArtifacts } from '@/components/ohfixit/action-artifacts';
+import { AuditTrail } from '@/components/ohfixit/audit-trail';
+import { HandoffBanner } from '@/components/ohfixit/handoff';
+import { OrchestratorPlan } from '@/components/ohfixit/orchestrator-plan';
+import { SelectorPreview } from '@/components/ohfixit/selector-preview';
 import type { ChatMessage } from '@/lib/ai/types';
 import {
   chatStore,
@@ -359,6 +364,17 @@ function PureMessagePart({
     }
   }
 
+  if (type === 'data-guideOcrHint') {
+    const { data } = part as any;
+    if (!data) return null;
+    return (
+      <details className="my-2 rounded border p-3 text-sm bg-muted/30">
+        <summary className="cursor-pointer text-xs font-medium">Extracted from screenshot (redacted)</summary>
+        <pre className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">{data}</pre>
+      </details>
+    );
+  }
+
   if (type === 'tool-healthScan') {
     const { toolCallId, state } = part;
     if (state === 'input-available') {
@@ -372,6 +388,148 @@ function PureMessagePart({
       // The tool output contains hints (chatId/checks); the component will run and poll via API.
       const { output } = part as any;
       return <HealthScan chatId={output?.chatId ?? null} checks={output?.checks} />;
+    }
+  }
+
+  if (type === 'tool-getActionArtifacts') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Loading artifacts…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (output?.error) {
+        return (
+          <div key={toolCallId} className="text-red-500 p-2 border rounded">
+            Error: {String(output.error)}
+          </div>
+        );
+      }
+      return (
+        <ActionArtifacts artifacts={output?.artifacts || []} />
+      );
+    }
+  }
+
+  if (type === 'tool-getConsentLog') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Loading audit timeline…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return <AuditTrail events={(output.events || []).map((e: any) => ({ id: e.id, createdAt: e.createdAt, type: e.type, actionType: e.actionType, status: e.status, kind: e.kind, summary: e.summary }))} />;
+    }
+  }
+
+  if (type === 'tool-getPlaybook') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Finding playbooks…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      const playbooks = output.playbooks || (output.playbook ? [output.playbook] : []);
+      return (
+        <div key={toolCallId} className="rounded border p-3 text-sm space-y-2">
+          <div className="font-medium">Playbooks</div>
+          {output.clarifyingQuestions && output.clarifyingQuestions.length > 0 && (
+            <div className="p-2 bg-amber-50 rounded">
+              <div className="text-xs text-amber-900 mb-1">Clarify to improve match:</div>
+              <ul className="list-disc ml-5 text-xs space-y-1">
+                {output.clarifyingQuestions.map((q: string, i: number) => (
+                  <li key={i}>{q}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <ul className="space-y-2">
+            {playbooks.map((p: any) => (
+              <li key={p.id} className="border rounded p-2 bg-background/50">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{p.title}</span>
+                  <span className="text-xs text-muted-foreground">{p.category}</span>
+                  <span className="ml-auto text-xs">{p.estimatedTime}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">{p.description}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+  }
+
+  if (type === 'tool-startHandoff') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Starting human handoff…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return <HandoffBanner session={output} />;
+    }
+  }
+
+  if (type === 'tool-orchestrate') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Planning best next steps…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return <OrchestratorPlan summary={output.summary} items={output.items || []} />;
+    }
+  }
+
+  if (type === 'tool-uiAutomation') {
+    const { toolCallId, state } = part as any;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Preparing UI automation…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      const preview = output?.result?.preview;
+      if (preview?.selector) {
+        return (
+          <div key={toolCallId} className="my-2">
+            <SelectorPreview selector={preview.selector} label={preview.label || preview.action} />
+          </div>
+        );
+      }
+      return (
+        <div key={toolCallId} className="rounded border p-3 text-sm">
+          <div className="text-xs text-muted-foreground">Automation completed.</div>
+        </div>
+      );
     }
   }
 
@@ -504,12 +662,103 @@ function PureMessagePart({
                 {typeof r.latencyMs === 'number' && (
                   <span className="text-muted-foreground">{r.latencyMs} ms</span>
                 )}
+                {r.status && (
+                  <span className="text-muted-foreground">HTTP {r.status}</span>
+                )}
+                {r.reason && (
+                  <span className="text-muted-foreground">{r.reason}</span>
+                )}
                 {r.error && (
                   <span className="text-muted-foreground">{r.error}</span>
                 )}
               </li>
             ))}
           </ul>
+        </div>
+      );
+    }
+  }
+
+  if (type === 'tool-oneClickFixTool') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Looking for one-click fixes…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      if (output.error) {
+        return (
+          <div key={toolCallId} className="text-red-500 p-2 border rounded">
+            Error: {String(output.error)}
+          </div>
+        );
+      }
+      if (output.found === false) {
+        return (
+          <div key={toolCallId} className="rounded border p-3 text-sm">
+            <div className="font-medium mb-1">No matching quick fixes</div>
+            <ul className="list-disc ml-5 text-xs text-muted-foreground">
+              {(output.suggestions || []).map((s: string, i: number) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
+      const fixes = output.fixes || [];
+      return (
+        <div key={toolCallId} className="rounded border p-3 text-sm space-y-2">
+          <div className="font-medium">One-click fixes</div>
+          <ul className="space-y-2">
+            {fixes.map((f: any) => (
+              <li key={f.id} className="border rounded p-2 bg-background/50">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{f.title}</span>
+                  <span className="text-xs text-muted-foreground">{f.category}</span>
+                  <span className="ml-auto text-xs">{f.estimatedTime}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Risk: {f.riskLevel}</div>
+                {f.description && (
+                  <div className="text-xs mt-1">{f.description}</div>
+                )}
+              </li>
+            ))}
+          </ul>
+          {output.recommendations && (
+            <div className="text-xs text-muted-foreground">{output.recommendations[0]}</div>
+          )}
+        </div>
+      );
+    }
+  }
+
+  if (type === 'tool-analyzeScript') {
+    const { toolCallId, state } = part;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Analyzing script risk…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      if (!output) return null;
+      return (
+        <div key={toolCallId} className="rounded border p-3 text-sm">
+          <div className="font-medium mb-1">Script Risk: {output.level}</div>
+          <div className="text-xs text-muted-foreground mb-1">Requires consent: {String(output.requiresConsent)}</div>
+          {output.factors?.length > 0 && (
+            <div className="text-xs">Factors: {output.factors.join(', ')}</div>
+          )}
+          {output.mitigations?.length > 0 && (
+            <div className="text-xs text-muted-foreground">Mitigations: {output.mitigations.join(', ')}</div>
+          )}
         </div>
       );
     }
@@ -642,6 +891,64 @@ function PureMessagePart({
               }
             }}
           />
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              className="px-2 py-1 rounded text-xs border hover:bg-accent"
+              onClick={() => {
+                try {
+                  const { currentChatHelpers, getLastMessageId, id: chatId } = chatStore.getState() as any;
+                  const sendMessage = currentChatHelpers?.sendMessage;
+                  if (!sendMessage) return;
+                  const parentId = getLastMessageId();
+                  const now = new Date();
+                  const payload = chatId ? { chatId, limit: 50 } : { limit: 25 };
+                  const msgs = chatStore.getState().messages as any[];
+                  const last = msgs[msgs.length - 1];
+                  const selModel = last?.metadata?.selectedModel;
+                  sendMessage({
+                    role: 'user',
+                    parts: [{ type: 'text', text: `Fetch artifacts for this session. Input JSON:\n${JSON.stringify(payload)}` }],
+                    metadata: {
+                      selectedModel: selModel,
+                      selectedTool: 'getActionArtifacts',
+                      createdAt: now,
+                      parentMessageId: parentId,
+                    },
+                  });
+                } catch {}
+              }}
+            >
+              View artifacts
+            </button>
+            <button
+              className="px-2 py-1 rounded text-xs border hover:bg-accent"
+              onClick={() => {
+                try {
+                  const { currentChatHelpers, getLastMessageId } = chatStore.getState();
+                  const sendMessage = currentChatHelpers?.sendMessage;
+                  if (!sendMessage) return;
+                  const parentId = getLastMessageId();
+                  const now = new Date();
+                  const payload = { from: 'automation', plan: output };
+                  const msgs2 = chatStore.getState().messages as any[];
+                  const last2 = msgs2[msgs2.length - 1];
+                  const selModel2 = last2?.metadata?.selectedModel;
+                  sendMessage({
+                    role: 'user',
+                    parts: [{ type: 'text', text: `Save this as a Fixlet. Input JSON:\n${JSON.stringify(payload)}` }],
+                    metadata: {
+                      selectedModel: selModel2,
+                      selectedTool: 'saveFixlet',
+                      createdAt: now,
+                      parentMessageId: parentId,
+                    },
+                  });
+                } catch {}
+              }}
+            >
+              Save as Fixlet
+            </button>
+          </div>
         </div>
       );
     }

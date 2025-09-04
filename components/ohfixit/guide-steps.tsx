@@ -81,6 +81,31 @@ export function GuideSteps({ plan, className }: { plan: GuidePlan; className?: s
         >
           Run Automatically
         </button>
+        <button
+          className="px-2 py-1 rounded text-xs border hover:bg-accent"
+          onClick={() => {
+            try {
+              const { currentChatHelpers, getLastMessageId } = chatStore.getState();
+              const sendMessage = currentChatHelpers?.sendMessage;
+              if (!sendMessage) return;
+              const parentId = getLastMessageId();
+              const now = new Date();
+              const payload = { from: 'guide', plan };
+              sendMessage({
+                role: 'user',
+                parts: [{ type: 'text', text: `Save this as a Fixlet. Input JSON:\n${JSON.stringify(payload)}` }],
+                metadata: {
+                  selectedModel: selectedModelId as ModelId,
+                  selectedTool: 'saveFixlet',
+                  createdAt: now,
+                  parentMessageId: parentId,
+                },
+              });
+            } catch {}
+          }}
+        >
+          Save as Fixlet
+        </button>
       </div>
       <ol className="space-y-3 list-decimal list-inside">
         {plan.steps.map((step: GuideStep, idx: number) => (

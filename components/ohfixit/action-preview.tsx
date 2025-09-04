@@ -11,6 +11,9 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { chatStore } from '@/lib/stores/chat-store';
+import { useChatInput } from '@/providers/chat-input-provider';
+import type { ModelId } from '@/lib/ai/model-id';
 
 type AutomationAction = import('@/lib/ai/tools/ohfixit/automation').AutomationAction;
 type AutomationPlan = import('@/lib/ai/tools/ohfixit/automation').AutomationPlan;
@@ -22,14 +25,94 @@ export function AutomationPlanView({
   plan: AutomationPlan;
   className?: string;
 }) {
+  const { selectedModelId } = useChatInput();
+  const chatId = chatStore.getState().id || null;
   const [open, setOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<AutomationAction | null>(
     null,
   );
+  function assessRisk(script?: string) {
+    if (!script) return { level: 'low' as const, factors: [], mitigations: [] };
+    const patterns: Array<{ re: RegExp; label: string; mitigation: string; level: 'low'|'medium'|'high' }>= [
+      { re: /(rm\s+-rf\s+\/?(?!\/tmp\b|\.)\S+)/i, label: 'Recursive delete', mitigation: 'Confirm target path and backup', level: 'high' },
+      { re: /:\\Windows\\System32|\/System\//i, label: 'System path change', mitigation: 'Avoid system directories', level: 'high' },
+      { re: /(sudo\s+|Start-Process\s+Power\w*\s+-Verb\s+RunAs)/i, label: 'Privilege escalation', mitigation: 'Prompt user and log consent', level: 'medium' },
+      { re: /(netsh\s+|ifconfig\s+|networksetup\s+)/i, label: 'Network reconfiguration', mitigation: 'Warn about connectivity drop', level: 'medium' },
+      { re: /(killall\s+|Stop-Process\s+)/i, label: 'Process termination', mitigation: 'Ensure safe targets', level: 'low' },
+    ];
+    const factors: string[] = [];
+    const mitigations: string[] = [];
+    let level: 'low'|'medium'|'high' = 'low';
+    patterns.forEach(p => {
+      if (p.re.test(script)) {
+        factors.push(p.label);
+        mitigations.push(p.mitigation);
+        if (p.level === 'high') level = 'high';
+        else if (p.level === 'medium' && level !== 'high') level = 'medium';
+      }
+    });
+    return { level, factors, mitigations };
+  }
 
   return (
     <div className={cn('rounded border p-3 text-sm space-y-3', className)}>
-      <div className="font-medium">{plan.summary}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="font-medium">{plan.summary}</div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              try {
+                const { currentChatHelpers, getLastMessageId } = chatStore.getState();
+                const sendMessage = currentChatHelpers?.sendMessage;
+                if (!sendMessage) return;
+                const parentId = getLastMessageId();
+                const now = new Date();
+                const payload = { from: 'automation', plan };
+                sendMessage({
+                  role: 'user',
+                  parts: [{ type: 'text', text: `Save this as a Fixlet. Input JSON:\n${JSON.stringify(payload)}` }],
+                  metadata: {
+                    selectedModel: selectedModelId as ModelId,
+                    selectedTool: 'saveFixlet',
+                    createdAt: now,
+                    parentMessageId: parentId,
+                  },
+                });
+              } catch {}
+            }}
+          >
+            Save as Fixlet
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              try {
+                const { currentChatHelpers, getLastMessageId } = chatStore.getState();
+                const sendMessage = currentChatHelpers?.sendMessage;
+                if (!sendMessage) return;
+                const parentId = getLastMessageId();
+                const now = new Date();
+                const payload = chatId ? { chatId, limit: 50 } : { limit: 25 };
+                sendMessage({
+                  role: 'user',
+                  parts: [{ type: 'text', text: `Fetch artifacts for this session. Input JSON:\n${JSON.stringify(payload)}` }],
+                  metadata: {
+                    selectedModel: selectedModelId as ModelId,
+                    selectedTool: 'getActionArtifacts',
+                    createdAt: now,
+                    parentMessageId: parentId,
+                  },
+                });
+              } catch {}
+            }}
+          >
+            View artifacts
+          </Button>
+        </div>
+      </div>
       <ul className="space-y-2">
         {plan.actions.map((a) => (
           <li key={a.id} className="border rounded p-2">
@@ -150,6 +233,20 @@ export function AutomationPlanView({
                     Shell: {selectedAction.shell}
                     {selectedAction.os ? ` · OS: ${selectedAction.os}` : ''}
                   </div>
+                  {(() => {
+                    const r = assessRisk(selectedAction.script);
+                    return (
+                      <div className="mt-2">
+                        <div className="text-xs">Risk: <span className={r.level === 'high' ? 'text-red-600' : r.level === 'medium' ? 'text-yellow-700' : 'text-green-700'}>{r.level}</span></div>
+                        {r.factors.length > 0 && (
+                          <div className="text-xs text-muted-foreground">Factors: {r.factors.join(', ')}</div>
+                        )}
+                        {r.mitigations.length > 0 && (
+                          <div className="text-xs">Mitigations: {r.mitigations.join(', ')}</div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {selectedAction.explanation && (
                     <div className="mt-1">{selectedAction.explanation}</div>
                   )}

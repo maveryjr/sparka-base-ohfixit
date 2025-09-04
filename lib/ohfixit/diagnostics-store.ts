@@ -36,6 +36,7 @@ export type NetworkCheckResult = {
   status?: number;
   latencyMs?: number;
   error?: string;
+  reason?: string;
 };
 
 export type NetworkDiagnostics = {

@@ -4,8 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.ohfixit.desktophelper",
   "build": {
-    "frontendDist": "../dist",
-    "devUrl": "http://localhost:3000"
+    "frontendDist": "../dist"
   },
   "app": {
     "windows": [

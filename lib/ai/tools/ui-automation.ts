@@ -10,6 +10,8 @@ export const uiAutomationSchema = z.object({
   parameters: z.record(z.string(), z.any()).optional().describe('Additional parameters for the action'),
   screenshotBefore: z.boolean().default(true).describe('Whether to capture screenshot before action'),
   screenshotAfter: z.boolean().default(true).describe('Whether to capture screenshot after action'),
+  previewOnly: z.boolean().default(false).describe('If true, do not execute; return overlay preview hints'),
+  previewLabel: z.string().optional().describe('Optional label to show in overlays'),
 });
 
 export const uiAutomation = tool({
@@ -29,7 +31,7 @@ Available actions:
 - wait: Wait for elements to appear/become interactive`,
   
   inputSchema: uiAutomationSchema,
-  execute: async ({ action, element, parameters, screenshotBefore, screenshotAfter }) => {
+  execute: async ({ action, element, parameters, screenshotBefore, screenshotAfter, previewOnly, previewLabel }) => {
     log.info({ action, element, parameters, screenshotBefore, screenshotAfter }, 'UI automation tool executed');
 
     try {
@@ -37,6 +39,31 @@ Available actions:
       const isAllowed = await validateAction(action, element);
       if (!isAllowed) {
         throw new Error(`Action '${action}' on element '${element}' is not allowed by safety policy`);
+      }
+
+      // Preview-only mode: do not execute; return overlay hint payload
+      if (previewOnly) {
+        await logUIAction({
+          action,
+          element,
+          parameters,
+          previewOnly: true,
+          timestamp: new Date().toISOString(),
+        });
+        return {
+          success: true,
+          action,
+          element,
+          result: {
+            preview: {
+              selector: element,
+              label: previewLabel || action,
+              action,
+            },
+          },
+          screenshots: { before: null, after: null },
+          timestamp: new Date().toISOString(),
+        } as any;
       }
 
       // Capture pre-execution screenshot if requested

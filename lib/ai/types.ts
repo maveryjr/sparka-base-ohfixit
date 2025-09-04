@@ -37,6 +37,12 @@ export const toolNameSchema = z.enum([
   'executePlaybookStep',
   'enhancedAutomation',
   'oneClickFixTool',
+  'getActionArtifacts',
+  'getConsentLog',
+  'analyzeScript',
+  'saveFixlet',
+  'orchestrate',
+  'startHandoff',
   'clientEnv',
   'networkCheck',
   'computerUse',
@@ -54,8 +60,15 @@ export const frontendToolsSchema = z.enum([
   'generateImage',
   'createDocument',
   'guideSteps',
-  // 'guideToAutomation' is invoked from UI flows, not user-selectable
+  'guideToAutomation',
   'healthScan',
+  'oneClickFixTool',
+  'getActionArtifacts',
+  'getConsentLog',
+  'analyzeScript',
+  'saveFixlet',
+  'orchestrate',
+  'startHandoff',
   // Note: automation is not directly user-selectable as a primary tool in MVP.
 ]);
 
@@ -94,6 +107,12 @@ type getPlaybookTool = InferUITool<typeof import('./tools/ohfixit/issue-playbook
 type executePlaybookStepTool = InferUITool<typeof import('./tools/ohfixit/issue-playbooks')['executePlaybookStep']>;
 type enhancedAutomationTool = InferUITool<typeof import('./tools/ohfixit/enhanced-automation')['enhancedAutomation']>;
 type oneClickFixTool = InferUITool<typeof import('../../ohfixit/one-click-fixes')['oneClickFixTool']>;
+type getActionArtifactsTool = InferUITool<typeof import('./tools/ohfixit/get-action-artifacts')['getActionArtifacts']>;
+type getConsentLogTool = InferUITool<typeof import('./tools/ohfixit/get-consent-log')['getConsentLog']>;
+type analyzeScriptTool = InferUITool<typeof import('./tools/ohfixit/analyze-script')['analyzeScript']>;
+type saveFixletTool = InferUITool<typeof import('./tools/ohfixit/fixlet-save')['saveFixlet']>;
+type orchestrateTool = InferUITool<typeof import('./tools/orchestrate')['orchestrate']>;
+type startHandoffTool = InferUITool<typeof import('./tools/ohfixit/start-handoff')['startHandoff']>;
 // For factory tools, we reference the Tool type by creating a temporary type helper
 type _ClientEnvTool = ReturnType<
   typeof import('./tools/ohfixit/client-env').default
@@ -128,6 +147,12 @@ export type ChatTools = {
   executePlaybookStep: executePlaybookStepTool;
   enhancedAutomation: enhancedAutomationTool;
   oneClickFixTool: oneClickFixTool;
+  getActionArtifacts: getActionArtifactsTool;
+  getConsentLog: getConsentLogTool;
+  analyzeScript: analyzeScriptTool;
+  saveFixlet: saveFixletTool;
+  orchestrate: orchestrateTool;
+  startHandoff: startHandoffTool;
   clientEnv: clientEnvTool;
   networkCheck: networkCheckTool;
   computerUse: computerUseTool;
@@ -150,6 +175,7 @@ export type CustomUIDataTypes = {
   finish: null;
   researchUpdate: ResearchUpdate;
   guidePlanPartial: Partial<import('./tools/ohfixit/guide-steps').GuidePlan>;
+  guideOcrHint: string;
 };
 
 export type ChatMessage = Omit<

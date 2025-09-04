@@ -7,6 +7,9 @@ import {
   type ClientDiagnostics,
 } from '@/lib/ohfixit/diagnostics-store';
 import { capabilityMap, detectOS } from '@/lib/ohfixit/os-capabilities';
+import { db } from '@/lib/db/client';
+import { deviceProfile } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { auth } from '@/app/(auth)/auth';
 import { getAnonymousSession } from '@/lib/anonymous-session-server';
 
@@ -56,7 +59,37 @@ export function createClientEnvTool({
       const ua = rec.client.data.userAgent || '';
       const platform = rec.client.data.platform;
       const os = detectOS(ua, platform);
-      return { client: rec.client, osCapabilities: capabilityMap(os) };
+      const caps = capabilityMap(os);
+
+      // Upsert lightweight DeviceProfile (best effort)
+      try {
+        if (resolvedUserId) {
+          const name = `${os} Device`;
+          const existing = await db
+            .select()
+            .from(deviceProfile)
+            .where(eq(deviceProfile.userId, resolvedUserId))
+            .limit(1);
+          if (existing.length > 0) {
+            // simple update of capabilities + lastSeen
+            await db.update(deviceProfile)
+              .set({ capabilities: caps as any, lastSeenAt: new Date() })
+              .where(eq(deviceProfile.id, existing[0].id));
+          } else {
+            await db.insert(deviceProfile).values({
+              userId: resolvedUserId,
+              os: os as any,
+              name,
+              capabilities: caps as any,
+              lastSeenAt: new Date(),
+              createdAt: new Date(),
+              warranty: null as any,
+            });
+          }
+        }
+      } catch {}
+
+      return { client: rec.client, osCapabilities: caps };
     },
   });
 }
