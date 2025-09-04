@@ -20,6 +20,7 @@ import { ActionArtifacts } from '@/components/ohfixit/action-artifacts';
 import { AuditTrail } from '@/components/ohfixit/audit-trail';
 import { HandoffBanner } from '@/components/ohfixit/handoff';
 import { OrchestratorPlan } from '@/components/ohfixit/orchestrator-plan';
+import { SelectorPreview } from '@/components/ohfixit/selector-preview';
 import type { ChatMessage } from '@/lib/ai/types';
 import {
   chatStore,
@@ -448,6 +449,33 @@ function PureMessagePart({
       const { output } = part as any;
       if (!output) return null;
       return <OrchestratorPlan summary={output.summary} items={output.items || []} />;
+    }
+  }
+
+  if (type === 'tool-uiAutomation') {
+    const { toolCallId, state } = part as any;
+    if (state === 'input-available') {
+      return (
+        <div key={toolCallId} className="text-muted-foreground text-sm">
+          Preparing UI automation…
+        </div>
+      );
+    }
+    if (state === 'output-available') {
+      const { output } = part as any;
+      const preview = output?.result?.preview;
+      if (preview?.selector) {
+        return (
+          <div key={toolCallId} className="my-2">
+            <SelectorPreview selector={preview.selector} label={preview.label || preview.action} />
+          </div>
+        );
+      }
+      return (
+        <div key={toolCallId} className="rounded border p-3 text-sm">
+          <div className="text-xs text-muted-foreground">Automation completed.</div>
+        </div>
+      );
     }
   }
 
