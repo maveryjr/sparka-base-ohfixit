@@ -518,6 +518,40 @@ export async function POST(request: NextRequest) {
             .join(' ')
             .toLowerCase();
 
+          // Build tools once so we can validate/log their shapes
+          const toolsObject = await getTools({
+              dataStream,
+              session: {
+                user: {
+                  id: userId || undefined,
+                },
+                expires: 'noop',
+              },
+              contextForLLM: contextForLLM,
+              messageId,
+              selectedModel: selectedModelId,
+              attachments: userMessage.parts.filter(
+                (part) => part.type === 'file',
+              ) as any[],
+              lastGeneratedImage,
+              chatId,
+            });
+
+          // Light diagnostics to catch schema mismatches at runtime
+          try {
+            const toolDiagnostics = Object.fromEntries(
+              Object.entries(toolsObject).map(([name, t]: [string, any]) => [
+                name,
+                {
+                  hasInputSchema: !!t?.inputSchema,
+                  hasParameters: !!t?.parameters,
+                  type: typeof t,
+                },
+              ]),
+            );
+            log.debug({ toolDiagnostics }, 'tool diagnostics');
+          } catch {}
+
           const result = streamText({
             model: getLanguageModel(selectedModelId),
             system: systemPrompt(diagnosticsContext ?? undefined),
@@ -556,23 +590,7 @@ export async function POST(request: NextRequest) {
               functionId: 'chat-response',
             },
 
-            tools: await getTools({
-              dataStream,
-              session: {
-                user: {
-                  id: userId || undefined,
-                },
-                expires: 'noop',
-              },
-              contextForLLM: contextForLLM,
-              messageId,
-              selectedModel: selectedModelId,
-              attachments: userMessage.parts.filter(
-                (part) => part.type === 'file',
-              ) as any[],
-              lastGeneratedImage,
-              chatId,
-            }),
+            tools: toolsObject,
             onError: (error) => {
               log.error({ 
                 error, 

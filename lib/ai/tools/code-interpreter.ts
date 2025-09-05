@@ -1,4 +1,4 @@
-import z from 'zod';
+import { z } from 'zod';
 import { tool } from 'ai';
 import CodeInterpreter from '@e2b/code-interpreter';
 
