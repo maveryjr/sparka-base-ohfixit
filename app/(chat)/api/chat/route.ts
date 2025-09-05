@@ -408,7 +408,33 @@ export async function POST(request: NextRequest) {
     const messagesWithoutReasoning = filterReasoningParts(messages.slice(-5));
 
     // TODO: Do something smarter by truncating the context to a numer of tokens (maybe even based on setting)
-    const modelMessages = convertToModelMessages(messagesWithoutReasoning);
+    let modelMessages = convertToModelMessages(messagesWithoutReasoning);
+
+    // If the selected model does not support image inputs, strip image parts from the
+    // conversation messages to avoid provider errors. Tools still receive attachments.
+    const modelSupportsImages = !!modelDefinition.features?.input?.image;
+    const containsImages = modelMessages.some((m) =>
+      typeof m.content !== 'string' &&
+      Array.isArray(m.content) &&
+      m.content.some((p: any) => p?.type === 'image')
+    );
+
+    if (containsImages && !modelSupportsImages) {
+      log.warn('Selected model does not support images; stripping image parts');
+      modelMessages = modelMessages.map((msg: any) => {
+        if (typeof msg.content === 'string') return msg;
+        const filtered = (msg.content as any[]).filter((p) => p?.type !== 'image');
+        // Provide a small hint that an image was attached
+        if (filtered.length === (msg.content as any[]).length) return msg;
+        return {
+          ...msg,
+          content: [
+            ...filtered,
+            { type: 'text', text: '[Note: image attachment provided; model lacks vision input]' },
+          ],
+        };
+      });
+    }
 
     // TODO: remove this when the gateway provider supports URLs
     let contextForLLM: any;
@@ -578,6 +604,17 @@ export async function POST(request: NextRequest) {
                       toolResult.type === 'tool-result' &&
                       toolResult.toolName === 'deepResearch' &&
                       (toolResult.output as any).format === 'report',
+                  );
+                });
+              },
+              // Guard against repeated guide plan generation loops
+              ({ steps }) => {
+                return steps.some((step) => {
+                  const toolResults = step.content;
+                  return toolResults.some(
+                    (toolResult) =>
+                      toolResult.type === 'tool-result' &&
+                      toolResult.toolName === 'guideSteps'
                   );
                 });
               },
