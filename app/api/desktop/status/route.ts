@@ -1,1 +1,93 @@
-import { NextRequest, NextResponse } from 'next/server';\n\n/**\n * Desktop Helper Status API Endpoint\n * \n * Checks the connection status and capabilities of the desktop helper application\n */\nexport async function GET(request: NextRequest) {\n  try {\n    const status = await checkDesktopHelperConnection();\n    \n    return NextResponse.json({\n      connected: status.connected,\n      version: status.version,\n      capabilities: status.capabilities,\n      lastCheck: new Date().toISOString(),\n      endpoint: 'http://localhost:8765'\n    });\n\n  } catch (error) {\n    console.error('Desktop status check error:', error);\n    \n    return NextResponse.json(\n      {\n        connected: false,\n        error: 'Failed to check desktop helper status',\n        details: error instanceof Error ? error.message : 'Unknown error',\n        lastCheck: new Date().toISOString()\n      },\n      { status: 500 }\n    );\n  }\n}\n\n/**\n * Check desktop helper connection and capabilities\n */\nasync function checkDesktopHelperConnection(): Promise<{\n  connected: boolean;\n  version?: string;\n  capabilities?: string[];\n  error?: string;\n}> {\n  try {\n    // Attempt to connect to desktop helper service\n    const controller = new AbortController();\n    const timeoutId = setTimeout(() => controller.abort(), 5000);\n\n    const response = await fetch('http://localhost:8765/status', {\n      method: 'GET',\n      headers: {\n        'Content-Type': 'application/json',\n        'User-Agent': 'sparka-ohfixit/1.0'\n      },\n      signal: controller.signal\n    });\n\n    clearTimeout(timeoutId);\n\n    if (!response.ok) {\n      return {\n        connected: false,\n        error: `HTTP ${response.status}: ${response.statusText}`\n      };\n    }\n\n    const data = await response.json();\n    \n    return {\n      connected: true,\n      version: data.version || 'unknown',\n      capabilities: data.capabilities || [\n        'screenshot',\n        'system_info',\n        'process_list',\n        'file_operations'\n      ]\n    };\n\n  } catch (error) {\n    if (error instanceof Error && error.name === 'AbortError') {\n      return {\n        connected: false,\n        error: 'Connection timeout - desktop helper not responding'\n      };\n    }\n\n    return {\n      connected: false,\n      error: error instanceof Error ? error.message : 'Unknown connection error'\n    };\n  }\n}
+import { NextRequest, NextResponse } from 'next/server';
+
+/**
+ * Desktop Helper Status API Endpoint
+ *
+ * Checks the connection status and capabilities of the desktop helper application
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const status = await checkDesktopHelperConnection();
+
+    return NextResponse.json({
+      connected: status.connected,
+      version: status.version,
+      capabilities: status.capabilities,
+      lastCheck: new Date().toISOString(),
+      endpoint: 'http://localhost:8765'
+    });
+
+  } catch (error) {
+    console.error('Desktop status check error:', error);
+
+    return NextResponse.json(
+      {
+        connected: false,
+        error: 'Failed to check desktop helper status',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        lastCheck: new Date().toISOString()
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Check desktop helper connection and capabilities
+ */
+async function checkDesktopHelperConnection(): Promise<{
+  connected: boolean;
+  version?: string;
+  capabilities?: string[];
+  error?: string;
+}> {
+  try {
+    // Attempt to connect to desktop helper service
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch('http://localhost:8765/status', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'sparka-ohfixit/1.0'
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return {
+        connected: false,
+        error: `HTTP ${response.status}: ${response.statusText}`
+      };
+    }
+
+    const data = await response.json();
+
+    return {
+      connected: true,
+      version: data.version || 'unknown',
+      capabilities: data.capabilities || [
+        'screenshot',
+        'system_info',
+        'process_list',
+        'file_operations'
+      ]
+    };
+
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {
+        connected: false,
+        error: 'Connection timeout - desktop helper not responding'
+      };
+    }
+
+    return {
+      connected: false,
+      error: error instanceof Error ? error.message : 'Unknown connection error'
+    };
+  }
+}
