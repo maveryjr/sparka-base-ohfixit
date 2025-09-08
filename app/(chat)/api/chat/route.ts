@@ -729,9 +729,6 @@ export async function POST(request: NextRequest) {
                   };
                 }
               },
-            }).catch((streamError) => {
-              log.error({ streamError, errorMessage: streamError?.message, errorStack: streamError?.stack }, 'Error in toUIMessageStream');
-              throw streamError;
             }),
           );
         },
@@ -806,7 +803,17 @@ export async function POST(request: NextRequest) {
         onError: (error) => {
           // Clear timeout on error
           clearTimeout(timeoutId);
-          log.error({ error }, 'onError');
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorStack = error instanceof Error ? error.stack : undefined;
+          log.error({
+            error,
+            errorMessage,
+            errorStack,
+            selectedModel: selectedModelId,
+            userId,
+            chatId
+          }, 'Stream processing error');
+
           // Release reserved credits on error (fire and forget)
           if (reservation) {
             reservation.cleanup();
@@ -815,7 +822,9 @@ export async function POST(request: NextRequest) {
             anonymousSession.remainingCredits += baseModelCost;
             setAnonymousSession(anonymousSession);
           }
-          return 'Oops, an error occured!';
+
+          // Return a more descriptive error message
+          return `Chat processing failed: ${errorMessage || 'Unknown error occurred'}`;
         },
       });
 
