@@ -87,10 +87,14 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
     setResult(null);
     setStatus('queued');
     try {
+      const requestBody: { chatId?: string; checks?: string[] } = {};
+      if (chatId) requestBody.chatId = chatId;
+      if (checks) requestBody.checks = checks;
+      
       const res = await fetch('/api/ohfixit/health/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId, checks }),
+        body: JSON.stringify(requestBody),
       });
       if (!res.ok) throw new Error(`Failed to schedule: ${res.status}`);
       const { jobId: newJobId } = await res.json();

@@ -22,7 +22,7 @@ export const HealthScanInput = z.object({
 export type HealthScanInput = z.infer<typeof HealthScanInput>;
 
 export const HealthScanOutputSchema = z.object({
-  chatId: z.string().nullable(),
+  chatId: z.string().optional(),
   requestedAt: z.string(),
   checks: z.array(z.string()).optional(),
 });
@@ -36,7 +36,6 @@ export const healthScan = tool({
   execute: async ({ checks }): Promise<HealthScanOutput> => {
     // We do not directly call the API here to avoid auth/session coupling; the UI will do it.
     return {
-      chatId: null,
       requestedAt: new Date().toISOString(),
       checks,
     };
