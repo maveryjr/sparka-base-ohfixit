@@ -23,6 +23,12 @@ export function sanitizeTools(
   for (const [name, t] of Object.entries(tools)) {
     if (!set.has(name)) continue; // only include active tools
 
+    // Check if the tool exists and is not null/undefined
+    if (!t || typeof t !== 'object') {
+      excluded.push({ name, reason: 'tool is null, undefined, or not an object' });
+      continue;
+    }
+
     const schema = (t as any)?.inputSchema;
     if (!schema) {
       excluded.push({ name, reason: 'missing inputSchema' });
@@ -33,6 +39,23 @@ export function sanitizeTools(
       excluded.push({ name, reason: 'inputSchema is not a Zod schema (no safeParse)' });
       continue;
     }
+
+    // Check if execute function exists
+    if (typeof (t as any).execute !== 'function') {
+      excluded.push({ name, reason: 'missing or invalid execute function' });
+      continue;
+    }
+
+    // Additional validation: try to access _zod to catch potential issues early
+    try {
+      const zodInternal = schema._zod;
+      // If we can access it without error, the schema is likely valid
+    } catch (err) {
+      // If accessing _zod fails, the schema might be malformed
+      excluded.push({ name, reason: `schema validation failed: ${err instanceof Error ? err.message : 'unknown error'}` });
+      continue;
+    }
+
     included[name] = t;
   }
 

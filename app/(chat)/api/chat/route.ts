@@ -572,11 +572,24 @@ export async function POST(request: NextRequest) {
                   hasInputSchema: !!t?.inputSchema,
                   hasParameters: !!t?.parameters,
                   type: typeof t,
+                  inputSchemaType: typeof t?.inputSchema,
+                  hasSafeParse: typeof t?.inputSchema?.safeParse,
+                  hasExecute: typeof t?.execute,
                 },
               ]),
             );
             log.debug({ toolDiagnostics }, 'tool diagnostics');
-          } catch {}
+            
+            // Additional validation - check for any tools that might cause _zod errors
+            for (const [name, tool] of Object.entries(toolsObject)) {
+              const t = tool as any;
+              if (!t || !t.inputSchema || typeof t.inputSchema.safeParse !== 'function') {
+                log.warn({ toolName: name, hasInputSchema: !!t?.inputSchema, schemaType: typeof t?.inputSchema }, 'Potentially problematic tool detected');
+              }
+            }
+          } catch (err) {
+            log.error({ error: err }, 'Error in tool diagnostics');
+          }
 
           // Sanitize tools: filter out any without a valid inputSchema to avoid client-side validator crashes
           const { sanitizeTools } = await import('@/lib/ai/tools/sanitize-tools');
@@ -588,6 +601,14 @@ export async function POST(request: NextRequest) {
           if (excluded.length > 0) {
             log.warn({ excluded }, 'Excluded tools without valid inputSchema');
           }
+
+          // Log the tools being passed to streamText
+          log.debug({ 
+            toolCount: Object.keys(sanitizedTools).length,
+            toolNames: Object.keys(sanitizedTools),
+            activeToolCount: sanitizedActiveTools.length,
+            activeToolNames: sanitizedActiveTools 
+          }, 'Tools being passed to streamText');
 
           const result = streamText({
             model: getLanguageModel(selectedModelId),
@@ -640,12 +661,17 @@ export async function POST(request: NextRequest) {
 
             tools: sanitizedTools,
             onError: (error) => {
+              // Check for _zod related errors specifically
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              const isZodError = errorMessage.includes('_zod') || errorMessage.includes('Cannot read properties of undefined');
+              
               log.error({ 
                 error, 
-                errorMessage: error instanceof Error ? error.message : 'Unknown error',
+                errorMessage,
                 errorStack: error instanceof Error ? error.stack : undefined,
                 errorName: error instanceof Error ? error.name : 'Unknown',
-                errorCause: error instanceof Error ? error.cause : undefined
+                errorCause: error instanceof Error ? error.cause : undefined,
+                isZodError
               }, 'streamText error');
               
               // Log additional context for image-related errors
@@ -656,6 +682,15 @@ export async function POST(request: NextRequest) {
               
               if (hasImages) {
                 log.error('Error occurred while processing message with images');
+              }
+              
+              // If this is a _zod error, log the tool state for debugging
+              if (isZodError) {
+                log.error({
+                  toolsCount: Object.keys(sanitizedTools).length,
+                  activeToolsCount: sanitizedActiveTools.length,
+                  excludedCount: excluded.length
+                }, 'Zod error occurred - tool state at time of error');
               }
             },
             abortSignal: abortController.signal, // Pass abort signal to streamText
@@ -694,6 +729,9 @@ export async function POST(request: NextRequest) {
                   };
                 }
               },
+            }).catch((streamError) => {
+              log.error({ streamError, errorMessage: streamError?.message, errorStack: streamError?.stack }, 'Error in toUIMessageStream');
+              throw streamError;
             }),
           );
         },
