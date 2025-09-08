@@ -603,56 +603,36 @@ export async function POST(request: NextRequest) {
             activeToolNames: sanitizedActiveTools 
           }, 'Tools being passed to streamText (no sanitization)');
 
+          // Test with a small subset of basic tools to identify the problematic one
+          const testTools = {
+            getWeather: sanitizedTools.getWeather,
+            webSearch: sanitizedTools.webSearch,
+            createDocument: sanitizedTools.createDocument,
+          };
+          const testActiveTools = ['getWeather', 'webSearch', 'createDocument'].filter(name => 
+            sanitizedActiveTools.includes(name)
+          );
+
+          log.debug({ 
+            testToolCount: Object.keys(testTools).length,
+            testToolNames: Object.keys(testTools),
+            testActiveToolCount: testActiveTools.length,
+            testActiveToolNames: testActiveTools 
+          }, 'Testing with subset of tools');
+
           const result = streamText({
             model: getLanguageModel(selectedModelId),
             system: systemPrompt(diagnosticsContext ?? undefined),
             messages: contextForLLM,
-            stopWhen: [
-              stepCountIs(5),
-              ({ steps }) => {
-                return steps.some((step) => {
-                  const toolResults = step.content;
-                  // Stop if automation tool has been executed
-                  return toolResults.some(
-                    (toolResult) =>
-                      toolResult.type === 'tool-result' &&
-                      toolResult.toolName === 'automation'
-                  );
-                });
-              },
-              ({ steps }) => {
-                return steps.some((step) => {
-                  const toolResults = step.content;
-                  // Don't stop if the tool result is a clarifying question
-                  return toolResults.some(
-                    (toolResult) =>
-                      toolResult.type === 'tool-result' &&
-                      toolResult.toolName === 'deepResearch' &&
-                      (toolResult.output as any).format === 'report',
-                  );
-                });
-              },
-              // Guard against repeated guide plan generation loops
-              ({ steps }) => {
-                return steps.some((step) => {
-                  const toolResults = step.content;
-                  return toolResults.some(
-                    (toolResult) =>
-                      toolResult.type === 'tool-result' &&
-                      toolResult.toolName === 'guideSteps'
-                  );
-                });
-              },
-            ],
-
-            activeTools: sanitizedActiveTools,
+            
+            activeTools: testActiveTools,
             experimental_transform: markdownJoinerTransform(),
             experimental_telemetry: {
               isEnabled: true,
               functionId: 'chat-response',
             },
 
-            tools: sanitizedTools,
+            tools: testTools,
             onError: (error) => {
               // Check for _zod related errors specifically
               const errorMessage = error instanceof Error ? error.message : String(error);
