@@ -578,6 +578,17 @@ export async function POST(request: NextRequest) {
             log.debug({ toolDiagnostics }, 'tool diagnostics');
           } catch {}
 
+          // Sanitize tools: filter out any without a valid inputSchema to avoid client-side validator crashes
+          const { sanitizeTools } = await import('@/lib/ai/tools/sanitize-tools');
+          const { tools: sanitizedTools, activeTools: sanitizedActiveTools, excluded } = sanitizeTools(
+            toolsObject as any,
+            activeTools as any,
+          );
+
+          if (excluded.length > 0) {
+            log.warn({ excluded }, 'Excluded tools without valid inputSchema');
+          }
+
           const result = streamText({
             model: getLanguageModel(selectedModelId),
             system: systemPrompt(diagnosticsContext ?? undefined),
@@ -620,14 +631,14 @@ export async function POST(request: NextRequest) {
               },
             ],
 
-            activeTools: activeTools,
+            activeTools: sanitizedActiveTools,
             experimental_transform: markdownJoinerTransform(),
             experimental_telemetry: {
               isEnabled: true,
               functionId: 'chat-response',
             },
 
-            tools: toolsObject,
+            tools: sanitizedTools,
             onError: (error) => {
               log.error({ 
                 error, 

@@ -68,8 +68,11 @@ applyTo: '**'
 - **Phase 3-9**: Not implemented yet
 
 ## Recent Updates (this session)
-- Fixed chat image-upload crash caused by AI SDK tool schema mismatch. Several tools used `parameters` instead of required `inputSchema` leading to runtime `_zod` undefined error during tool schema access.
-- Updated tools: `lib/ai/tools/screenshot-capture.ts`, `lib/ai/tools/ui-automation.ts`, `lib/ai/tools/computer-use.ts` to use `inputSchema`; corrected Zod v4 `z.record` signatures; added `PlanStep` typing.
+- Fixed chat crash caused by AI SDK tool schema mismatch. Several tools or tool factories could surface without a proper `inputSchema`, leading to runtime `_zod` undefined on the client validator during tool schema access.
+- Added server-side guard: `lib/ai/tools/sanitize-tools.ts` with `sanitizeTools()` filters out any tool lacking a Zod v4 `inputSchema` (detected via `safeParse`). Wired into `app/(chat)/api/chat/route.ts` to replace `tools` and `activeTools` with sanitized sets and to log exclusions. This prevents invalid tool schemas from reaching the UI stream and eliminates the `_zod` undefined crash.
+- Updated tools earlier in the project to use `inputSchema` consistently (e.g., `screenshot-capture`, `ui-automation`, `computer-use`); corrected Zod v4 `z.record` usage.
+- Added unit tests: `tests/unit/sanitize-tools.test.ts` validates inclusion/exclusion behavior and edge cases.
+- Context7 research reconfirmed AI SDK v5 requirement for `inputSchema` and suggested server-side validation patterns.
 - Performed Context7 research to confirm AI SDK v5 tool schema requirements and Zod v4 patterns.
 - Added note to audit remaining tools and add regression tests for image attachments and tool schema validation.
 - Added health auto-fix orchestration using the automation pipeline (preview → approve → execute) via new API: POST `/api/ohfixit/health/fix`.
@@ -126,6 +129,7 @@ applyTo: '**'
 - Verify fixlet import/export endpoints and device-aware playbooks
 - Implement computer-use executor with artifact capture
  - Consider adding streaming object generation for guide steps for better UX; add unit tests to validate schema conformity and id normalization.
+- Optional hardening: add `validateUIMessages({ messages, tools: sanitizedTools })` on the server route to proactively validate persisted history before conversion; catch `TypeValidationError` and fall back to a safe subset if needed.
 
 ## Implementation Priorities
 1. Desktop Helper (Tauri) for privileged operations
