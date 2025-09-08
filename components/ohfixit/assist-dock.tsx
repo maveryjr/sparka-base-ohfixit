@@ -133,13 +133,13 @@ export function AssistDock({ chatId }: { chatId: string }) {
 
           {activeFeature === 'redaction-assist' && (
             <RedactionAssist
-              imageUrl="/api/placeholder-screenshot"
               onRedactedImage={() => setShowPhase2Hub(false)}
               autoDetect={
                 (typeof window !== 'undefined'
                   ? localStorage.getItem('ohfixit:redaction:auto_blur') ?? 'true'
                   : 'true') === 'true'
               }
+              enableScreenshotSelection={true}
             />
           )}
 
