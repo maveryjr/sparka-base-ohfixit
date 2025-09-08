@@ -591,16 +591,9 @@ export async function POST(request: NextRequest) {
             log.error({ error: err }, 'Error in tool diagnostics');
           }
 
-          // Sanitize tools: filter out any without a valid inputSchema to avoid client-side validator crashes
-          const { sanitizeTools } = await import('@/lib/ai/tools/sanitize-tools');
-          const { tools: sanitizedTools, activeTools: sanitizedActiveTools, excluded } = sanitizeTools(
-            toolsObject as any,
-            activeTools as any,
-          );
-
-          if (excluded.length > 0) {
-            log.warn({ excluded }, 'Excluded tools without valid inputSchema');
-          }
+          // Temporarily bypass sanitization to isolate _zod issue
+          const sanitizedTools = toolsObject;
+          const sanitizedActiveTools = activeTools;
 
           // Log the tools being passed to streamText
           log.debug({ 
@@ -608,7 +601,7 @@ export async function POST(request: NextRequest) {
             toolNames: Object.keys(sanitizedTools),
             activeToolCount: sanitizedActiveTools.length,
             activeToolNames: sanitizedActiveTools 
-          }, 'Tools being passed to streamText');
+          }, 'Tools being passed to streamText (no sanitization)');
 
           const result = streamText({
             model: getLanguageModel(selectedModelId),

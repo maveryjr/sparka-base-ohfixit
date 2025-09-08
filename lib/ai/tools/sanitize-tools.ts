@@ -19,29 +19,40 @@ export function sanitizeTools(
   const included: Record<string, AnyTool> = {};
   const excluded: Array<{ name: string; reason: string }> = [];
 
+  console.log(`[SANITIZE] Starting sanitization with ${Object.keys(tools).length} tools and ${activeTools.length} active tools`);
+
   const set = new Set(activeTools);
   for (const [name, t] of Object.entries(tools)) {
     if (!set.has(name)) continue; // only include active tools
 
+    console.log(`[SANITIZE] Processing tool: ${name}`);
+
     // Check if the tool exists and is not null/undefined
     if (!t || typeof t !== 'object') {
+      console.log(`[SANITIZE] Tool ${name} is null, undefined, or not an object:`, typeof t);
       excluded.push({ name, reason: 'tool is null, undefined, or not an object' });
       continue;
     }
 
     const schema = (t as any)?.inputSchema;
     if (!schema) {
+      console.log(`[SANITIZE] Tool ${name} is missing inputSchema`);
       excluded.push({ name, reason: 'missing inputSchema' });
       continue;
     }
+
+    console.log(`[SANITIZE] Tool ${name} schema type:`, typeof schema, 'has safeParse:', typeof schema.safeParse);
+
     // Rough Zod check: safeParse should exist on Zod schemas
     if (typeof schema.safeParse !== 'function') {
+      console.log(`[SANITIZE] Tool ${name} inputSchema is not a Zod schema (no safeParse)`);
       excluded.push({ name, reason: 'inputSchema is not a Zod schema (no safeParse)' });
       continue;
     }
 
     // Check if execute function exists
     if (typeof (t as any).execute !== 'function') {
+      console.log(`[SANITIZE] Tool ${name} is missing execute function`);
       excluded.push({ name, reason: 'missing or invalid execute function' });
       continue;
     }
@@ -52,21 +63,26 @@ export function sanitizeTools(
       if (schema && typeof schema === 'object' && typeof schema.safeParse === 'function') {
         // Try a test parse to ensure the schema is functional
         const testResult = schema.safeParse({});
+        console.log(`[SANITIZE] Tool ${name} schema test result:`, testResult.success ? 'valid' : 'invalid but functional');
         // If safeParse works (even if it fails validation), the schema is valid
       } else {
+        console.log(`[SANITIZE] Tool ${name} schema structure is invalid`);
         excluded.push({ name, reason: `schema validation failed: invalid schema structure` });
         continue;
       }
     } catch (err) {
       // If schema validation fails, exclude the tool
-      console.error(`Tool ${name} schema validation failed:`, err);
+      console.error(`[SANITIZE] Tool ${name} schema validation failed:`, err);
       excluded.push({ name, reason: `schema validation failed: ${err instanceof Error ? err.message : 'unknown error'}` });
       continue;
     }
 
+    console.log(`[SANITIZE] Tool ${name} passed all validation checks`);
     included[name] = t;
   }
 
   const sanitizedActive = activeTools.filter((n) => included[n] !== undefined);
+  console.log(`[SANITIZE] Sanitization complete. Included: ${Object.keys(included).length}, Excluded: ${excluded.length}, Active: ${sanitizedActive.length}`);
+  
   return { tools: included, activeTools: sanitizedActive, excluded };
 }
