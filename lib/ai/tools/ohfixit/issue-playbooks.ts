@@ -457,7 +457,7 @@ const GetPlaybookInput = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   playbookId: z.string().optional(),
   deviceOS: z.enum(['macOS', 'Windows', 'Linux', 'iOS', 'Android', 'Unknown']).optional(),
-  deviceCapabilities: z.record(z.boolean()).optional(),
+  deviceCapabilities: z.record(z.string(), z.boolean()).optional(),
   chatId: z.string().optional(),
 });
 
@@ -595,7 +595,7 @@ const ExecutePlaybookStepInput = z.object({
   completed: z.boolean().optional(),
   notes: z.string().optional(),
   deviceOS: z.enum(['macOS', 'Windows', 'Linux', 'iOS', 'Android', 'Unknown']).optional(),
-  deviceCapabilities: z.record(z.boolean()).optional(),
+  deviceCapabilities: z.record(z.string(), z.boolean()).optional(),
 });
 
 // Device-aware playbook adaptation

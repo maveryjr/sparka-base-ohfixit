@@ -129,6 +129,5 @@ export async function getTools({
 
 
   // Wrap all tools for safety to prevent _zod errors
-  // Temporarily disable wrapper to isolate _zod issue
-  return tools;
+  return wrapAllToolsForSafety(tools);
 }
