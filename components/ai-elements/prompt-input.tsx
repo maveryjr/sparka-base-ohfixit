@@ -178,8 +178,7 @@ export const PromptInputSubmit = ({
       size={size}
       type="button"
       variant={variant}
-      disabled={props.disabled}
-        data-testid={isStoppable ? 'stop-button' : 'send-button'}
+      data-testid={isStoppable ? 'stop-button' : 'send-button'}
       {...props}
     >
       {children ?? Icon}

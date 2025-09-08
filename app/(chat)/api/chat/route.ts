@@ -408,12 +408,77 @@ export async function POST(request: NextRequest) {
     const messagesWithoutReasoning = filterReasoningParts(messages.slice(-5));
 
     // TODO: Do something smarter by truncating the context to a numer of tokens (maybe even based on setting)
-    const modelMessages = convertToModelMessages(messagesWithoutReasoning);
+    let modelMessages = convertToModelMessages(messagesWithoutReasoning);
+
+    // If the selected model does not support image inputs, strip image parts from the
+    // conversation messages to avoid provider errors. Tools still receive attachments.
+    const modelSupportsImages = !!modelDefinition.features?.input?.image;
+    const containsImages = modelMessages.some((m) =>
+      typeof m.content !== 'string' &&
+      Array.isArray(m.content) &&
+      m.content.some((p: any) => p?.type === 'image')
+    );
+
+    if (containsImages && !modelSupportsImages) {
+      log.warn('Selected model does not support images; stripping image parts');
+      modelMessages = modelMessages.map((msg: any) => {
+        if (typeof msg.content === 'string') return msg;
+        const filtered = (msg.content as any[]).filter((p) => p?.type !== 'image');
+        // Provide a small hint that an image was attached
+        if (filtered.length === (msg.content as any[]).length) return msg;
+        return {
+          ...msg,
+          content: [
+            ...filtered,
+            { type: 'text', text: '[Note: image attachment provided; model lacks vision input]' },
+          ],
+        };
+      });
+    }
 
     // TODO: remove this when the gateway provider supports URLs
-    const contextForLLM =
-      await replaceFilePartUrlByBinaryDataInMessages(modelMessages);
-    log.debug({ contextForLLM }, 'context prepared');
+    let contextForLLM: any;
+    try {
+      contextForLLM = await replaceFilePartUrlByBinaryDataInMessages(modelMessages);
+      
+      // Validate image data size and format
+      for (const message of contextForLLM) {
+        if (typeof message.content !== 'string' && Array.isArray(message.content)) {
+          for (const part of message.content) {
+            if (part.type === 'image' && part.image instanceof Uint8Array) {
+              const imageSizeInMB = part.image.length / (1024 * 1024);
+              log.debug({ imageSizeInMB, mediaType: part.mediaType }, 'Image processed');
+              
+              // Check if image is too large (most providers have ~20MB limit)
+              if (imageSizeInMB > 20) {
+                log.warn({ imageSizeInMB }, 'Image too large for processing');
+                return Response.json(
+                  {
+                    code: 'bad_request:chat',
+                    message: 'Image file is too large. Please use an image smaller than 20MB.',
+                    cause: `Image size: ${imageSizeInMB.toFixed(2)}MB`,
+                  },
+                  { status: 400 },
+                );
+              }
+            }
+          }
+        }
+      }
+      
+      log.debug('Image processing completed successfully');
+    } catch (imageError) {
+      log.error({ imageError }, 'Failed to process image attachments');
+      return Response.json(
+        {
+          code: 'bad_request:chat',
+          message: 'Failed to process image attachment. Please try with a different image.',
+          cause: imageError instanceof Error ? imageError.message : 'Image processing failed',
+        },
+        { status: 400 },
+      );
+    }
+    
     log.debug({ activeTools }, 'active tools');
 
     // Create AbortController with 55s timeout for credit cleanup
@@ -479,6 +544,72 @@ export async function POST(request: NextRequest) {
             .join(' ')
             .toLowerCase();
 
+          // Build tools once so we can validate/log their shapes
+          const toolsObject = await getTools({
+              dataStream,
+              session: {
+                user: {
+                  id: userId || undefined,
+                },
+                expires: 'noop',
+              },
+              contextForLLM: contextForLLM,
+              messageId,
+              selectedModel: selectedModelId,
+              attachments: userMessage.parts.filter(
+                (part) => part.type === 'file',
+              ) as any[],
+              lastGeneratedImage,
+              chatId,
+            });
+
+          // Light diagnostics to catch schema mismatches at runtime
+          try {
+            const toolDiagnostics = Object.fromEntries(
+              Object.entries(toolsObject).map(([name, t]: [string, any]) => [
+                name,
+                {
+                  hasInputSchema: !!t?.inputSchema,
+                  hasParameters: !!t?.parameters,
+                  type: typeof t,
+                  inputSchemaType: typeof t?.inputSchema,
+                  hasSafeParse: typeof t?.inputSchema?.safeParse,
+                  hasExecute: typeof t?.execute,
+                },
+              ]),
+            );
+            log.debug({ toolDiagnostics }, 'tool diagnostics');
+            
+            // Additional validation - check for any tools that might cause _zod errors
+            for (const [name, tool] of Object.entries(toolsObject)) {
+              const t = tool as any;
+              if (!t || !t.inputSchema || typeof t.inputSchema.safeParse !== 'function') {
+                log.warn({ toolName: name, hasInputSchema: !!t?.inputSchema, schemaType: typeof t?.inputSchema }, 'Potentially problematic tool detected');
+              }
+            }
+          } catch (err) {
+            log.error({ error: err }, 'Error in tool diagnostics');
+          }
+
+          // Sanitize tools: filter out any without a valid inputSchema to avoid client-side validator crashes
+          const { sanitizeTools } = await import('@/lib/ai/tools/sanitize-tools');
+          const { tools: sanitizedTools, activeTools: sanitizedActiveTools, excluded } = sanitizeTools(
+            toolsObject as any,
+            activeTools as any,
+          );
+
+          if (excluded.length > 0) {
+            log.warn({ excluded }, 'Excluded tools without valid inputSchema');
+          }
+
+          // Log the tools being passed to streamText
+          log.debug({ 
+            toolCount: Object.keys(sanitizedTools).length,
+            toolNames: Object.keys(sanitizedTools),
+            activeToolCount: sanitizedActiveTools.length,
+            activeToolNames: sanitizedActiveTools 
+          }, 'Tools being passed to streamText');
+
           const result = streamText({
             model: getLanguageModel(selectedModelId),
             system: systemPrompt(diagnosticsContext ?? undefined),
@@ -508,34 +639,59 @@ export async function POST(request: NextRequest) {
                   );
                 });
               },
+              // Guard against repeated guide plan generation loops
+              ({ steps }) => {
+                return steps.some((step) => {
+                  const toolResults = step.content;
+                  return toolResults.some(
+                    (toolResult) =>
+                      toolResult.type === 'tool-result' &&
+                      toolResult.toolName === 'guideSteps'
+                  );
+                });
+              },
             ],
 
-            activeTools: activeTools,
+            activeTools: sanitizedActiveTools,
             experimental_transform: markdownJoinerTransform(),
             experimental_telemetry: {
               isEnabled: true,
               functionId: 'chat-response',
             },
 
-            tools: await getTools({
-              dataStream,
-              session: {
-                user: {
-                  id: userId || undefined,
-                },
-                expires: 'noop',
-              },
-              contextForLLM: contextForLLM,
-              messageId,
-              selectedModel: selectedModelId,
-              attachments: userMessage.parts.filter(
-                (part) => part.type === 'file',
-              ) as any[],
-              lastGeneratedImage,
-              chatId,
-            }),
+            tools: sanitizedTools,
             onError: (error) => {
-              log.error({ error }, 'streamText error');
+              // Check for _zod related errors specifically
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              const isZodError = errorMessage.includes('_zod') || errorMessage.includes('Cannot read properties of undefined');
+              
+              log.error({ 
+                error, 
+                errorMessage,
+                errorStack: error instanceof Error ? error.stack : undefined,
+                errorName: error instanceof Error ? error.name : 'Unknown',
+                errorCause: error instanceof Error ? error.cause : undefined,
+                isZodError
+              }, 'streamText error');
+              
+              // Log additional context for image-related errors
+              const hasImages = contextForLLM.some((msg: any) => 
+                Array.isArray(msg.content) && 
+                msg.content.some((part: any) => part.type === 'image')
+              );
+              
+              if (hasImages) {
+                log.error('Error occurred while processing message with images');
+              }
+              
+              // If this is a _zod error, log the tool state for debugging
+              if (isZodError) {
+                log.error({
+                  toolsCount: Object.keys(sanitizedTools).length,
+                  activeToolsCount: sanitizedActiveTools.length,
+                  excludedCount: excluded.length
+                }, 'Zod error occurred - tool state at time of error');
+              }
             },
             abortSignal: abortController.signal, // Pass abort signal to streamText
             ...(modelDefinition.features?.fixedTemperature
@@ -573,6 +729,9 @@ export async function POST(request: NextRequest) {
                   };
                 }
               },
+            }).catch((streamError) => {
+              log.error({ streamError, errorMessage: streamError?.message, errorStack: streamError?.stack }, 'Error in toUIMessageStream');
+              throw streamError;
             }),
           );
         },

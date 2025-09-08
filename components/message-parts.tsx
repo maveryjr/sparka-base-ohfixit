@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useEffect } from 'react';
 import { Weather } from './weather';
 import { TextMessagePart } from './text-message-part';
 import { DocumentPreview } from './document-preview';
@@ -21,6 +21,7 @@ import { AuditTrail } from '@/components/ohfixit/audit-trail';
 import { HandoffBanner } from '@/components/ohfixit/handoff';
 import { OrchestratorPlan } from '@/components/ohfixit/orchestrator-plan';
 import { SelectorPreview } from '@/components/ohfixit/selector-preview';
+import { usePhase2 } from '@/providers/phase2-provider';
 import type { ChatMessage } from '@/lib/ai/types';
 import {
   chatStore,
@@ -1057,6 +1058,29 @@ export function PureMessageParts({
   const types = useMessagePartTypesById(messageId);
   // We also need full parts to detect if guideSteps produced an output
   const parts = useMessagePartsById(messageId);
+  const { setActiveFeature, setShowPhase2Hub } = usePhase2();
+
+  // Auto-open Assist dock when plan/health artifacts appear
+  useEffect(() => {
+    try {
+      const openForAutomation = parts.some(
+        (p) =>
+          p.type === 'tool-automation' ||
+          p.type === 'tool-guideToAutomation' ||
+          p.type === 'tool-orchestrate' ||
+          p.type === 'tool-uiAutomation' ||
+          p.type === 'tool-computerUse',
+      );
+      const openForHealth = parts.some((p) => p.type === 'tool-healthScan');
+      if (openForAutomation || openForHealth) {
+        setActiveFeature('automation-panel');
+        setShowPhase2Hub(true);
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parts]);
 
   // Detect presence of a guideSteps tool result in this assistant message
   const hasGuideStepsOutput = useMemo(() => {

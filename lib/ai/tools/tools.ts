@@ -32,6 +32,7 @@ import { analyzeScript } from './ohfixit/analyze-script';
 import { saveFixlet } from './ohfixit/fixlet-save';
 import { orchestrate } from '../tools/orchestrate';
 import { startHandoff } from './ohfixit/start-handoff';
+import { wrapAllToolsForSafety } from './tool-wrapper';
 
 export async function getTools({
   dataStream,
@@ -55,7 +56,7 @@ export async function getTools({
   const anonymousIdPromise = getAnonymousSession().then((s) => s?.id || null).catch(() => null);
   const anonymousId = await anonymousIdPromise;
 
-  return {
+  const tools = {
     // Put automation tool FIRST to make it prominent
     automation,
     getWeather,
@@ -125,4 +126,7 @@ export async function getTools({
     uiAutomation,
     screenshotCapture,
   };
+
+  // Wrap all tools for safety to prevent _zod errors
+  return wrapAllToolsForSafety(tools);
 }

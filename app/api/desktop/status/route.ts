@@ -1,36 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+/**
+ * Desktop Helper Status API Endpoint
+ *
+ * Checks the connection status and capabilities of the desktop helper application
+ */
 export async function GET(request: NextRequest) {
   try {
-    // Try to ping the desktop helper
-    const isConnected = await checkDesktopHelperConnection();
+    const status = await checkDesktopHelperConnection();
 
     return NextResponse.json({
-      connected: isConnected,
-      status: isConnected ? 'available' : 'disconnected',
-      timestamp: new Date().toISOString()
+      connected: status.connected,
+      version: status.version,
+      capabilities: status.capabilities,
+      lastCheck: new Date().toISOString(),
+      endpoint: 'http://localhost:8765'
     });
+
   } catch (error) {
-    console.error('Desktop helper status check error:', error);
-    return NextResponse.json({
-      connected: false,
-      status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    });
+    console.error('Desktop status check error:', error);
+
+    return NextResponse.json(
+      {
+        connected: false,
+        error: 'Failed to check desktop helper status',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        lastCheck: new Date().toISOString()
+      },
+      { status: 500 }
+    );
   }
 }
 
-async function checkDesktopHelperConnection(): Promise<boolean> {
+/**
+ * Check desktop helper connection and capabilities
+ */
+async function checkDesktopHelperConnection(): Promise<{
+  connected: boolean;
+  version?: string;
+  capabilities?: string[];
+  error?: string;
+}> {
   try {
-    // Check if desktop helper is running by looking for the Tauri process
-    // Since Tauri apps run locally, we'll use a different approach
-    // For now, we'll simulate the check - in production this would use IPC or named pipes
-    
-    // Try to detect if the desktop helper is running by checking for a known file or process
-    // This is a simplified check - the actual implementation would depend on your setup
-    return true; // Assume connected for now - you can enhance this later
+    // Attempt to connect to desktop helper service
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch('http://localhost:8765/status', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'sparka-ohfixit/1.0'
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return {
+        connected: false,
+        error: `HTTP ${response.status}: ${response.statusText}`
+      };
+    }
+
+    const data = await response.json();
+
+    return {
+      connected: true,
+      version: data.version || 'unknown',
+      capabilities: data.capabilities || [
+        'screenshot',
+        'system_info',
+        'process_list',
+        'file_operations'
+      ]
+    };
+
   } catch (error) {
-    return false;
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {
+        connected: false,
+        error: 'Connection timeout - desktop helper not responding'
+      };
+    }
+
+    return {
+      connected: false,
+      error: error instanceof Error ? error.message : 'Unknown connection error'
+    };
   }
 }

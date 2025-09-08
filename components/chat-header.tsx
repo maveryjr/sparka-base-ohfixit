@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { GitIcon } from './icons';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { ShareButton } from './share-button';
 import { Share, LogIn, Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -32,7 +33,7 @@ function PureChatHeader({
   const isAuthenticated = !!session?.user;
   const [diagOpen, setDiagOpen] = useState(false);
   const { selectedTool, setSelectedTool } = useChatInput();
-  const { showPhase2Hub, setShowPhase2Hub } = usePhase2();
+  const { showPhase2Hub, setShowPhase2Hub, setActiveFeature } = usePhase2();
 
   // Persist and read per-chat "Guide Me" mode
   const storageKey = useMemo(() => `chat:${chatId}:guideMode`, [chatId]);
@@ -96,28 +97,73 @@ function PureChatHeader({
       )}
 
       <div className="ml-auto flex items-center gap-2">
-        {/* OhFixIt: Phase 2 Integration Hub toggle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={showPhase2Hub ? 'default' : 'ghost'}
-              size="sm"
-              className={cn('h-8 px-3', showPhase2Hub && 'bg-primary text-primary-foreground')}
-              onClick={() => setShowPhase2Hub(!showPhase2Hub)}
-            >
-              <Sparkles className="h-4 w-4 mr-1" />
-              Phase 2
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <div className="text-center">
-              <div className="font-medium">Phase 2 Features</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Voice Mode, Playbooks, Redaction & More
+        {/* OhFixIt: Assist menu (replaces Phase 2 toggle) */}
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={showPhase2Hub ? 'default' : 'ghost'}
+                  size="sm"
+                  className={cn('h-8 px-3', showPhase2Hub && 'bg-primary text-primary-foreground')}
+                >
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  Assist
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-center">
+                <div className="font-medium">Assist Features</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Automation, Playbooks, Redaction, Voice, Family
+                </div>
               </div>
-            </div>
-          </TooltipContent>
-        </Tooltip>
+            </TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem
+              onClick={() => {
+                setActiveFeature('automation-panel');
+                setShowPhase2Hub(true);
+              }}
+            >
+              Automation Panel
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setActiveFeature('issue-playbooks');
+                setShowPhase2Hub(true);
+              }}
+            >
+              Issue Playbooks
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setActiveFeature('redaction-assist');
+                setShowPhase2Hub(true);
+              }}
+            >
+              Redaction Assist
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setActiveFeature('voice-mode');
+                setShowPhase2Hub(true);
+              }}
+            >
+              Voice Mode
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setActiveFeature('family-portal');
+                setShowPhase2Hub(true);
+              }}
+            >
+              Family Portal
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* OhFixIt: Guide Me mode toggle */}
         <Tooltip>

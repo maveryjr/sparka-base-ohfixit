@@ -71,6 +71,7 @@ interface LexicalChatInputRef {
   focus: () => void;
   clear: () => void;
   getValue: () => string;
+  appendText?: (text: string) => void;
 }
 
 interface LexicalChatInputProps {
@@ -163,6 +164,22 @@ export const LexicalChatInput = React.forwardRef<
             });
           }
           return '';
+        },
+        appendText: (text: string) => {
+          if (editor && typeof text === 'string' && text.length > 0) {
+            editor.update(() => {
+              const root = $getRoot();
+              const current = root.getTextContent();
+              const paragraph = root.getLastChild() ?? (() => {
+                const p = $createParagraphNode();
+                root.append(p);
+                return p;
+              })();
+              const needsSpace = current.length > 0 && !/\s$/.test(current);
+              const node = $createTextNode((needsSpace ? ' ' : '') + text);
+              paragraph.append(node);
+            });
+          }
         },
       }),
       [editor],

@@ -18,6 +18,7 @@ import { VoiceMode } from './voice-mode';
 import { RedactionAssist } from './redaction-assist';
 import { FamilyPortal } from './family-portal';
 import { AutomationPanel } from './automation-panel';
+import { usePhase2 } from '@/providers/phase2-provider';
 
 interface Phase2IntegrationProps {
   chatId: string;
@@ -25,7 +26,8 @@ interface Phase2IntegrationProps {
 }
 
 export function Phase2Integration({ chatId, onFeatureSelect }: Phase2IntegrationProps) {
-  const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  // Drive active feature from global context so header/menu selections can control this view
+  const { activeFeature, setActiveFeature } = usePhase2();
   const [voiceTranscript, setVoiceTranscript] = useState('');
 
   const phase2Features = [
@@ -107,12 +109,12 @@ export function Phase2Integration({ chatId, onFeatureSelect }: Phase2Integration
 
   return (
     <div className="space-y-6">
-      {/* Phase 2 Overview */}
+      {/* Assist Overview */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            OhFixIt Phase 2: Advanced "Do It For Me" Features
+            OhFixIt Assist: Advanced "Do It For Me" Features
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Enhanced automation capabilities with voice control, issue playbooks, privacy protection, and family collaboration.
@@ -230,9 +232,9 @@ export function Phase2Integration({ chatId, onFeatureSelect }: Phase2Integration
 
           <TabsContent value="redaction-assist" className="space-y-4">
             <RedactionAssist
-              imageUrl="/api/placeholder-screenshot"
               onRedactedImage={handleRedactedImage}
-              autoDetect={true}
+              autoDetect={(typeof window !== 'undefined' ? (localStorage.getItem('ohfixit:redaction:auto_blur') ?? 'true') : 'true') === 'true'}
+              enableScreenshotSelection={true}
             />
           </TabsContent>
 
