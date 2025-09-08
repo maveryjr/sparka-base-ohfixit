@@ -24,6 +24,32 @@ const runSchema = z.object({
   priority: z.enum(['low', 'normal', 'high']).optional(),
 });
 
+// Map generic category names to specific check IDs
+const categoryToCheckIds: Record<string, string[]> = {
+  'disk': ['disk-space', 'temp-files'],
+  'network': ['network-connectivity', 'dns-health'],
+  'security': ['antivirus-status', 'firewall-status'],
+  'performance': ['memory-usage', 'startup-programs'],
+  'browser': ['default-browser', 'browser-extensions'],
+  'system': ['system-updates', 'time-sync']
+};
+
+function expandCheckIds(checks: string[]): string[] {
+  const expandedChecks = new Set<string>();
+  
+  for (const check of checks) {
+    if (categoryToCheckIds[check]) {
+      // If it's a category, add all checks in that category
+      categoryToCheckIds[check].forEach(id => expandedChecks.add(id));
+    } else {
+      // If it's already a specific check ID, add it directly
+      expandedChecks.add(check);
+    }
+  }
+  
+  return Array.from(expandedChecks);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -34,6 +60,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { chatId, checks, priority } = runSchema.parse(body);
 
+    // Expand generic category names to specific check IDs
+    const expandedChecks = checks ? expandCheckIds(checks) : [];
+
     const jobId = uuidv4();
     const userId = session.user.id;
     
@@ -41,7 +70,7 @@ export async function POST(request: NextRequest) {
     g.__ohfixit_health_jobs.set(jobId, { 
       status: 'queued', 
       createdAt: Date.now(),
-      checks: checks || [],
+      checks: expandedChecks,
       userId,
       chatId: chatId || undefined
     });
@@ -56,9 +85,9 @@ export async function POST(request: NextRequest) {
         g.__ohfixit_health_jobs.set(jobId, job);
         
         let result: HealthCheckSummary;
-        if (checks && checks.length > 0) {
+        if (job.checks && job.checks.length > 0) {
           // Run specific checks
-          const checkPromises = checks.map(checkId => 
+          const checkPromises = job.checks.map((checkId: string) => 
             healthCheckEngine.runSingleCheck(checkId).catch(error => {
               console.error(`Health check ${checkId} failed:`, error);
               return null;
@@ -158,7 +187,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       jobId,
       status: 'queued',
-      acceptedChecks: checks ?? ['network', 'disk', 'startup', 'services'],
+      acceptedChecks: expandedChecks.length > 0 ? expandedChecks : ['disk-space', 'network-connectivity', 'dns-health', 'startup-programs'],
       priority: priority ?? 'normal',
       estimatedTime: '30–90 seconds',
       chatId: chatId ?? null,
