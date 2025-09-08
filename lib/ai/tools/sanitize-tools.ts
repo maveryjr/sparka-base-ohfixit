@@ -46,20 +46,20 @@ export function sanitizeTools(
       continue;
     }
 
-    // Additional validation: try to access _zod to catch potential issues early
+    // Additional validation: ensure the schema is a valid object
     try {
-      // Check if schema has the _zod property before accessing it
-      if (schema && typeof schema === 'object' && '_zod' in schema) {
-        const zodInternal = schema._zod;
-        // If we can access it without error, the schema is likely valid
+      // Just verify it's a valid object with safeParse - don't check _zod as it's internal
+      if (schema && typeof schema === 'object' && typeof schema.safeParse === 'function') {
+        // Try a test parse to ensure the schema is functional
+        const testResult = schema.safeParse({});
+        // If safeParse works (even if it fails validation), the schema is valid
       } else {
-        console.error(`Tool ${name} schema validation failed: schema is ${typeof schema}, has _zod: ${'_zod' in (schema || {})}`);
         excluded.push({ name, reason: `schema validation failed: invalid schema structure` });
         continue;
       }
     } catch (err) {
-      // If accessing _zod fails, the schema might be malformed
-      console.error(`Tool ${name} _zod access failed:`, err);
+      // If schema validation fails, exclude the tool
+      console.error(`Tool ${name} schema validation failed:`, err);
       excluded.push({ name, reason: `schema validation failed: ${err instanceof Error ? err.message : 'unknown error'}` });
       continue;
     }
