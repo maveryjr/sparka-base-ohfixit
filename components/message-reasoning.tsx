@@ -1,11 +1,13 @@
 'use client';
+import { useEffect, useState, memo } from 'react';
 import {
-  Reasoning,
-  ReasoningTrigger,
-  ReasoningContentContainer,
-} from '@/components/ai-elements/reasoning';
-import { Response } from '@/components/ai-elements/response';
-import { memo } from 'react';
+  ChainOfThought,
+  ChainOfThoughtContent,
+  ChainOfThoughtHeader,
+  ChainOfThoughtStep,
+} from '@/components/ai-elements/chain-of-thought';
+import { TextShimmerLoader } from '@/components/prompt-kit/loader';
+import { BrainIcon } from 'lucide-react';
 
 interface MessageReasoningProps {
   isLoading: boolean;
@@ -13,28 +15,55 @@ interface MessageReasoningProps {
 }
 
 function PureMessageReasoning({ isLoading, reasoning }: MessageReasoningProps) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      setOpen(true);
+    } else if (open) {
+      const t = setTimeout(() => setOpen(false), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [isLoading, open]);
+
   return (
-    <Reasoning isStreaming={isLoading} className="mb-0">
-      <ReasoningTrigger data-testid="message-reasoning-toggle " />
-      <ReasoningContentContainer
+    <ChainOfThought open={open} onOpenChange={setOpen} className="mb-0">
+      <ChainOfThoughtHeader data-testid="message-reasoning-toggle ">
+        {isLoading ? (
+          <>
+            <BrainIcon className="size-4" />
+            <TextShimmerLoader text="Thinking..." className="text-base" />
+          </>
+        ) : (
+          <>
+            <BrainIcon className="size-4" />
+            <p className="text-base font-medium">Chain of Thought</p>
+          </>
+        )}
+      </ChainOfThoughtHeader>
+      <ChainOfThoughtContent
         data-testid="message-reasoning"
-        className="text-muted-foreground flex flex-col gap-4 mt-0 data-[state=open]:mt-3"
+        className="text-muted-foreground flex flex-col gap-2 mt-0 data-[state=open]:mt-3"
       >
-        <MultiReasoningContent reasoning={reasoning} />
-      </ReasoningContentContainer>
-    </Reasoning>
+        <MultiReasoningSteps isLoading={isLoading} reasoning={reasoning} />
+      </ChainOfThoughtContent>
+    </ChainOfThought>
   );
 }
 
-const MultiReasoningContent = memo(function MultiReasoningContent({
+const MultiReasoningSteps = memo(function MultiReasoningSteps({
   reasoning,
-}: { reasoning: string[] }) {
+  isLoading,
+}: { reasoning: string[]; isLoading: boolean }) {
+  const lastIdx = reasoning.length - 1;
   return (
-    <div className="flex flex-col gap-4">
-      {reasoning.map((r, i) => (
-        <div className="pl-4 border-l" key={i}>
-          <Response className="grid gap-2">{r}</Response>
-        </div>
+    <div className="flex flex-col gap-1">
+      {reasoning.map((text, i) => (
+        <ChainOfThoughtStep
+          key={i}
+          label={text}
+          status={i === lastIdx && isLoading ? 'active' : 'complete'}
+        />
       ))}
     </div>
   );

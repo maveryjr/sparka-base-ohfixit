@@ -1,9 +1,21 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import * as schema from './schema';
 
-// Optionally, if not using email/pass login, you can
-// use the Drizzle adapter for Auth.js / NextAuth
-// https://authjs.dev/reference/adapter/drizzle
-// biome-ignore lint: Forbidden non-null assertion.
-const client = postgres(process.env.POSTGRES_URL!);
-export const db = drizzle(client);
+// Create a single connection to the database
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL or POSTGRES_URL environment variable is not set');
+}
+
+// Disable prepared statements for Vercel Edge Functions
+const client = postgres(connectionString, { prepare: false });
+
+// Create the Drizzle instance with the database schema
+export const db = drizzle(client, { schema });
+
+// Export types
+export * from './schema';
+
+export type Database = typeof db;
