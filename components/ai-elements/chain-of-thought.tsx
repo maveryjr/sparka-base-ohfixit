@@ -140,13 +140,14 @@ export const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
         : ''
 
   return (
-    <div className={cn('flex items-start gap-3 rounded-md p-2', statusClasses, className)} {...props}>
+    <div className={cn('flex items-start gap-3 rounded-md p-2', statusClasses, className)}>
       <Icon className={cn('mt-0.5 size-4', status === 'pending' ? 'opacity-60' : '')} />
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium leading-5">{label}</div>
         {description && (
           <div className="text-muted-foreground text-sm leading-5">{description}</div>
         )}
+        {props.children}
       </div>
     </div>
   )
@@ -217,4 +218,3 @@ export const ChainOfThoughtImage = memo(function ChainOfThoughtImage({
 
 // Re-export a couple icons for convenience in app code
 export const ChainOfThoughtIcons = { Search: SearchIcon }
-
