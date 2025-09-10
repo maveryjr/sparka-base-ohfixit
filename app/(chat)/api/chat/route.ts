@@ -55,6 +55,7 @@ import { getCreditReservation } from './getCreditReservation';
 import { filterReasoningParts } from './filterReasoningParts';
 import { getThreadUpToMessageId } from './getThreadUpToMessageId';
 import { createModuleLogger } from '@/lib/logger';
+import type { Session } from 'next-auth';
 
 // Create shared Redis clients for resumable stream and cleanup
 let redisPublisher: any = null;
@@ -545,23 +546,27 @@ export async function POST(request: NextRequest) {
             .toLowerCase();
 
           // Build tools once so we can validate/log their shapes
+          // Build a minimal Session compatible with NextAuth types
+          const sessionForTools: Session = {
+            user: { name: null, email: null, image: null },
+            expires: 'noop',
+          };
+          if (userId) {
+            (sessionForTools.user as any).id = userId;
+          }
+
           const toolsObject = await getTools({
-              dataStream,
-              session: {
-                user: {
-                  id: userId || undefined,
-                },
-                expires: 'noop',
-              },
-              contextForLLM: contextForLLM,
-              messageId,
-              selectedModel: selectedModelId,
-              attachments: userMessage.parts.filter(
-                (part) => part.type === 'file',
-              ) as any[],
-              lastGeneratedImage,
-              chatId,
-            });
+            dataStream,
+            session: sessionForTools,
+            contextForLLM: contextForLLM,
+            messageId,
+            selectedModel: selectedModelId,
+            attachments: userMessage.parts.filter(
+              (part) => part.type === 'file',
+            ) as any[],
+            lastGeneratedImage,
+            chatId,
+          });
 
           // Light diagnostics to catch schema mismatches at runtime
           try {

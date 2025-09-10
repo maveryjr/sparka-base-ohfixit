@@ -8,7 +8,7 @@ import { getUserByEmail, createUser } from '@/lib/db/queries';
 import { authConfig } from './auth.config';
 import { createClient } from '@supabase/supabase-js';
 
-// Validate required OAuth environment variables at module load time
+// Read OAuth and Supabase environment variables (may be undefined in some envs)
 const {
   AUTH_GOOGLE_ID,
   AUTH_GOOGLE_SECRET,
@@ -17,13 +17,6 @@ const {
   NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY,
 } = process.env as Record<string, string | undefined>;
-
-function requireEnv(name: string, value: string | undefined): string {
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
 
 // Use NextAuth's inferred callback parameter types; avoid strict custom session typing
 
@@ -35,14 +28,23 @@ export const {
 } = NextAuth({
   ...authConfig,
   providers: [
-    Google({
-      clientId: requireEnv('AUTH_GOOGLE_ID', AUTH_GOOGLE_ID),
-      clientSecret: requireEnv('AUTH_GOOGLE_SECRET', AUTH_GOOGLE_SECRET),
-    }),
-    GitHub({
-      clientId: requireEnv('AUTH_GITHUB_ID', AUTH_GITHUB_ID),
-      clientSecret: requireEnv('AUTH_GITHUB_SECRET', AUTH_GITHUB_SECRET),
-    }),
+    // Include providers only if their env vars are configured
+    ...(AUTH_GOOGLE_ID && AUTH_GOOGLE_SECRET
+      ? [
+          Google({
+            clientId: AUTH_GOOGLE_ID,
+            clientSecret: AUTH_GOOGLE_SECRET,
+          }),
+        ]
+      : []),
+    ...(AUTH_GITHUB_ID && AUTH_GITHUB_SECRET
+      ? [
+          GitHub({
+            clientId: AUTH_GITHUB_ID,
+            clientSecret: AUTH_GITHUB_SECRET,
+          }),
+        ]
+      : []),
     Credentials({
       id: 'credentials',
       name: 'Email and Password',
@@ -57,9 +59,11 @@ export const {
           const password = credentials?.password as string | undefined;
           const magicAccessToken = credentials?.accessToken as string | undefined;
 
-          const supabaseUrl = requireEnv('NEXT_PUBLIC_SUPABASE_URL', NEXT_PUBLIC_SUPABASE_URL);
-          const supabaseAnonKey = requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', NEXT_PUBLIC_SUPABASE_ANON_KEY);
-          const supabase = createClient(supabaseUrl, supabaseAnonKey);
+          if (!NEXT_PUBLIC_SUPABASE_URL || !NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+            console.error('Supabase env vars are missing');
+            return null;
+          }
+          const supabase = createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
           // Case 1: Magic/Recovery access token from Supabase
           if (magicAccessToken) {
