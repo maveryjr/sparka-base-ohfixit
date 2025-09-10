@@ -383,7 +383,31 @@ export class HealthCheckEngine {
   private async checkSystemUpdates(): Promise<HealthCheckResult> {
     const baseCheck = this.checks.get('system-updates')!;
     
-    // Browser cannot check system updates directly
+    // Prefer Desktop Helper endpoint
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 1500);
+      const resp = await fetch('http://127.0.0.1:8765/health/macos/updates', { mode: 'cors', cache: 'no-store', signal: controller.signal });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.supported) {
+          const pending = Number(data.pending || 0);
+          if (pending > 0) {
+            return {
+              ...baseCheck,
+              status: pending >= 3 ? 'critical' : 'warning',
+              score: pending >= 3 ? 20 : 60,
+              message: `${pending} system update${pending === 1 ? '' : 's'} available`,
+              details: (data.raw || '').slice(0, 400),
+              recommendation: 'Open System Settings → General → Software Update and apply updates',
+            };
+          }
+          return { ...baseCheck, status: 'healthy', score: 100, message: 'System is up to date' };
+        }
+      }
+    } catch {}
+
+    // Fallback when helper is unavailable
     return {
       ...baseCheck,
       status: 'warning',
@@ -396,8 +420,37 @@ export class HealthCheckEngine {
 
   private async checkAntivirusStatus(): Promise<HealthCheckResult> {
     const baseCheck = this.checks.get('antivirus-status')!;
-    
-    // Browser cannot check antivirus status directly
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 1500);
+      const resp = await fetch('http://127.0.0.1:8765/health/macos/av', { mode: 'cors', cache: 'no-store', signal: controller.signal });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.supported) {
+          const gatekeeper = !!data.gatekeeper_enabled;
+          const thirdParty = !!data.third_party_detected;
+          const products = Array.isArray(data.products) ? data.products : [];
+          const xprot = data.xprotect_version ? `XProtect ${data.xprotect_version}` : 'XProtect present';
+          if (gatekeeper || thirdParty) {
+            return {
+              ...baseCheck,
+              status: 'healthy',
+              score: 100,
+              message: thirdParty ? `Antivirus detected: ${products.join(', ')}` : `Built-in protection active (${xprot})`,
+              details: (data.raw || '').slice(0, 400),
+            };
+          }
+          return {
+            ...baseCheck,
+            status: 'warning',
+            score: 40,
+            message: 'No antivirus detected and Gatekeeper disabled',
+            recommendation: 'Enable Gatekeeper or install a reputable antivirus',
+          };
+        }
+      }
+    } catch {}
+
     return {
       ...baseCheck,
       status: 'warning',
@@ -748,8 +801,26 @@ export class HealthCheckEngine {
 
   private async checkFirewallStatus(): Promise<HealthCheckResult> {
     const baseCheck = this.checks.get('firewall-status')!;
-    
-    // Browser cannot check firewall status
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 1500);
+      const resp = await fetch('http://127.0.0.1:8765/health/macos/firewall', { mode: 'cors', cache: 'no-store', signal: controller.signal });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.supported) {
+          const enabled = !!data.enabled;
+          return {
+            ...baseCheck,
+            status: enabled ? 'healthy' : 'warning',
+            score: enabled ? 100 : 40,
+            message: enabled ? 'Firewall is enabled' : 'Firewall is disabled',
+            details: (data.raw || '').slice(0, 300),
+            recommendation: enabled ? undefined : 'Enable firewall in System Settings → Network → Firewall',
+          };
+        }
+      }
+    } catch {}
+
     return {
       ...baseCheck,
       status: 'warning',

@@ -16,6 +16,7 @@ use chrono::Utc;
 use reqwest::Client;
 use base64::{Engine as _, engine::general_purpose};
 use sysinfo::{System, SystemExt, Disks, DiskExt};
+use std::io::Read;
 
 // JWT Claims structure for OhFixIt tokens
 #[derive(Debug, Serialize, Deserialize)]
@@ -728,6 +729,119 @@ async fn health_scan_handler() -> Json<SystemInfoResponse> {
     Json(info)
 }
 
+#[derive(Serialize, Deserialize)]
+struct UpdatesResponse {
+    supported: bool,
+    pending: u32,
+    raw: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct FirewallResponse {
+    supported: bool,
+    enabled: bool,
+    raw: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct AvResponse {
+    supported: bool,
+    gatekeeper_enabled: bool,
+    third_party_detected: bool,
+    products: Vec<String>,
+    xprotect_version: Option<String>,
+    raw: String,
+}
+
+fn run_command_capture(cmd: &str, args: &[&str]) -> (bool, String) {
+    match Command::new(cmd).args(args).output() {
+        Ok(out) => {
+            let mut combined = String::new();
+            combined.push_str(&String::from_utf8_lossy(&out.stdout));
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            if !stderr.trim().is_empty() {
+                combined.push_str("\n");
+                combined.push_str(&stderr);
+            }
+            (out.status.success(), combined)
+        }
+        Err(e) => (false, format!("{}", e)),
+    }
+}
+
+#[cfg(target_os = "macos")]
+async fn macos_updates_handler() -> Json<UpdatesResponse> {
+    let (_ok, out) = run_command_capture("/usr/sbin/softwareupdate", &["-l", "--no-scan"]);
+    let pending = if out.contains("No new software available.") {
+        0
+    } else {
+        out.lines()
+            .filter(|l| l.trim_start().starts_with('*') || l.contains("Label:"))
+            .count() as u32
+    };
+    Json(UpdatesResponse { supported: true, pending, raw: out })
+}
+
+#[cfg(not(target_os = "macos"))]
+async fn macos_updates_handler() -> Json<UpdatesResponse> {
+    Json(UpdatesResponse { supported: false, pending: 0, raw: String::new() })
+}
+
+#[cfg(target_os = "macos")]
+async fn macos_firewall_handler() -> Json<FirewallResponse> {
+    let (_ok, out) = run_command_capture(
+        "/usr/libexec/ApplicationFirewall/socketfilterfw",
+        &["--getglobalstate"],
+    );
+    let enabled = out.contains("enabled") || out.contains("State = 1");
+    Json(FirewallResponse { supported: true, enabled, raw: out })
+}
+
+#[cfg(not(target_os = "macos"))]
+async fn macos_firewall_handler() -> Json<FirewallResponse> {
+    Json(FirewallResponse { supported: false, enabled: false, raw: String::new() })
+}
+
+#[cfg(target_os = "macos")]
+async fn macos_av_handler() -> Json<AvResponse> {
+    let (_ok, spctl_out) = run_command_capture("/usr/sbin/spctl", &["--status"]);
+    let gatekeeper = spctl_out.to_lowercase().contains("assessments enabled");
+
+    // List processes and search for common AV names
+    let (_ok, ps_out) = run_command_capture("/bin/ps", &["-A", "-o", "comm"]);
+    let patterns = [
+        "Sophos", "Malwarebytes", "McAfee", "Symantec", "Norton", "CrowdStrike",
+        "SentinelOne", "Defender", "ESET", "Avast", "AVG",
+    ];
+    let mut products: Vec<String> = Vec::new();
+    for pat in patterns.iter() {
+        if ps_out.contains(pat) { products.push(pat.to_string()); }
+    }
+    let third_party = !products.is_empty();
+
+    // Try to read XProtect bundle version
+    let mut xprotect_version: Option<String> = None;
+    let candidates = vec![
+        ("/System/Library/CoreServices/XProtect.bundle/Contents/Info.plist", vec!["/usr/bin/defaults", "read", "/System/Library/CoreServices/XProtect.bundle/Contents/Info", "CFBundleShortVersionString"]),
+        ("/Library/Apple/System/Library/CoreServices/XProtect.app/Contents/Info.plist", vec!["/usr/bin/defaults", "read", "/Library/Apple/System/Library/CoreServices/XProtect.app/Contents/Info", "CFBundleShortVersionString"]),
+    ];
+    for (plist, cmd) in candidates {
+        if std::path::Path::new(plist).exists() {
+            let (_ok, out) = run_command_capture(cmd[0], &cmd[1..]);
+            let v = out.trim();
+            if !v.is_empty() { xprotect_version = Some(v.to_string()); break; }
+        }
+    }
+
+    let raw = format!("spctl: {}\nprocesses: {}", spctl_out.trim(), products.join(", "));
+    Json(AvResponse { supported: true, gatekeeper_enabled: gatekeeper, third_party_detected: third_party, products, xprotect_version, raw })
+}
+
+#[cfg(not(target_os = "macos"))]
+async fn macos_av_handler() -> Json<AvResponse> {
+    Json(AvResponse { supported: false, gatekeeper_enabled: false, third_party_detected: false, products: vec![], xprotect_version: None, raw: String::new() })
+}
+
 fn spawn_status_server() {
     tauri::async_runtime::spawn(async move {
         let http_state = HttpState {
@@ -746,6 +860,9 @@ fn spawn_status_server() {
             .route("/screenshot", post(screenshot_handler))
             .route("/automation/execute", post(automation_execute_handler))
             .route("/health/scan", get(health_scan_handler))
+            .route("/health/macos/updates", get(macos_updates_handler))
+            .route("/health/macos/firewall", get(macos_firewall_handler))
+            .route("/health/macos/av", get(macos_av_handler))
             .with_state(http_state)
             .layer(cors);
         let addr: SocketAddr = "127.0.0.1:8765".parse().unwrap();

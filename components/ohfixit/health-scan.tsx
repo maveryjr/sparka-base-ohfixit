@@ -23,6 +23,7 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
   const [result, setResult] = useState<any | null>(null);
   const pollingRef = useRef<number | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [helperConnected, setHelperConnected] = useState(false);
 
   const summary = useMemo(() => {
     if (!result) return null;
@@ -101,6 +102,22 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatId, JSON.stringify(checks)]);
 
+  // Detect Desktop Helper connection
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 1200);
+        const r = await fetch('http://127.0.0.1:8765/status', { mode: 'cors', cache: 'no-store', signal: controller.signal });
+        if (!cancelled) setHelperConnected(r.ok);
+      } catch {
+        if (!cancelled) setHelperConnected(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div className={cn('rounded border p-3 text-sm space-y-2', className)}>
       <div className="flex items-center justify-between">
@@ -113,6 +130,16 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
           >
             {status === 'running' ? 'Running…' : 'Re-run'}
           </button>
+          {helperConnected && (
+            <button
+              className="px-2 py-1 rounded text-xs border hover:bg-accent"
+              onClick={() => startScan()}
+              disabled={status === 'running'}
+              title="Uses Desktop Helper for OS‑level checks"
+            >
+              Deeper scan
+            </button>
+          )}
           <button
             className="px-2 py-1 rounded text-xs border hover:bg-accent"
             onClick={() => setShowDetails((s) => !s)}
