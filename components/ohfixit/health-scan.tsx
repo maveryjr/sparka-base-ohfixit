@@ -24,6 +24,7 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
   const pollingRef = useRef<number | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [helperConnected, setHelperConnected] = useState(false);
+  const [sentSummaryPrompt, setSentSummaryPrompt] = useState(false);
 
   const summary = useMemo(() => {
     if (!result) return null;
@@ -87,10 +88,37 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
     setError(null);
     setResult(null);
     setStatus('running');
+    setSentSummaryPrompt(false);
     try {
       const res = await healthCheckEngine.runAllChecks();
       setResult(res);
       setStatus('completed');
+      // Auto-post a follow-up summary request into chat so the assistant replies
+      try {
+        if (!sentSummaryPrompt) {
+          const { currentChatHelpers, getLastMessageId } = chatStore.getState();
+          const sendMessage = currentChatHelpers?.sendMessage;
+          const parentId = getLastMessageId();
+          if (sendMessage) {
+            const top = (res.checks || [])
+              .filter((c: any) => c.status === 'critical' || c.status === 'warning')
+              .slice(0, 5)
+              .map((c: any) => `${c.name || c.id} (${c.status})`)
+              .join(', ');
+            const prompt = `Summarize the health scan results succinctly. Overall: ${res.overallStatus} (${res.overallScore}/100). Top issues: ${top || 'none'}. Provide next steps.`;
+            sendMessage({
+              role: 'user',
+              parts: [{ type: 'text', text: prompt }],
+              metadata: {
+                selectedModel: selectedModelId as ModelId,
+                createdAt: new Date(),
+                parentMessageId: parentId,
+              },
+            });
+            setSentSummaryPrompt(true);
+          }
+        }
+      } catch {}
     } catch (e: any) {
       setError(e?.message || 'Health scan failed');
       setStatus('failed');
@@ -109,8 +137,14 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
       try {
         const controller = new AbortController();
         setTimeout(() => controller.abort(), 1200);
-        const r = await fetch('http://127.0.0.1:8765/status', { mode: 'cors', cache: 'no-store', signal: controller.signal });
-        if (!cancelled) setHelperConnected(r.ok);
+        const tryUrl = async (u: string) => {
+          try {
+            const r = await fetch(u, { mode: 'cors', cache: 'no-store', signal: controller.signal });
+            return r.ok;
+          } catch { return false; }
+        };
+        const ok = (await tryUrl('http://127.0.0.1:8765/status')) || (await tryUrl('http://localhost:8765/status'));
+        if (!cancelled) setHelperConnected(ok);
       } catch {
         if (!cancelled) setHelperConnected(false);
       }

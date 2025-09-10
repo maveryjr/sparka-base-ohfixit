@@ -692,9 +692,9 @@ async fn health_scan_handler() -> Json<SystemInfoResponse> {
     let mut sys = System::new_all();
     sys.refresh_all();
 
-    // Memory in bytes
-    let total_mem = sys.total_memory() as u64 * 1024;
-    let avail_mem = sys.available_memory() as u64 * 1024;
+    // Memory (sysinfo 0.30 already returns bytes)
+    let total_mem = sys.total_memory() as u64;
+    let avail_mem = sys.available_memory() as u64;
     let used_mem = total_mem.saturating_sub(avail_mem);
 
     // Storage: sum across disks

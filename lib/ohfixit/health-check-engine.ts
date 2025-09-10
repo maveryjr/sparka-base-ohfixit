@@ -316,7 +316,7 @@ export class HealthCheckEngine {
     // Prefer Desktop Helper system info if available
     try {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 1500);
+      setTimeout(() => controller.abort(), 4000);
       const resp = await fetch('http://127.0.0.1:8765/health/scan', {
         method: 'GET',
         mode: 'cors',
@@ -426,7 +426,7 @@ export class HealthCheckEngine {
     // Prefer Desktop Helper endpoint
     try {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 1500);
+      setTimeout(() => controller.abort(), 4000);
       const resp = await fetch('http://127.0.0.1:8765/health/macos/updates', { mode: 'cors', cache: 'no-store', signal: controller.signal });
       if (resp.ok) {
         const data = await resp.json();
@@ -462,7 +462,7 @@ export class HealthCheckEngine {
     const baseCheck = this.checks.get('antivirus-status')!;
     try {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 1500);
+      setTimeout(() => controller.abort(), 4000);
       const resp = await fetch('http://127.0.0.1:8765/health/macos/av', { mode: 'cors', cache: 'no-store', signal: controller.signal });
       if (resp.ok) {
         const data = await resp.json();
@@ -843,7 +843,7 @@ export class HealthCheckEngine {
     const baseCheck = this.checks.get('firewall-status')!;
     try {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 1500);
+      setTimeout(() => controller.abort(), 4000);
       const resp = await fetch('http://127.0.0.1:8765/health/macos/firewall', { mode: 'cors', cache: 'no-store', signal: controller.signal });
       if (resp.ok) {
         const data = await resp.json();
@@ -875,7 +875,7 @@ export class HealthCheckEngine {
     const baseCheck = this.checks.get('filevault-status')!;
     try {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 1500);
+      setTimeout(() => controller.abort(), 4000);
       const resp = await fetch('http://127.0.0.1:8765/health/macos/filevault', { mode: 'cors', cache: 'no-store', signal: controller.signal });
       if (resp.ok) {
         const data = await resp.json();
@@ -899,7 +899,7 @@ export class HealthCheckEngine {
     const baseCheck = this.checks.get('time-machine')!;
     try {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 1500);
+      setTimeout(() => controller.abort(), 4000);
       const resp = await fetch('http://127.0.0.1:8765/health/macos/timemachine', { mode: 'cors', cache: 'no-store', signal: controller.signal });
       if (resp.ok) {
         const data = await resp.json();
@@ -927,7 +927,7 @@ export class HealthCheckEngine {
     const baseCheck = this.checks.get('sip-status')!;
     try {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 1500);
+      setTimeout(() => controller.abort(), 2500);
       const resp = await fetch('http://127.0.0.1:8765/health/macos/sip', { mode: 'cors', cache: 'no-store', signal: controller.signal });
       if (resp.ok) {
         const data = await resp.json();
