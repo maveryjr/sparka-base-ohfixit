@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { User, Settings, Coins, Moon, Sun, LogOut, Key, Edit, CreditCard } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import Image from 'next/image';
-import type { User as NextAuthUser } from 'next-auth';
+import type { Session } from 'next-auth';
 import { signOut } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 
@@ -21,7 +21,7 @@ import { ChangePasswordModal } from '@/components/settings/change-password-modal
 import { EditProfileModal } from '@/components/settings/edit-profile-modal';
 
 interface SettingsPopoverProps {
-  user: NextAuthUser;
+  user: Session['user'];
 }
 
 export function SettingsPopover({ user }: SettingsPopoverProps) {
@@ -50,9 +50,7 @@ export function SettingsPopover({ user }: SettingsPopoverProps) {
   });
 
   const handleSignOut = () => {
-    signOut({
-      redirectTo: '/',
-    });
+    signOut({ callbackUrl: '/' });
     setIsOpen(false);
   };
 

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import {
   $createParagraphNode,
+  $isParagraphNode,
   $createTextNode,
   $getRoot,
   type EditorState,
@@ -170,11 +171,14 @@ export const LexicalChatInput = React.forwardRef<
             editor.update(() => {
               const root = $getRoot();
               const current = root.getTextContent();
-              const paragraph = root.getLastChild() ?? (() => {
-                const p = $createParagraphNode();
-                root.append(p);
-                return p;
-              })();
+              const last = root.getLastChild();
+              const paragraph = $isParagraphNode(last)
+                ? last
+                : (() => {
+                    const p = $createParagraphNode();
+                    root.append(p);
+                    return p;
+                  })();
               const needsSpace = current.length > 0 && !/\s$/.test(current);
               const node = $createTextNode((needsSpace ? ' ' : '') + text);
               paragraph.append(node);

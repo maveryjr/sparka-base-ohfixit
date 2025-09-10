@@ -39,7 +39,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Return recent health check results for the user/chat
-    const recentJobs = Array.from(g.__ohfixit_health_jobs.entries())
+    const recentJobs = (Array.from(
+      g.__ohfixit_health_jobs.entries()
+    ) as Array<[string, any]>)
       .map(([id, job]) => ({ jobId: id, ...job }))
       .filter(job => {
         // Filter by user or chat context

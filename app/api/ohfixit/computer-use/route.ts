@@ -10,7 +10,8 @@ const log = createModuleLogger('api:ohfixit:computer-use');
 const computerUseRequestSchema = z.object({
   action: z.string(),
   element: z.string().optional(),
-  parameters: z.record(z.any()).optional(),
+  // Explicit Zod v4-compatible record schema
+  parameters: z.record(z.string(), z.unknown()).optional(),
   planId: z.string().optional(),
 });
 
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     log.error({ error }, 'Computer use API error');
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }

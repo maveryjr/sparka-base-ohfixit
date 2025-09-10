@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'Invalid request parameters',
-          details: error.errors
+          // Zod v4 exposes validation issues on the `issues` field
+          details: error.issues
         },
         { status: 400 }
       );

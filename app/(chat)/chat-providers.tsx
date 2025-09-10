@@ -1,6 +1,6 @@
 'use client';
 
-import type { User } from 'next-auth';
+import type { Session } from 'next-auth';
 import { ChatIdProvider } from '@/providers/chat-id-provider';
 import { MessageTreeProvider } from '@/providers/message-tree-provider';
 import { DataStreamProvider } from '@/components/data-stream-provider';
@@ -9,7 +9,7 @@ import { AnonymousSessionInit } from '@/components/anonymous-session-init';
 
 interface ChatProvidersProps {
   children: React.ReactNode;
-  user: User | undefined;
+  user: Session['user'] | undefined;
 }
 
 export function ChatProviders({ children, user }: ChatProvidersProps) {

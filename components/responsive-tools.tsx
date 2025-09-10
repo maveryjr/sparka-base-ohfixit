@@ -118,7 +118,7 @@ export function ResponsiveTools({
             onMouseDown={(e) => e.stopPropagation()}
           >
             {enabledTools.map((key) => {
-              const tool = toolDefinitions[key];
+              const tool = toolDefinitions[key]!; // enabledTools contains only defined keys
               const isDeepResearchDisabled =
                 key === 'deepResearch' && hasReasoningModel;
               const isToolDisabled =
@@ -166,11 +166,11 @@ export function ResponsiveTools({
             onClick={() => setTool(null)}
             className="gap-1 @[400px]:gap-2 rounded-full h-8 @[400px]:h-10 text-primary hover:text-primary/80"
           >
-            {createElement(toolDefinitions[activeTool].icon, {
+            {createElement(toolDefinitions[activeTool]!.icon, {
               size: 14,
             })}
             <span className="hidden @[500px]:inline">
-              {toolDefinitions[activeTool].shortName}
+              {toolDefinitions[activeTool]!.shortName}
             </span>
             <X size={12} className="opacity-70" />
           </Button>

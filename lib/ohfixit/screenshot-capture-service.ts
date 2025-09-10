@@ -255,9 +255,10 @@ export class FileUploadStrategy extends CaptureStrategy {
     return true; // File upload is always available
   }
 
-  async capture(file: File): Promise<ScreenshotResult> {
+  async capture(options: CaptureOptions): Promise<ScreenshotResult> {
     try {
-      if (!this.validateImageFile(file)) {
+      const file = (options as unknown as { file: File }).file;
+      if (!file || !this.validateImageFile(file)) {
         throw new Error('Invalid image file');
       }
 
@@ -351,7 +352,14 @@ export class ScreenshotCaptureService {
   }
 
   async handleFileUpload(file: File): Promise<ScreenshotResult> {
-    return await this.fileStrategy.capture(file);
+    return await this.fileStrategy.capture({
+      source: 'tab',
+      includeCursor: false,
+      format: 'png',
+      quality: 90,
+      // @ts-expect-error augmenting with file for upload strategy
+      file,
+    });
   }
 
   async validatePermissions(): Promise<{

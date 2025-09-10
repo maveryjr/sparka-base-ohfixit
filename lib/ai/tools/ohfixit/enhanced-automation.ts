@@ -286,10 +286,17 @@ export class AutomationExecutor {
     error?: string;
     rollbackId?: string;
   }> {
-    const logEntry = {
+    const logEntry: {
+      actionId: string;
+      status: 'running' | 'completed' | 'failed';
+      startTime: Date;
+      endTime?: Date;
+      result?: any;
+      error?: string;
+    } = {
       actionId: action.id,
-      status: 'running' as const,
-      startTime: new Date()
+      status: 'running',
+      startTime: new Date(),
     };
     this.executionLog.push(logEntry);
 
@@ -327,7 +334,7 @@ export class AutomationExecutor {
     }
   }
 
-  private async executeBrowserAutomation(action: BrowserAutomationActionSchema['_type']): Promise<any> {
+  private async executeBrowserAutomation(action: z.infer<typeof BrowserAutomationActionSchema>): Promise<any> {
     // Browser automation would integrate with Playwright or similar
     // For now, return a simulation
     return {
@@ -337,7 +344,7 @@ export class AutomationExecutor {
     };
   }
 
-  private async executeSystemCommand(action: SystemCommandActionSchema['_type']): Promise<any> {
+  private async executeSystemCommand(action: z.infer<typeof SystemCommandActionSchema>): Promise<any> {
     // System command execution would use child_process
     // For now, return a simulation
     return {
@@ -347,7 +354,7 @@ export class AutomationExecutor {
     };
   }
 
-  private async executeFileOperation(action: FileOperationActionSchema['_type']): Promise<any> {
+  private async executeFileOperation(action: z.infer<typeof FileOperationActionSchema>): Promise<any> {
     // File operations would use fs/promises
     // For now, return a simulation
     return {
@@ -357,7 +364,7 @@ export class AutomationExecutor {
     };
   }
 
-  private async executeNetworkAction(action: NetworkActionSchema['_type']): Promise<any> {
+  private async executeNetworkAction(action: z.infer<typeof NetworkActionSchema>): Promise<any> {
     // Network actions would use system network tools
     // For now, return a simulation
     return {

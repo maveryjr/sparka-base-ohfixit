@@ -226,7 +226,8 @@ export function createGuideSteps({
         for await (const partialObject of partialObjectStream) {
           dataStream.write({
             type: 'data-guidePlanPartial',
-            data: partialObject,
+            // Cast stream partial to a UI-friendly Partial to satisfy typing
+            data: partialObject as unknown as Partial<GuidePlan>,
           });
         }
 

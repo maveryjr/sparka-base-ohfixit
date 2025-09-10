@@ -44,11 +44,10 @@ const Input = z.object({
   data: z.union([DirectInput, FromGuideInput, FromAutomationInput, TextInput])
 });
 
-export const saveFixlet = tool({
-  description: 'Saves a troubleshooting plan as a reusable Fixlet with steps.',
-  inputSchema: Input,
-  execute: async (input) => {
-    const actualInput = input.data;
+type SaveFixletInput = z.infer<typeof Input>;
+
+async function executeSaveFixlet(input: SaveFixletInput) {
+  const actualInput = input.data;
     let title: string;
     let description: string | undefined;
     let category: string;
@@ -63,9 +62,8 @@ export const saveFixlet = tool({
         if (match) {
           const parsed = JSON.parse(match[0]);
           if (parsed && parsed.from && parsed.plan) {
-            // Recurse by calling execute with structured input
-            // @ts-ignore
-            return await (saveFixlet as any).execute({ data: parsed });
+            // Recurse by calling handler with structured input
+            return await executeSaveFixlet({ data: parsed } as SaveFixletInput);
           }
         }
       } catch {}
@@ -140,8 +138,13 @@ export const saveFixlet = tool({
       } as any);
     }
 
-    return { ok: true, fixletId };
-  },
+  return { ok: true, fixletId };
+}
+
+export const saveFixlet = tool({
+  description: 'Saves a troubleshooting plan as a reusable Fixlet with steps.',
+  inputSchema: Input,
+  execute: executeSaveFixlet,
 });
 
 export default saveFixlet;

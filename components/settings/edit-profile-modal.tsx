@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { User, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import type { User as NextAuthUser } from 'next-auth';
+import type { Session } from 'next-auth';
 
 import {
   Dialog,
@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 interface EditProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  user: NextAuthUser;
+  user: Session['user'];
 }
 
 export function EditProfileModal({ open, onOpenChange, user }: EditProfileModalProps) {

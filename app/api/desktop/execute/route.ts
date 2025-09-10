@@ -6,7 +6,8 @@ import { nanoid } from 'nanoid';
 const executeActionSchema = z.object({
   sessionId: z.string(),
   actionId: z.string(),
-  parameters: z.record(z.any()).optional()
+  // Explicitly define key and value schemas for Zod v4 compatibility
+  parameters: z.record(z.string(), z.unknown()).optional(),
 });
 
 interface ExecutionResult {
