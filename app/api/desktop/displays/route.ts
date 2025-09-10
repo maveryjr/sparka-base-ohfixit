@@ -60,6 +60,21 @@ export async function GET(request: NextRequest) {
   }
 }
 
+type Display = {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  isPrimary: boolean;
+  scaleFactor?: number;
+  bounds?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+};
+
 /**
  * Check desktop helper connection status
  */
@@ -95,20 +110,7 @@ async function checkDesktopHelperStatus(): Promise<{
  */
 async function getDisplaysFromDesktopHelper(): Promise<{
   success: boolean;
-  displays?: Array<{
-    id: string;
-    name: string;
-    width: number;
-    height: number;
-    isPrimary: boolean;
-    scaleFactor?: number;
-    bounds?: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    };
-  }>;
+  displays?: Array<Display>;
   primaryDisplay?: string;
   error?: string;
   details?: string;
@@ -142,7 +144,7 @@ async function getDisplaysFromDesktopHelper(): Promise<{
     }
 
     // Validate and format display data
-    const displays = result.displays?.map((display: any, index: number) => ({
+    const displays: Display[] = result.displays?.map((display: any, index: number) => ({
       id: display.id || `display_${index}`,
       name: display.name || `Display ${index + 1}`,
       width: display.width || 1920,
@@ -157,7 +159,7 @@ async function getDisplaysFromDesktopHelper(): Promise<{
       }
     })) || [];
 
-    const primaryDisplay = displays.find(d => d.isPrimary)?.id || displays[0]?.id;
+    const primaryDisplay = displays.find((d: Display) => d.isPrimary)?.id || displays[0]?.id;
 
     return {
       success: true,
