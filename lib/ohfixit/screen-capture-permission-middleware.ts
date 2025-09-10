@@ -132,10 +132,11 @@ export class ScreenCapturePermissionMiddleware {
     try {
       // Check desktop helper connection
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-      const response = await fetch('/api/desktop/status', {
+      const response = await fetch('http://127.0.0.1:8765/status', {
         method: 'GET',
+        mode: 'cors',
         signal: controller.signal
       });
 
@@ -156,25 +157,11 @@ export class ScreenCapturePermissionMiddleware {
         return result;
       }
 
-      const status = await response.json();
-      
-      if (!status.connected) {
-        const result: PermissionResult = {
-          granted: false,
-          method: null,
-          error: 'Desktop helper not connected',
-          suggestions: [
-            'Start the desktop helper application',
-            'Check if another application is using port 8765',
-            'Restart the desktop helper service'
-          ]
-        };
-        this.setCachedResult(cacheKey, result);
-        return result;
-      }
+      // If we got here, helper is reachable
 
       // Check if screenshot capability is available
-      const capabilities = status.capabilities || [];
+      const status = await response.json().catch(() => ({ capabilities: ['screenshot'] }));
+      const capabilities = status?.capabilities || [];
       if (!capabilities.includes('screenshot')) {
         const result: PermissionResult = {
           granted: false,

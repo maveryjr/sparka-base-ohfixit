@@ -177,9 +177,12 @@ export class BrowserCaptureStrategy extends CaptureStrategy {
 export class DesktopCaptureStrategy extends CaptureStrategy {
   async validatePermissions(): Promise<boolean> {
     try {
-      const response = await fetch('/api/desktop/status');
-      const status = await response.json();
-      return status.connected;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
+      const resp = await fetch('http://127.0.0.1:8765/status', { signal: controller.signal, mode: 'cors' });
+      clearTimeout(timeoutId);
+      if (!resp.ok) return false;
+      return true;
     } catch {
       return false;
     }
@@ -191,9 +194,10 @@ export class DesktopCaptureStrategy extends CaptureStrategy {
         throw new Error('Desktop helper not available');
       }
 
-      const response = await fetch('/api/desktop/screenshot', {
+      const response = await fetch('http://127.0.0.1:8765/screenshot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',
         body: JSON.stringify({
           region: options.region,
           includeCursor: options.includeCursor,

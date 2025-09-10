@@ -8,6 +8,7 @@ use std::process::Command;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
 use axum::{routing::{get, post}, Json, Router};
+use tower_http::cors::{Any, CorsLayer};
 use std::net::SocketAddr;
 use serde::{Deserialize, Serialize};
 use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
@@ -611,9 +612,15 @@ async fn screenshot_handler(_payload: Json<ScreenshotRequest>) -> Json<Screensho
 
 fn spawn_status_server() {
     tauri::async_runtime::spawn(async move {
+        let cors = CorsLayer::new()
+            .allow_methods(Any)
+            .allow_headers(Any)
+            .allow_origin(Any);
+
         let app = Router::new()
             .route("/status", get(status_handler))
-            .route("/screenshot", post(screenshot_handler));
+            .route("/screenshot", post(screenshot_handler))
+            .layer(cors);
         let addr: SocketAddr = "127.0.0.1:8765".parse().unwrap();
         if let Ok(listener) = tokio::net::TcpListener::bind(addr).await {
             let _ = axum::serve(listener, app).await;

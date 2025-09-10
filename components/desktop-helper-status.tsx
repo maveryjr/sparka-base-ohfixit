@@ -27,14 +27,19 @@ export function DesktopHelperStatus({ className }: DesktopHelperStatusProps) {
   const checkStatus = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/desktop/status', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      const data: StatusResponse = await response.json();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const resp = await fetch('http://127.0.0.1:8765/status', { signal: controller.signal, mode: 'cors' });
+      clearTimeout(timeoutId);
+      if (!resp.ok) throw new Error('Helper not responding');
+      const raw = await resp.json();
+      const data: StatusResponse = {
+        connected: true,
+        version: raw.version || 'unknown',
+        capabilities: raw.capabilities || [],
+        lastCheck: new Date().toISOString(),
+        endpoint: 'http://127.0.0.1:8765'
+      };
       setStatus(data);
       setLastCheckTime(new Date());
     } catch (error) {

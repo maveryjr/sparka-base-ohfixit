@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Monitor, Download, RefreshCw, Link as LinkIcon, Shield, ListChecks, Play } from 'lucide-react';
+import { Monitor, Download, Link as LinkIcon, Shield, ListChecks } from 'lucide-react';
+import { DesktopHelperActions } from '@/components/desktop-helper-actions';
 import Link from 'next/link';
 
 export const metadata = {
@@ -61,14 +62,6 @@ export default function DesktopHelperPage() {
                 <Download className="h-4 w-4 mr-2" /> Download for {label}
               </Button>
             </a>
-            <Button
-              variant="outline"
-              onClick={() => {
-                try { window.location.href = 'ohfixit://open?from=web'; } catch {}
-              }}
-            >
-              <Play className="h-4 w-4 mr-2" /> Open Desktop Helper
-            </Button>
             <Link href="/">
               <Button variant="outline">
                 <LinkIcon className="h-4 w-4 mr-2" /> Back to Chat
@@ -95,16 +88,7 @@ export default function DesktopHelperPage() {
           </div>
 
           <div className="pt-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                fetch('/api/desktop/status', { cache: 'no-store' }).then(() => {
-                  // no-op, user can navigate back
-                });
-              }}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" /> Retry Connection
-            </Button>
+            <DesktopHelperActions />
           </div>
         </CardContent>
       </Card>

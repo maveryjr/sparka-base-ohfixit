@@ -21,9 +21,13 @@ function useDesktopHelperStatus() {
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/desktop/status');
-      const json = await res.json();
-      setStatus(json);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const resp = await fetch('http://127.0.0.1:8765/status', { signal: controller.signal, mode: 'cors' });
+      clearTimeout(timeoutId);
+      if (!resp.ok) throw new Error('Helper not responding');
+      const raw = await resp.json();
+      setStatus({ connected: true, version: raw.version, capabilities: raw.capabilities, lastCheck: new Date().toISOString() });
     } catch (e) {
       setStatus({ connected: false, error: 'Failed to check status' });
     } finally {
