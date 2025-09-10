@@ -35,9 +35,9 @@ function PureSuggestedActions({
       kind: 'message' as const,
     },
     {
-      title: 'Open the',
-      label: 'Automation Panel',
-      action: () => openAssist('automation-panel'),
+      title: 'Open',
+      label: 'Quick Fixes',
+      action: () => openAssist('quick-fixes'),
       kind: 'assist' as const,
     },
     {

@@ -52,9 +52,9 @@ export function AppSidebar() {
 
           {/* Assist shortcuts */}
           <SidebarMenuItem>
-            <SidebarMenuButton className="w-full justify-start" onClick={() => openAssist('automation-panel')}>
+            <SidebarMenuButton className="w-full justify-start" onClick={() => openAssist('quick-fixes')}>
               <Settings2 className="h-4 w-4" />
-              <span>Automation Panel</span>
+              <span>Quick Fixes</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

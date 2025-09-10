@@ -17,8 +17,10 @@ import { VoiceMode } from './voice-mode';
 import { RedactionAssist } from './redaction-assist';
 import { FamilyPortal } from './family-portal';
 import { AutomationPanel } from './automation-panel';
+import { QuickFixes } from './quick-fixes';
 
 export type AssistFeature =
+  | 'quick-fixes'
   | 'automation-panel'
   | 'issue-playbooks'
   | 'redaction-assist'
@@ -32,12 +34,14 @@ export function AssistDock({ chatId }: { chatId: string }) {
   // Use an effect to avoid state updates during render
   useEffect(() => {
     if (showPhase2Hub && !activeFeature) {
-      setActiveFeature('automation-panel');
+      setActiveFeature('quick-fixes');
     }
   }, [showPhase2Hub, activeFeature, setActiveFeature]);
 
   const title = useMemo(() => {
     switch (activeFeature) {
+      case 'quick-fixes':
+        return 'Quick Fixes';
       case 'automation-panel':
         return 'Automation Panel';
       case 'issue-playbooks':
@@ -55,6 +59,8 @@ export function AssistDock({ chatId }: { chatId: string }) {
 
   const Description = useMemo(() => {
     switch (activeFeature) {
+      case 'quick-fixes':
+        return 'One‑click fixes for common issues';
       case 'automation-panel':
         return 'Preview → Approve → Execute allowlisted actions';
       case 'issue-playbooks':
@@ -103,7 +109,7 @@ export function AssistDock({ chatId }: { chatId: string }) {
               variant="ghost"
               size="sm"
               onClick={() => {
-                setActiveFeature('automation-panel');
+                setActiveFeature('quick-fixes');
               }}
             >
               Home
@@ -112,6 +118,10 @@ export function AssistDock({ chatId }: { chatId: string }) {
         </div>
         <Separator />
         <div className="p-4 space-y-4 overflow-y-auto h-full">
+          {activeFeature === 'quick-fixes' && (
+            <QuickFixes chatId={chatId} />
+          )}
+
           {activeFeature === 'automation-panel' && (
             <AutomationPanel chatId={chatId} />
           )}
