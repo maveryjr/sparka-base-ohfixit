@@ -131,14 +131,17 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
             {status === 'running' ? 'Running…' : 'Re-run'}
           </button>
           {helperConnected && (
-            <button
-              className="px-2 py-1 rounded text-xs border hover:bg-accent"
-              onClick={() => startScan()}
-              disabled={status === 'running'}
-              title="Uses Desktop Helper for OS‑level checks"
-            >
-              Deeper scan
-            </button>
+            <>
+              <span className="text-[10px] px-1.5 py-0.5 rounded border text-green-700 border-green-300 bg-green-50">Helper connected</span>
+              <button
+                className="px-2 py-1 rounded text-xs border hover:bg-accent"
+                onClick={() => startScan()}
+                disabled={status === 'running'}
+                title="Uses Desktop Helper for OS‑level checks"
+              >
+                Deeper scan
+              </button>
+            </>
           )}
           <button
             className="px-2 py-1 rounded text-xs border hover:bg-accent"

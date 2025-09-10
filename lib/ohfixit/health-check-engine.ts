@@ -182,6 +182,37 @@ export class HealthCheckEngine {
         fixable: true,
         estimatedFixTime: '2-5 minutes'
       }
+      ,
+      {
+        id: 'filevault-status',
+        name: 'Disk Encryption (FileVault)',
+        status: 'unknown',
+        score: 0,
+        message: 'Checking FileVault encryption status...',
+        category: 'security',
+        fixable: false,
+        estimatedFixTime: '5-15 minutes'
+      },
+      {
+        id: 'time-machine',
+        name: 'Time Machine Backups',
+        status: 'unknown',
+        score: 0,
+        message: 'Checking Time Machine configuration...',
+        category: 'system',
+        fixable: false,
+        estimatedFixTime: '5-15 minutes'
+      },
+      {
+        id: 'sip-status',
+        name: 'System Integrity Protection (SIP)',
+        status: 'unknown',
+        score: 0,
+        message: 'Verifying SIP status...',
+        category: 'security',
+        fixable: false,
+        estimatedFixTime: '1-2 minutes'
+      }
     ];
 
     defaultChecks.forEach(check => {
@@ -251,6 +282,15 @@ export class HealthCheckEngine {
           break;
         case 'firewall-status':
           result = await this.checkFirewallStatus();
+          break;
+        case 'filevault-status':
+          result = await this.checkFileVaultStatus();
+          break;
+        case 'time-machine':
+          result = await this.checkTimeMachine();
+          break;
+        case 'sip-status':
+          result = await this.checkSIPStatus();
           break;
         default:
           result = { ...check, status: 'unknown', message: 'Check not implemented' };
@@ -829,6 +869,82 @@ export class HealthCheckEngine {
       details: 'Firewall monitoring requires desktop helper app',
       recommendation: 'Ensure your firewall is enabled and install desktop helper for monitoring'
     };
+  }
+
+  private async checkFileVaultStatus(): Promise<HealthCheckResult> {
+    const baseCheck = this.checks.get('filevault-status')!;
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 1500);
+      const resp = await fetch('http://127.0.0.1:8765/health/macos/filevault', { mode: 'cors', cache: 'no-store', signal: controller.signal });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.supported) {
+          const enabled = !!data.enabled;
+          return {
+            ...baseCheck,
+            status: enabled ? 'healthy' : 'warning',
+            score: enabled ? 100 : 60,
+            message: enabled ? 'FileVault is enabled' : 'FileVault is disabled',
+            details: (data.raw || '').slice(0, 300),
+            recommendation: enabled ? undefined : 'Enable FileVault in System Settings → Privacy & Security → FileVault',
+          };
+        }
+      }
+    } catch {}
+    return { ...baseCheck, status: 'warning', score: 50, message: 'Cannot verify FileVault from browser', details: 'Requires desktop helper' };
+  }
+
+  private async checkTimeMachine(): Promise<HealthCheckResult> {
+    const baseCheck = this.checks.get('time-machine')!;
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 1500);
+      const resp = await fetch('http://127.0.0.1:8765/health/macos/timemachine', { mode: 'cors', cache: 'no-store', signal: controller.signal });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.supported) {
+          const configured = !!data.configured;
+          const running = !!data.running;
+          const latest = data.latest_backup as string | null;
+          if (!configured) {
+            return { ...baseCheck, status: 'warning', score: 50, message: 'Time Machine not configured', recommendation: 'Set up a backup disk for Time Machine' };
+          }
+          return {
+            ...baseCheck,
+            status: 'healthy',
+            score: 100,
+            message: running ? 'Time Machine backup running' : 'Time Machine configured',
+            details: latest ? `Latest backup: ${latest}` : undefined,
+          };
+        }
+      }
+    } catch {}
+    return { ...baseCheck, status: 'warning', score: 50, message: 'Cannot check Time Machine from browser', details: 'Requires desktop helper' };
+  }
+
+  private async checkSIPStatus(): Promise<HealthCheckResult> {
+    const baseCheck = this.checks.get('sip-status')!;
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 1500);
+      const resp = await fetch('http://127.0.0.1:8765/health/macos/sip', { mode: 'cors', cache: 'no-store', signal: controller.signal });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.supported) {
+          const enabled = !!data.enabled;
+          return {
+            ...baseCheck,
+            status: enabled ? 'healthy' : 'warning',
+            score: enabled ? 100 : 40,
+            message: enabled ? 'System Integrity Protection is enabled' : 'SIP is disabled',
+            details: (data.raw || '').slice(0, 300),
+            recommendation: enabled ? undefined : 'Re‑enable SIP from macOS Recovery unless intentionally disabled',
+          };
+        }
+      }
+    } catch {}
+    return { ...baseCheck, status: 'warning', score: 50, message: 'Cannot verify SIP from browser', details: 'Requires desktop helper' };
   }
 
   private generateSummary(): HealthCheckSummary {

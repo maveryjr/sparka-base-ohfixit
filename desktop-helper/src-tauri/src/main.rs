@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::process::Command;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
-use axum::{routing::{get, post}, Json, Router, extract::{State, TypedHeader}, http::HeaderMap};
+use axum::{routing::{get, post}, Json, Router, extract::State, http::HeaderMap};
 use tower_http::cors::{Any, CorsLayer};
 use std::net::SocketAddr;
 use serde::{Deserialize, Serialize};
@@ -15,8 +15,7 @@ use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 use chrono::Utc;
 use reqwest::Client;
 use base64::{Engine as _, engine::general_purpose};
-use sysinfo::{System, SystemExt, Disks, DiskExt};
-use std::io::Read;
+use sysinfo::{System, Disks};
 
 // JWT Claims structure for OhFixIt tokens
 #[derive(Debug, Serialize, Deserialize)]
@@ -710,7 +709,7 @@ async fn health_scan_handler() -> Json<SystemInfoResponse> {
 
     let info = SystemInfoResponse {
         platform: std::env::consts::OS.to_string(),
-        version: sys.kernel_version().unwrap_or_default(),
+        version: System::kernel_version().unwrap_or_default(),
         arch: std::env::consts::ARCH.to_string(),
         memory: serde_json::json!({
             "total": total_mem,
@@ -722,7 +721,7 @@ async fn health_scan_handler() -> Json<SystemInfoResponse> {
             "available": avail_disk,
             "used": used_disk,
         }),
-        uptime: sys.uptime(),
+        uptime: System::uptime(),
         userAgent: "ohfixit-desktop-helper".to_string(),
     };
 
@@ -750,6 +749,29 @@ struct AvResponse {
     third_party_detected: bool,
     products: Vec<String>,
     xprotect_version: Option<String>,
+    raw: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct FileVaultResponse {
+    supported: bool,
+    enabled: bool,
+    raw: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct TimeMachineResponse {
+    supported: bool,
+    configured: bool,
+    running: bool,
+    latest_backup: Option<String>,
+    raw: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SipResponse {
+    supported: bool,
+    enabled: bool,
     raw: String,
 }
 
@@ -842,6 +864,46 @@ async fn macos_av_handler() -> Json<AvResponse> {
     Json(AvResponse { supported: false, gatekeeper_enabled: false, third_party_detected: false, products: vec![], xprotect_version: None, raw: String::new() })
 }
 
+#[cfg(target_os = "macos")]
+async fn macos_filevault_handler() -> Json<FileVaultResponse> {
+    let (_ok, out) = run_command_capture("/usr/bin/fdesetup", &["status"]);
+    let enabled = out.to_lowercase().contains("filevault is on");
+    Json(FileVaultResponse { supported: true, enabled, raw: out })
+}
+
+#[cfg(not(target_os = "macos"))]
+async fn macos_filevault_handler() -> Json<FileVaultResponse> {
+    Json(FileVaultResponse { supported: false, enabled: false, raw: String::new() })
+}
+
+#[cfg(target_os = "macos")]
+async fn macos_timemachine_handler() -> Json<TimeMachineResponse> {
+    let (_ok1, status_out) = run_command_capture("/usr/bin/tmutil", &["status"]);
+    let running = status_out.contains("Running = 1");
+    let (_ok2, latest_out) = run_command_capture("/usr/bin/tmutil", &["latestbackup"]);
+    let configured = !latest_out.trim().is_empty() && !latest_out.contains("(null)");
+    let latest_backup = if configured { Some(latest_out.trim().to_string()) } else { None };
+    let raw = format!("status: {}\nlatest: {}", status_out.trim(), latest_out.trim());
+    Json(TimeMachineResponse { supported: true, configured, running, latest_backup, raw })
+}
+
+#[cfg(not(target_os = "macos"))]
+async fn macos_timemachine_handler() -> Json<TimeMachineResponse> {
+    Json(TimeMachineResponse { supported: false, configured: false, running: false, latest_backup: None, raw: String::new() })
+}
+
+#[cfg(target_os = "macos")]
+async fn macos_sip_handler() -> Json<SipResponse> {
+    let (_ok, out) = run_command_capture("/usr/bin/csrutil", &["status"]);
+    let enabled = out.to_lowercase().contains("enabled");
+    Json(SipResponse { supported: true, enabled, raw: out })
+}
+
+#[cfg(not(target_os = "macos"))]
+async fn macos_sip_handler() -> Json<SipResponse> {
+    Json(SipResponse { supported: false, enabled: false, raw: String::new() })
+}
+
 fn spawn_status_server() {
     tauri::async_runtime::spawn(async move {
         let http_state = HttpState {
@@ -863,6 +925,9 @@ fn spawn_status_server() {
             .route("/health/macos/updates", get(macos_updates_handler))
             .route("/health/macos/firewall", get(macos_firewall_handler))
             .route("/health/macos/av", get(macos_av_handler))
+            .route("/health/macos/filevault", get(macos_filevault_handler))
+            .route("/health/macos/timemachine", get(macos_timemachine_handler))
+            .route("/health/macos/sip", get(macos_sip_handler))
             .with_state(http_state)
             .layer(cors);
         let addr: SocketAddr = "127.0.0.1:8765".parse().unwrap();
