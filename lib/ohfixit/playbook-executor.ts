@@ -122,7 +122,7 @@ export class PlaybookExecutor {
 
     try {
       for (const step of steps) {
-        if (execution.status === 'cancelled') {
+        if (this.executions.get(executionId)?.status === 'cancelled') {
           break;
         }
 

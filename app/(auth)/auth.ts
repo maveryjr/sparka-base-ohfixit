@@ -1,4 +1,4 @@
-import NextAuth, { type User } from 'next-auth';
+import NextAuth, { type User, type NextAuthOptions, getServerSession, type Session } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
 import Credentials from 'next-auth/providers/credentials';
@@ -20,12 +20,7 @@ const {
 
 // Use NextAuth's inferred callback parameter types; avoid strict custom session typing
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
+const authOptions: NextAuthOptions = {
   ...authConfig,
   providers: [
     // Include providers only if their env vars are configured
@@ -199,4 +194,9 @@ export const {
       return session;
     },
   },
-});
+};
+
+// NextAuth v4: export route handlers and an auth() helper
+export const GET = NextAuth(authOptions);
+export const POST = NextAuth(authOptions);
+export const auth = (): Promise<Session | null> => getServerSession(authOptions as any);

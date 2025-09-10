@@ -31,8 +31,10 @@ export function AutomationPlanView({
   const [selectedAction, setSelectedAction] = useState<AutomationAction | null>(
     null,
   );
-  function assessRisk(script?: string) {
-    if (!script) return { level: 'low' as const, factors: [], mitigations: [] };
+  function assessRisk(
+    script?: string,
+  ): { level: 'low' | 'medium' | 'high'; factors: string[]; mitigations: string[] } {
+    if (!script) return { level: 'low', factors: [], mitigations: [] };
     const patterns: Array<{ re: RegExp; label: string; mitigation: string; level: 'low'|'medium'|'high' }>= [
       { re: /(rm\s+-rf\s+\/?(?!\/tmp\b|\.)\S+)/i, label: 'Recursive delete', mitigation: 'Confirm target path and backup', level: 'high' },
       { re: /:\\Windows\\System32|\/System\//i, label: 'System path change', mitigation: 'Avoid system directories', level: 'high' },

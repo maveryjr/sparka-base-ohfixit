@@ -68,9 +68,11 @@ export class ImageSourceManager {
       URL.revokeObjectURL(this.currentSource.url);
     }
 
+    const mappedType: ScreenshotSource['type'] =
+      result.source === 'file' ? 'upload' : result.source;
     const source: ScreenshotSource = {
       id: this.generateId(),
-      type: result.source,
+      type: mappedType,
       url: result.data,
       metadata: {
         captureMethod: result.source,

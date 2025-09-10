@@ -16,7 +16,8 @@ export interface ToolDefinition {
   shortName: string;
 }
 
-export const toolDefinitions: Record<UiToolName, ToolDefinition> = {
+// Not all UiToolName entries are available in the current UI; keep this partial.
+export const toolDefinitions: Partial<Record<UiToolName, ToolDefinition>> = {
   webSearch: {
     key: 'webSearch',
     name: 'Web Search',

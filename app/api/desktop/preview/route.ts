@@ -5,7 +5,8 @@ import { z } from 'zod';
 const previewActionSchema = z.object({
   sessionId: z.string().optional(),
   actionId: z.string(),
-  parameters: z.record(z.any()).optional()
+  // Explicitly define key and value schemas for Zod v4 compatibility
+  parameters: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function POST(request: NextRequest) {

@@ -120,7 +120,7 @@ export async function PUT(
   } catch (error) {
     console.error('Error updating fixlet:', error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
+      return NextResponse.json({ error: 'Validation error', details: error.issues }, { status: 400 });
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

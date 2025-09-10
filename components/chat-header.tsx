@@ -10,7 +10,7 @@ import { Share, LogIn, Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { SettingsPopover } from './settings-popover';
-import type { User } from 'next-auth';
+import type { Session } from 'next-auth';
 import { CollectClientDiagnostics } from '@/components/ohfixit/collect-client-diagnostics';
 import { useChatInput } from '@/providers/chat-input-provider';
 import { usePhase2 } from '@/providers/phase2-provider';
@@ -27,7 +27,7 @@ function PureChatHeader({
   chatId: string;
   isReadonly: boolean;
   hasMessages: boolean;
-  user: User | undefined;
+  user: Session['user'] | undefined;
 }) {
   const router = useRouter();
   const { data: session } = useSession();

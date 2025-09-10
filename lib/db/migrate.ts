@@ -8,6 +8,12 @@ config({
 });
 
 const runMigrate = async () => {
+  // Skip migrations during Vercel builds or when explicitly disabled
+  if (process.env.VERCEL === '1' || process.env.SKIP_MIGRATE_ON_BUILD === '1') {
+    console.log('ℹ️  Skipping migrations (VERCEL or SKIP_MIGRATE_ON_BUILD set)');
+    process.exit(0);
+  }
+
   if (!process.env.POSTGRES_URL) {
     throw new Error('POSTGRES_URL is not defined');
   }

@@ -33,11 +33,19 @@ export default async function SharedFixletPage({ params }: SharedFixletPageProps
     }
 
     // Get the steps
-    const steps = await db
+    const stepsRaw = await db
       .select()
       .from(fixletStep)
       .where(eq(fixletStep.fixletId, fixletId))
       .orderBy(fixletStep.stepOrder);
+    const steps = stepsRaw.map((s) => ({
+      ...s,
+      description: s.description ?? undefined,
+      actions: s.actions ?? [],
+      expectedResult: s.expectedResult ?? undefined,
+      successCriteria: s.successCriteria ?? undefined,
+      os: s.os ?? undefined,
+    }));
 
     // Increment usage count
     await db
@@ -60,6 +68,8 @@ export default async function SharedFixletPage({ params }: SharedFixletPageProps
           <FixletViewer
             fixlet={{
               ...fixletData,
+              description: fixletData.description ?? undefined,
+              tags: (fixletData as any).tags ?? [],
               steps,
             }}
             isReadOnly={true}

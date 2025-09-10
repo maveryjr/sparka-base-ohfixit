@@ -22,6 +22,7 @@ export interface AutomationAction {
   description: string;
   command?: string;
   parameters?: Record<string, any>;
+  permissions?: string[];
   reversible: boolean;
   backupRequired: boolean;
   estimatedTime: string;
@@ -175,8 +176,9 @@ export class DesktopHelperAPI {
       throw new Error('Failed to create desktop session');
     }
 
-    this.session = await response.json();
-    return this.session;
+    const session = (await response.json()) as DesktopSession;
+    this.session = session;
+    return session;
   }
 
   async executeAction(actionId: string, parameters?: Record<string, any>): Promise<{

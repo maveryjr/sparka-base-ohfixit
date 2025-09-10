@@ -5,6 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Minimal typings for browser speech APIs (not in standard lib)
+declare global {
+  interface Window {
+    webkitSpeechRecognition?: any;
+    SpeechRecognition?: any;
+  }
+}
+type SpeechRecognition = any;
+
 interface VoiceModeProps {
   onTranscription: (text: string) => void;
   onSpeechStart: () => void;
@@ -50,7 +59,7 @@ export function VoiceMode({
           onSpeechEnd();
         };
 
-        recognitionRef.current.onresult = (event) => {
+        recognitionRef.current.onresult = (event: any) => {
           let finalTranscript = '';
           
           for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -65,7 +74,7 @@ export function VoiceMode({
           }
         };
 
-        recognitionRef.current.onerror = (event) => {
+        recognitionRef.current.onerror = (event: any) => {
           console.error('Speech recognition error:', event.error);
           toast.error(`Speech recognition error: ${event.error}`);
           setIsListening(false);
