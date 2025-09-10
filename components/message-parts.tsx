@@ -1044,6 +1044,7 @@ export function PureMessageReasoningParts({
   );
   return (
     <MessageReasoning
+      messageId={messageId}
       isLoading={isLoading}
       reasoning={reasoningParts.map((p) => p.text)}
     />

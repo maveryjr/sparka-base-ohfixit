@@ -55,6 +55,7 @@ import { getCreditReservation } from './getCreditReservation';
 import { filterReasoningParts } from './filterReasoningParts';
 import { getThreadUpToMessageId } from './getThreadUpToMessageId';
 import { createModuleLogger } from '@/lib/logger';
+import type { Session } from 'next-auth';
 
 // Create shared Redis clients for resumable stream and cleanup
 let redisPublisher: any = null;
@@ -545,23 +546,27 @@ export async function POST(request: NextRequest) {
             .toLowerCase();
 
           // Build tools once so we can validate/log their shapes
+          // Build a minimal Session compatible with NextAuth types
+          const sessionForTools: Session = {
+            user: { name: null, email: null, image: null },
+            expires: 'noop',
+          };
+          if (userId) {
+            (sessionForTools.user as any).id = userId;
+          }
+
           const toolsObject = await getTools({
-              dataStream,
-              session: {
-                user: {
-                  id: userId || undefined,
-                },
-                expires: 'noop',
-              },
-              contextForLLM: contextForLLM,
-              messageId,
-              selectedModel: selectedModelId,
-              attachments: userMessage.parts.filter(
-                (part) => part.type === 'file',
-              ) as any[],
-              lastGeneratedImage,
-              chatId,
-            });
+            dataStream,
+            session: sessionForTools,
+            contextForLLM: contextForLLM,
+            messageId,
+            selectedModel: selectedModelId,
+            attachments: userMessage.parts.filter(
+              (part) => part.type === 'file',
+            ) as any[],
+            lastGeneratedImage,
+            chatId,
+          });
 
           // Light diagnostics to catch schema mismatches at runtime
           try {
@@ -608,7 +613,15 @@ export async function POST(request: NextRequest) {
             toolNames: Object.keys(sanitizedTools),
             activeToolCount: sanitizedActiveTools.length,
             activeToolNames: sanitizedActiveTools 
-          }, 'Tools being passed to streamText');
+          }, 'Tools being passed to streamText (no sanitization)');
+
+          // All tools should now work after fixing the getPlaybook schema
+          log.debug({ 
+            toolCount: Object.keys(sanitizedTools).length,
+            toolNames: Object.keys(sanitizedTools),
+            activeToolCount: sanitizedActiveTools.length,
+            activeToolNames: sanitizedActiveTools 
+          }, 'Using all tools after schema fix');
 
           const result = streamText({
             model: getLanguageModel(selectedModelId),
@@ -651,7 +664,7 @@ export async function POST(request: NextRequest) {
                 });
               },
             ],
-
+            
             activeTools: sanitizedActiveTools,
             experimental_transform: markdownJoinerTransform(),
             experimental_telemetry: {
@@ -729,9 +742,6 @@ export async function POST(request: NextRequest) {
                   };
                 }
               },
-            }).catch((streamError) => {
-              log.error({ streamError, errorMessage: streamError?.message, errorStack: streamError?.stack }, 'Error in toUIMessageStream');
-              throw streamError;
             }),
           );
         },
@@ -806,7 +816,17 @@ export async function POST(request: NextRequest) {
         onError: (error) => {
           // Clear timeout on error
           clearTimeout(timeoutId);
-          log.error({ error }, 'onError');
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorStack = error instanceof Error ? error.stack : undefined;
+          log.error({
+            error,
+            errorMessage,
+            errorStack,
+            selectedModel: selectedModelId,
+            userId,
+            chatId
+          }, 'Stream processing error');
+
           // Release reserved credits on error (fire and forget)
           if (reservation) {
             reservation.cleanup();
@@ -815,7 +835,9 @@ export async function POST(request: NextRequest) {
             anonymousSession.remainingCredits += baseModelCost;
             setAnonymousSession(anonymousSession);
           }
-          return 'Oops, an error occured!';
+
+          // Return a more descriptive error message
+          return `Chat processing failed: ${errorMessage || 'Unknown error occurred'}`;
         },
       });
 

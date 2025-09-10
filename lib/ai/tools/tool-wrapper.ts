@@ -12,11 +12,11 @@ export function wrapToolForSafety<TInput, TOutput>(
 ): Tool<TInput, TOutput> {
   return {
     ...tool,
-    execute: async (input: TInput): Promise<TOutput> => {
+    execute: async (input: TInput, options: any): Promise<TOutput> => {
       try {
         log.debug({ toolName, input }, 'Executing tool');
         
-        const result = await tool.execute(input);
+        const result = await (tool.execute as any)(input, options);
         
         // Validate that the result is not undefined or null
         if (result === undefined || result === null) {
@@ -63,7 +63,7 @@ export function wrapToolForSafety<TInput, TOutput>(
         } as unknown as TOutput;
       }
     }
-  };
+  } as Tool<TInput, TOutput>;
 }
 
 /**
@@ -74,7 +74,7 @@ export function wrapAllToolsForSafety<T extends Record<string, any>>(tools: T): 
   
   for (const [name, tool] of Object.entries(tools)) {
     if (tool && typeof tool === 'object' && typeof tool.execute === 'function') {
-      wrappedTools[name as keyof T] = wrapToolForSafety(tool, name);
+      wrappedTools[name as keyof T] = wrapToolForSafety(tool as any, name) as any;
     } else {
       // Keep non-tool objects as-is
       wrappedTools[name as keyof T] = tool;

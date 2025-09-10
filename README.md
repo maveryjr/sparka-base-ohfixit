@@ -50,32 +50,28 @@ Oh Fix It is built with modern technologies for scalability and performance:
 
 ### **Frontend**
 - **Next.js 15**: App Router with React Server Components
-- **TypeScript**: Full type safety and developer experience
-## Development
-   - OhFixIt Automation (Phase 1 slice)
-      - Set OHFIXIT_JWT_SECRET in your environment (falls back to NEXTAUTH_SECRET if set).
-      - Open a chat page and use the "Do It For Me" panel to:
-         - List allowlisted actions, preview diffs/commands and risks
-         - Approve (mints a short-lived helper token) and Execute (queues via helper/report pipeline)
-         - Undo triggers a rollback request (helper should report artifacts and rollback handles)
-         - Audit timeline renders recent consent, diagnostics snapshots, and action logs.
-      - Desktop Helper integration
-         - Handshake: POST /api/automation/helper/handshake with Authorization: Bearer <helperToken> to verify claims and register presence.
-         - Reporting: POST /api/automation/helper/report with Authorization: Bearer <helperToken> and JSON payload { actionLogId?, actionId?, success, output, artifacts[], rollbackPoint }.
-
-- **Tailwind CSS**: Responsive, utility-first styling
+- **React 19**: Latest React version with concurrent features
+- **TypeScript 5.8**: Full type safety and developer experience
+- **Tailwind CSS 4**: Responsive, utility-first styling
 - **Radix UI**: Accessible component primitives
 - **Framer Motion**: Smooth animations and transitions
 - **Zustand**: Lightweight state management
-- **Vercel AI SDK**: Unified AI provider integration
+
+### **Backend**
+- **Node.js 18+** or **Bun 1.1.34**: Runtime environment
 - **tRPC**: End-to-end typesafe APIs
 - **Drizzle ORM**: Type-safe database operations
 - **PostgreSQL**: Robust data persistence
 - **Redis**: Caching and real-time features
+- **NextAuth v5**: Authentication and session management
 
 ### **AI Integration**
-- **AI SDK v5**: Latest Vercel AI SDK for unified provider integration
+- **Vercel AI SDK v5**: Unified AI provider integration
 - **AI SDK Gateway**: Models from various AI providers with automatic fallbacks
+- **Multi-provider support**: OpenAI, Anthropic, Google, xAI, and more
+- **Code execution**: E2B sandboxes for secure code running
+- **Web search**: Tavily and Exa integration for research
+- **Image generation**: Multiple AI image models
 
 
 ## 🚀 Getting Started
@@ -97,7 +93,7 @@ Oh Fix It is built with modern technologies for scalability and performance:
 2. **Environment Setup**
    ```bash
    cp .env.example .env.local
-   # Configure your environment variables
+   # Configure your environment variables (see Environment Variables section)
    ```
 
 3. **Database Setup**
@@ -111,6 +107,142 @@ Oh Fix It is built with modern technologies for scalability and performance:
    ```
 
 Visit [http://localhost:3000](http://localhost:3000) to start using Oh Fix It locally.
+
+### **Environment Variables**
+
+Configure the following environment variables in your `.env.local` file:
+
+#### **Required**
+- `AUTH_SECRET`: Random secret for authentication
+- `POSTGRES_URL`: PostgreSQL database connection string
+- `BLOB_READ_WRITE_TOKEN`: Vercel Blob storage token
+
+#### **AI Providers** (at least one required)
+- `OPENAI_API_KEY`: OpenAI API key for GPT models
+- `ANTHROPIC_API_KEY`: Anthropic API key for Claude models
+- `GOOGLE_API_KEY`: Google API key for Gemini models
+- `XAI_API_KEY`: xAI API key for Grok models
+
+#### **Optional Features**
+- `E2B_API_KEY`: For code execution capabilities
+- `FIRECRAWL_API_KEY`: For web scraping in research
+- `EXA_API_KEY`: For enhanced web search
+- `REDIS_URL`: For improved performance and caching
+- `OHFIXIT_JWT_SECRET`: For automation features
+
+#### **Authentication (optional)**
+- `AUTH_GOOGLE_ID` & `AUTH_GOOGLE_SECRET`: Google OAuth
+- `AUTH_GITHUB_ID` & `AUTH_GITHUB_SECRET`: GitHub OAuth
+- `NEXT_PUBLIC_SUPABASE_URL` & `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Email/password auth
+
+## 🧪 Development
+
+### **Available Scripts**
+
+```bash
+# Development
+bun dev                    # Start development server with Turbo
+
+# Database
+bun run db:migrate         # Run database migrations
+bun run db:studio          # Open Drizzle Studio
+bun run db:generate        # Generate new migrations
+
+# Building
+bun build                  # Build for production
+bun start                  # Start production server
+
+# Testing
+bun run test               # Run Playwright tests
+bun run test:unit          # Run unit tests with Vitest
+bun run test:types         # Type checking
+
+# Code Quality
+bun run lint               # Lint and format code
+bun run format             # Format code with Biome
+
+# Desktop Helper
+bun run desktop-helper:dev     # Develop desktop helper
+bun run desktop-helper:build   # Build desktop helper
+```
+
+### **OhFixIt Automation Features**
+
+- Set `OHFIXIT_JWT_SECRET` in your environment
+- Use the "Do It For Me" panel in chat to:
+  - Preview and approve system actions
+  - Execute commands with audit trails
+  - Rollback changes when needed
+  - View automation history
+
+### **Desktop Helper Integration**
+
+The desktop helper enables system-level automation:
+
+- **Handshake**: `POST /api/automation/helper/handshake`
+- **Reporting**: `POST /api/automation/helper/report`
+- Built with Tauri for cross-platform support
+
+## 🚀 Deployment
+
+### **Vercel (Recommended)**
+
+1. Fork this repository
+2. Connect to Vercel
+3. Configure environment variables
+4. Deploy automatically
+
+### **Self-Hosting**
+
+1. Build the application:
+   ```bash
+   bun build
+   ```
+
+2. Set up PostgreSQL and Redis
+3. Configure environment variables
+4. Start the server:
+   ```bash
+   bun start
+   ```
+
+## 🧪 Testing
+
+Oh Fix It includes comprehensive testing:
+
+- **E2E Tests**: Playwright for full application testing
+- **Unit Tests**: Vitest for component and utility testing
+- **Type Safety**: TypeScript strict mode
+- **Code Quality**: Biome for linting and formatting
+
+Run the test suite:
+```bash
+bun run test        # E2E tests
+bun run test:unit   # Unit tests
+```
+
+## 📖 Documentation
+
+For more detailed information:
+
+- **Architecture**: See `docs/` directory
+- **API Reference**: tRPC endpoints in `trpc/routers/`
+- **Components**: Storybook documentation
+- **Contributing**: See contribution guidelines
+
+## 🤝 Contributing
+
+We welcome contributions! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+Licensed under the Apache License 2.0. See [LICENSE](./LICENSE) for details.
 
 
 ## 🙏 Acknowledgements

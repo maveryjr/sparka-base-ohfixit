@@ -16,6 +16,7 @@ import { useChatInput } from '@/providers/chat-input-provider';
 import { usePhase2 } from '@/providers/phase2-provider';
 import type { UiToolName } from '@/lib/ai/types';
 import { cn } from '@/lib/utils';
+import { DesktopHelperStatus } from '@/components/desktop-helper-status';
 
 function PureChatHeader({
   chatId,
@@ -183,6 +184,7 @@ function PureChatHeader({
             Enable a step-by-step guided fix flow for this chat
           </TooltipContent>
         </Tooltip>
+        <DesktopHelperStatus />
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 px-3" onClick={() => setDiagOpen(true)}>

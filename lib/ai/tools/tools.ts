@@ -127,6 +127,7 @@ export async function getTools({
     screenshotCapture,
   };
 
+
   // Wrap all tools for safety to prevent _zod errors
   return wrapAllToolsForSafety(tools);
 }

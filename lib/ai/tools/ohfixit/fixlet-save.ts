@@ -38,12 +38,17 @@ const FromAutomationInput = z.object({
 });
 
 const TextInput = z.object({ text: z.string() });
-const Input = z.union([DirectInput, FromGuideInput, FromAutomationInput, TextInput]);
+
+// Wrap the union in an object to ensure it's always type "object"
+const Input = z.object({
+  data: z.union([DirectInput, FromGuideInput, FromAutomationInput, TextInput])
+});
 
 export const saveFixlet = tool({
   description: 'Saves a troubleshooting plan as a reusable Fixlet with steps.',
   inputSchema: Input,
   execute: async (input) => {
+    const actualInput = input.data;
     let title: string;
     let description: string | undefined;
     let category: string;
@@ -52,21 +57,21 @@ export const saveFixlet = tool({
     let tags: string[] | undefined;
     let steps: Array<{ title: string; description?: string; actions: string[]; expectedResult?: string; estimatedTime: string; category: string; os?: string; successCriteria?: string[]; }> = [];
 
-    if ('text' in input) {
+    if ('text' in actualInput) {
       try {
-        const match = input.text.match(/\{[\s\S]*\}$/);
+        const match = actualInput.text.match(/\{[\s\S]*\}$/);
         if (match) {
           const parsed = JSON.parse(match[0]);
           if (parsed && parsed.from && parsed.plan) {
             // Recurse by calling execute with structured input
             // @ts-ignore
-            return await (saveFixlet as any).execute(parsed);
+            return await (saveFixlet as any).execute({ data: parsed });
           }
         }
       } catch {}
       throw new Error('Could not parse fixlet input from text');
-    } else if ('from' in input && input.from === 'guide') {
-      const plan = input.plan;
+    } else if ('from' in actualInput && actualInput.from === 'guide') {
+      const plan = actualInput.plan;
       title = plan.summary.slice(0, 60) || 'Guide Fixlet';
       description = 'Saved from Guide Plan';
       category = 'System';
@@ -77,8 +82,8 @@ export const saveFixlet = tool({
         estimatedTime: '1-5 minutes',
         category: 'General',
       }));
-    } else if ('from' in input && input.from === 'automation') {
-      const plan = input.plan;
+    } else if ('from' in actualInput && actualInput.from === 'automation') {
+      const plan = actualInput.plan;
       title = plan.summary.slice(0, 60) || 'Automation Fixlet';
       description = 'Saved from Automation Plan';
       category = 'System';
@@ -97,7 +102,7 @@ export const saveFixlet = tool({
         };
       });
     } else {
-      ({ title, description, category, difficulty = 'easy', estimatedTime = '5-15 minutes', tags, steps } = input as any);
+      ({ title, description, category, difficulty = 'easy', estimatedTime = '5-15 minutes', tags, steps } = actualInput as any);
     }
 
     const fixletId = generateUUID();

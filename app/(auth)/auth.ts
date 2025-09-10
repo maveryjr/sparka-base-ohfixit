@@ -1,4 +1,4 @@
-import NextAuth, { type User, type Session } from 'next-auth';
+import NextAuth, { type User } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
 import Credentials from 'next-auth/providers/credentials';
@@ -8,9 +8,17 @@ import { getUserByEmail, createUser } from '@/lib/db/queries';
 import { authConfig } from './auth.config';
 import { createClient } from '@supabase/supabase-js';
 
-interface ExtendedSession extends Session {
-  user: User;
-}
+// Read OAuth and Supabase environment variables (may be undefined in some envs)
+const {
+  AUTH_GOOGLE_ID,
+  AUTH_GOOGLE_SECRET,
+  AUTH_GITHUB_ID,
+  AUTH_GITHUB_SECRET,
+  NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY,
+} = process.env as Record<string, string | undefined>;
+
+// Use NextAuth's inferred callback parameter types; avoid strict custom session typing
 
 export const {
   handlers: { GET, POST },
@@ -20,14 +28,23 @@ export const {
 } = NextAuth({
   ...authConfig,
   providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-    }),
-    GitHub({
-      clientId: process.env.AUTH_GITHUB_ID,
-      clientSecret: process.env.AUTH_GITHUB_SECRET,
-    }),
+    // Include providers only if their env vars are configured
+    ...(AUTH_GOOGLE_ID && AUTH_GOOGLE_SECRET
+      ? [
+          Google({
+            clientId: AUTH_GOOGLE_ID,
+            clientSecret: AUTH_GOOGLE_SECRET,
+          }),
+        ]
+      : []),
+    ...(AUTH_GITHUB_ID && AUTH_GITHUB_SECRET
+      ? [
+          GitHub({
+            clientId: AUTH_GITHUB_ID,
+            clientSecret: AUTH_GITHUB_SECRET,
+          }),
+        ]
+      : []),
     Credentials({
       id: 'credentials',
       name: 'Email and Password',
@@ -42,13 +59,11 @@ export const {
           const password = credentials?.password as string | undefined;
           const magicAccessToken = credentials?.accessToken as string | undefined;
 
-          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-          const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-          if (!supabaseUrl || !supabaseAnonKey) {
+          if (!NEXT_PUBLIC_SUPABASE_URL || !NEXT_PUBLIC_SUPABASE_ANON_KEY) {
             console.error('Supabase env vars are missing');
             return null;
           }
-          const supabase = createClient(supabaseUrl, supabaseAnonKey);
+          const supabase = createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
           // Case 1: Magic/Recovery access token from Supabase
           if (magicAccessToken) {
@@ -163,27 +178,22 @@ export const {
       }
       return token;
     },
-    async session({
-      session,
-      token,
-    }: {
-      session: ExtendedSession;
-      token: { id?: string; [key: string]: any };
-    }) {
-      if (session.user && token.id) {
-        session.user.id = token.id;
+    async session({ session, token }) {
+      if (session.user && (token as any).id) {
+        // Extend session.user with id dynamically
+        (session.user as any).id = (token as any).id;
         
         // Refresh user data from database to get latest name
         try {
           const dbUserArray = await getUserByEmail(session.user.email!);
           if (dbUserArray.length > 0) {
-            session.user.name = dbUserArray[0].name;
-            session.user.image = dbUserArray[0].image;
+            (session.user as any).name = dbUserArray[0].name;
+            (session.user as any).image = dbUserArray[0].image;
           }
         } catch (error) {
           console.error('Error refreshing user data in session callback:', error);
         }
-      } else if (!token.id) {
+      } else if (!(token as any).id) {
         console.error('Token ID missing in session callback');
       }
       return session;
