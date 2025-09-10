@@ -273,14 +273,39 @@ export class HealthCheckEngine {
   }
 
   private async gatherSystemInfo(): Promise<SystemInfo> {
-    // Use browser APIs and navigator to gather system info
+    // Prefer Desktop Helper system info if available
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 1500);
+      const resp = await fetch('http://127.0.0.1:8765/health/scan', {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const memory = data.memory || { total: 0, available: 0, used: 0 };
+        const storage = data.storage || { total: 0, available: 0, used: 0 };
+        return {
+          platform: data.platform || navigator.platform,
+          version: data.version || navigator.appVersion,
+          arch: data.arch || (navigator as any).userAgentData?.platform || 'unknown',
+          memory,
+          storage,
+          uptime: typeof data.uptime === 'number' ? data.uptime : performance.now(),
+          userAgent: data.userAgent || navigator.userAgent,
+        };
+      }
+    } catch {}
+
+    // Fallback to browser estimates
     const memory = (navigator as any).deviceMemory ? {
       total: (navigator as any).deviceMemory * 1024 * 1024 * 1024, // Convert GB to bytes
-      available: 0, // Not available in browser
-      used: 0 // Not available in browser
+      available: 0,
+      used: 0
     } : { total: 0, available: 0, used: 0 };
 
-    // Estimate storage using Storage API if available
     let storage = { total: 0, available: 0, used: 0 };
     if ('storage' in navigator && 'estimate' in navigator.storage) {
       try {
@@ -301,7 +326,7 @@ export class HealthCheckEngine {
       arch: (navigator as any).userAgentData?.platform || 'unknown',
       memory,
       storage,
-      uptime: performance.now(), // Approximate uptime since page load
+      uptime: performance.now(),
       userAgent: navigator.userAgent
     };
   }
@@ -635,6 +660,39 @@ export class HealthCheckEngine {
     const baseCheck = this.checks.get('memory-usage')!;
     
     try {
+      // Prefer OS-level memory if available from systemInfo
+      if (this.systemInfo && this.systemInfo.memory.total > 0) {
+        const totalMB = this.systemInfo.memory.total / (1024 * 1024);
+        const usedMB = this.systemInfo.memory.used / (1024 * 1024);
+        const usedPercent = (usedMB / totalMB) * 100;
+
+        let status: HealthCheckResult['status'] = 'healthy';
+        let score = 100;
+        let message = `System using ${usedMB.toFixed(1)} MB of ${totalMB.toFixed(1)} MB`;
+        let recommendation: string | undefined;
+
+        if (usedPercent > 90) {
+          status = 'critical';
+          score = 10;
+          message = `High system memory usage: ${usedPercent.toFixed(1)}%`;
+          recommendation = 'Close heavy apps or restart the computer';
+        } else if (usedPercent > 75) {
+          status = 'warning';
+          score = 60;
+          message = `Elevated system memory usage: ${usedPercent.toFixed(1)}%`;
+          recommendation = 'Close unnecessary apps';
+        }
+
+        return {
+          ...baseCheck,
+          status,
+          score,
+          message,
+          recommendation,
+          details: `Used: ${usedMB.toFixed(1)} MB, Total: ${totalMB.toFixed(1)} MB`,
+        };
+      }
+
       const memory = (performance as any).memory;
       if (!memory) {
         return {

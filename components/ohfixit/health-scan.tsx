@@ -237,6 +237,19 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
           )}
         </div>
       )}
+
+      {status === 'completed' && summary && (
+        <div className="text-xs text-muted-foreground">
+          Scan complete. Overall {summary.overallStatus} with score {summary.overallScore}. 
+          {result?.checks?.length ? (
+            <>Top issues: {result.checks
+              .filter((c: any) => c.status === 'critical' || c.status === 'warning')
+              .slice(0, 3)
+              .map((c: any) => c.name || c.id)
+              .join(', ') || 'none'}.</>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

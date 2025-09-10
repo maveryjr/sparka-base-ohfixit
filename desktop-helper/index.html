@@ -161,9 +161,9 @@
 
             // Listen for action execution requests
             window.__TAURI__.event.listen('execute-action', (event) => {
-                const { actionId, parameters } = event.payload;
+                const { actionId, parameters, token } = event.payload;
                 log(`Received action request: ${actionId}`);
-                executeAction(actionId, parameters);
+                executeAction(actionId, parameters, token);
             });
 
             // Listen for status updates
@@ -172,7 +172,7 @@
             });
         }
 
-        async function executeAction(actionId, parameters = {}) {
+        async function executeAction(actionId, parameters = {}, token = '') {
             try {
                 log(`Executing action: ${actionId}`);
                 updateStatus(`⚡ Executing ${actionId}...`, 'connected');
@@ -180,7 +180,8 @@
                 // Call Tauri command (will be implemented in Rust)
                 const result = await window.__TAURI__.invoke('execute_action', {
                     actionId,
-                    parameters: JSON.stringify(parameters)
+                    parameters: JSON.stringify(parameters),
+                    token
                 });
 
                 if (result.success) {
@@ -197,6 +198,17 @@
         }
 
         log('Desktop Helper initialized');
+
+        // If launched with query params (e.g., deep link forwarding), auto-run
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const actionId = params.get('actionId');
+            const token = params.get('token');
+            if (actionId && token) {
+                log(`Auto-running from params: ${actionId}`);
+                executeAction(actionId, {}, token);
+            }
+        } catch {}
     </script>
 </body>
 

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::process::Command;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
-use axum::{routing::{get, post}, Json, Router};
+use axum::{routing::{get, post}, Json, Router, extract::{State, TypedHeader}, http::HeaderMap};
 use tower_http::cors::{Any, CorsLayer};
 use std::net::SocketAddr;
 use serde::{Deserialize, Serialize};
@@ -15,6 +15,7 @@ use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 use chrono::Utc;
 use reqwest::Client;
 use base64::{Engine as _, engine::general_purpose};
+use sysinfo::{System, SystemExt, Disks, DiskExt};
 
 // JWT Claims structure for OhFixIt tokens
 #[derive(Debug, Serialize, Deserialize)]
@@ -610,8 +611,131 @@ async fn screenshot_handler(_payload: Json<ScreenshotRequest>) -> Json<Screensho
     })
 }
 
+#[derive(Serialize, Deserialize)]
+struct AutomationExecuteRequest {
+    actionId: String,
+    parameters: Option<serde_json::Value>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct AutomationExecuteResponse {
+    success: bool,
+    output: String,
+}
+
+#[derive(Clone)]
+struct HttpState {
+    actions: HashMap<String, ActionDefinition>,
+    client: Client,
+    jwt_secret: String,
+}
+
+async fn automation_execute_handler(
+    State(state): State<HttpState>,
+    headers: HeaderMap,
+    Json(payload): Json<AutomationExecuteRequest>,
+) -> Json<AutomationExecuteResponse> {
+    // Bearer token required
+    let token = headers
+        .get("authorization")
+        .and_then(|h| h.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .unwrap_or("")
+        .to_string();
+
+    let validation = Validation::new(Algorithm::HS256);
+    let token_data = match decode::<Claims>(
+        &token,
+        &DecodingKey::from_secret(state.jwt_secret.as_bytes()),
+        &validation,
+    ) {
+        Ok(d) => d,
+        Err(_) => {
+            return Json(AutomationExecuteResponse { success: false, output: "Unauthorized".into() });
+        }
+    };
+    let claims = token_data.claims;
+    let now = Utc::now().timestamp() as usize;
+    if claims.exp < now {
+        return Json(AutomationExecuteResponse { success: false, output: "Token expired".into() });
+    }
+
+    let action = match state.actions.get(&payload.actionId) {
+        Some(a) => a.clone(),
+        None => return Json(AutomationExecuteResponse { success: false, output: format!("Action '{}' not allowlisted", payload.actionId) }),
+    };
+
+    // Execute
+    let (ok, out) = match execute_commands(&action.commands).await {
+        Ok(v) => v,
+        Err(e) => (false, e),
+    };
+
+    // Best-effort report back to server
+    let _ = report_result(&state.client, &token, &action.id, ok, &out).await;
+
+    Json(AutomationExecuteResponse { success: ok, output: out })
+}
+
+#[derive(Serialize, Deserialize)]
+struct SystemInfoResponse {
+    platform: String,
+    version: String,
+    arch: String,
+    memory: serde_json::Value,
+    storage: serde_json::Value,
+    uptime: u64,
+    userAgent: String,
+}
+
+async fn health_scan_handler() -> Json<SystemInfoResponse> {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    // Memory in bytes
+    let total_mem = sys.total_memory() as u64 * 1024;
+    let avail_mem = sys.available_memory() as u64 * 1024;
+    let used_mem = total_mem.saturating_sub(avail_mem);
+
+    // Storage: sum across disks
+    let disks = Disks::new_with_refreshed_list();
+    let mut total_disk: u64 = 0;
+    let mut avail_disk: u64 = 0;
+    for d in disks.list() {
+        total_disk = total_disk.saturating_add(d.total_space());
+        avail_disk = avail_disk.saturating_add(d.available_space());
+    }
+    let used_disk = total_disk.saturating_sub(avail_disk);
+
+    let info = SystemInfoResponse {
+        platform: std::env::consts::OS.to_string(),
+        version: sys.kernel_version().unwrap_or_default(),
+        arch: std::env::consts::ARCH.to_string(),
+        memory: serde_json::json!({
+            "total": total_mem,
+            "available": avail_mem,
+            "used": used_mem,
+        }),
+        storage: serde_json::json!({
+            "total": total_disk,
+            "available": avail_disk,
+            "used": used_disk,
+        }),
+        uptime: sys.uptime(),
+        userAgent: "ohfixit-desktop-helper".to_string(),
+    };
+
+    Json(info)
+}
+
 fn spawn_status_server() {
     tauri::async_runtime::spawn(async move {
+        let http_state = HttpState {
+            actions: AppState::new().actions,
+            client: Client::new(),
+            jwt_secret: std::env::var("OHFIXIT_JWT_SECRET")
+                .unwrap_or_else(|_| "default-secret-change-in-production".to_string()),
+        };
         let cors = CorsLayer::new()
             .allow_methods(Any)
             .allow_headers(Any)
@@ -620,6 +744,9 @@ fn spawn_status_server() {
         let app = Router::new()
             .route("/status", get(status_handler))
             .route("/screenshot", post(screenshot_handler))
+            .route("/automation/execute", post(automation_execute_handler))
+            .route("/health/scan", get(health_scan_handler))
+            .with_state(http_state)
             .layer(cors);
         let addr: SocketAddr = "127.0.0.1:8765".parse().unwrap();
         if let Ok(listener) = tokio::net::TcpListener::bind(addr).await {

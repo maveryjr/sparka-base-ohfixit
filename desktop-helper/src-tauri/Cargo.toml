@@ -34,3 +34,4 @@ base64 = "0.22"
 axum = "0.7"
 serde_repr = "0.1"
 tower-http = { version = "0.5", features = ["cors"] }
+sysinfo = { version = "0.30" }
