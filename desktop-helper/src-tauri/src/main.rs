@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use std::process::Command;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
+use axum::{routing::{get, post}, Json, Router};
+use std::net::SocketAddr;
 use serde::{Deserialize, Serialize};
 use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 use chrono::Utc;
@@ -552,12 +554,85 @@ fn emit_status(app: &AppHandle, message: &str, status_type: &str) {
     }));
 }
 
+#[derive(Serialize, Deserialize)]
+struct StatusResponse {
+    status: &'static str,
+    version: &'static str,
+    capabilities: Vec<&'static str>,
+}
+
+async fn status_handler() -> Json<StatusResponse> {
+    Json(StatusResponse {
+        status: "ok",
+        version: "0.1.0",
+        capabilities: vec![
+            "screenshot",
+            "system_info",
+            "process_list",
+            "file_operations",
+        ],
+    })
+}
+
+#[derive(Serialize, Deserialize)]
+struct ScreenshotRequest {
+    region: Option<serde_json::Value>,
+    display: Option<u32>,
+    includeCursor: Option<bool>,
+    format: Option<String>,
+    quality: Option<u8>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ScreenshotResponse {
+    success: bool,
+    data: Option<String>,
+    format: Option<String>,
+    size: Option<usize>,
+    dimensions: Option<serde_json::Value>,
+    timestamp: Option<String>,
+    error: Option<String>,
+    details: Option<String>,
+}
+
+async fn screenshot_handler(_payload: Json<ScreenshotRequest>) -> Json<ScreenshotResponse> {
+    // Placeholder: implement platform-specific screenshot later.
+    Json(ScreenshotResponse {
+        success: false,
+        data: None,
+        format: Some("png".into()),
+        size: None,
+        dimensions: None,
+        timestamp: Some(Utc::now().to_rfc3339()),
+        error: Some("Not implemented".into()),
+        details: Some("Desktop Helper installed and reachable, but screenshot capture is not yet implemented.".into()),
+    })
+}
+
+fn spawn_status_server() {
+    tauri::async_runtime::spawn(async move {
+        let app = Router::new()
+            .route("/status", get(status_handler))
+            .route("/screenshot", post(screenshot_handler));
+        let addr: SocketAddr = "127.0.0.1:8765".parse().unwrap();
+        if let Ok(listener) = tokio::net::TcpListener::bind(addr).await {
+            let _ = axum::serve(listener, app).await;
+        } else {
+            log::warn!("Port 8765 already in use; status server not started");
+        }
+    });
+}
+
 fn main() {
+    // start local status server to satisfy /api/desktop/status checks
+    spawn_status_server();
+
     tauri::Builder::default()
         .manage(Mutex::new(AppState::new()))
         .invoke_handler(tauri::generate_handler![execute_action, execute_rollback, get_health_status])
         .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_deep_link::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

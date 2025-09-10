@@ -15,7 +15,8 @@ import {
   AlertCircle, 
   Loader2,
   History,
-  Info
+  Info,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -365,6 +366,16 @@ export function ScreenshotSelector({
                       </>
                     )}
                   </div>
+
+                  {!permissions.desktop && (
+                    <div className="flex">
+                      <a href="/desktop" className="w-full" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="outline" className="w-full mt-2">
+                          <Download className="h-4 w-4 mr-2" /> Get Desktop Helper
+                        </Button>
+                      </a>
+                    </div>
+                  )}
                   
                   <Button
                     onClick={handleDesktopCapture}

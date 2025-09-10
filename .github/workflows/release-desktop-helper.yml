@@ -1,0 +1,44 @@
+name: Release Desktop Helper
+
+on:
+  push:
+    tags:
+      - 'helper-v*'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+      TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.1.34
+      - name: Install frontend deps
+        run: bun install --frozen-lockfile
+      - name: Install helper deps
+        run: |
+          cd desktop-helper
+          bun install --frozen-lockfile || npm ci
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        with:
+          projectPath: desktop-helper
+          tagName: ${{ github.ref_name }}
+          releaseName: OhFixIt Desktop Helper ${{ github.ref_name }}
+          releaseBody: 'Automated release of Desktop Helper.'
+          includeDebug: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

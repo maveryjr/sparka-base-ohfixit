@@ -243,25 +243,25 @@ export function Phase2Integration({ chatId, onFeatureSelect }: Phase2Integration
               <CardHeader>
                 <CardTitle>Desktop Helper - Native OS Automation</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Secure desktop application for native OS-level automation tasks.
+                  Install the helper to enable secure, sandboxed automation (preview → approve → execute with rollback).
                 </p>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
                   <Monitor className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <a href="/desktop">
+                      <Button>
+                        Get Desktop Helper
+                      </Button>
+                    </a>
+                    <a href="https://github.com/maveryjr/sparka-base-ohfixit/releases/latest" target="_blank" rel="noreferrer">
+                      <Button variant="outline">View Releases</Button>
+                    </a>
+                  </div>
                   <p className="text-muted-foreground mb-4">
-                    Desktop Helper will provide secure, sandboxed automation for:
+                    Capabilities include Wi‑Fi resets, printer fixes, and system hygiene tasks.
                   </p>
-                  <ul className="text-sm text-muted-foreground space-y-1 mb-6">
-                    <li>• Wi-Fi network resets and configuration</li>
-                    <li>• Printer installation and management</li>
-                    <li>• System cleanup and optimization</li>
-                    <li>• Firewall and security settings</li>
-                  </ul>
-                  <Badge variant="secondary">
-                    Available in Q2 2024
-                  </Badge>
                 </div>
               </CardContent>
             </Card>

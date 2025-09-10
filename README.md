@@ -183,6 +183,18 @@ The desktop helper enables system-level automation:
 - **Reporting**: `POST /api/automation/helper/report`
 - Built with Tauri for cross-platform support
 
+#### Hosting binaries for direct downloads
+
+- Preferred: Use GitHub Releases (CI in `.github/workflows/release-desktop-helper.yml` builds for macOS DMG, Windows MSI, Linux AppImage/DEB/RPM). Link the chat UI to `https://github.com/maveryjr/sparka-base-ohfixit/releases/latest` (default).
+- Alternative: Host static binaries in-repo under `public/downloads/` (served by Next.js). Set `NEXT_PUBLIC_HELPER_DOWNLOAD_BASE=/downloads` and drop files named:
+  - `ohfixit-desktop-helper-macos.dmg`
+  - `ohfixit-desktop-helper-windows.msi`
+  - `ohfixit-desktop-helper-linux.AppImage`
+
+Notes:
+- Consider Git LFS for large binaries to keep repository size manageable.
+- On tag `helper-v*`, GitHub Actions will build and upload artifacts automatically.
+
 ## 🚀 Deployment
 
 ### **Vercel (Recommended)**
@@ -251,4 +263,3 @@ Oh Fix It was built on the shoulders of giants. We're deeply grateful to these o
 
 - **[Vercel AI Chatbot](https://github.com/vercel/ai-chatbot)** - Core architecture and AI SDK integration patterns
 - **[Scira](https://github.com/zaidmukaddam/scira)** - AI-powered search engine
-
