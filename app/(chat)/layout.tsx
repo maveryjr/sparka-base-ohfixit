@@ -7,7 +7,6 @@ import { DEFAULT_CHAT_MODEL } from '@/lib/ai/all-models';
 import { ANONYMOUS_LIMITS } from '@/lib/types/anonymous';
 import { AppSidebar } from '@/components/app-sidebar';
 import { KeyboardShortcuts } from '@/components/keyboard-shortcuts';
-import { SessionProvider } from 'next-auth/react';
 import type { ModelId } from '@/lib/ai/model-id';
 
 export default async function ChatLayout({
@@ -35,19 +34,17 @@ export default async function ChatLayout({
   }
 
   return (
-    <SessionProvider session={session}>
-      <ChatProviders user={session?.user}>
-        <SidebarProvider defaultOpen={!isCollapsed}>
-          <AppSidebar />
-          <SidebarInset>
-            <DefaultModelProvider defaultModel={defaultModel}>
-              <KeyboardShortcuts />
+    <ChatProviders session={session} user={session?.user}>
+      <SidebarProvider defaultOpen={!isCollapsed}>
+        <AppSidebar />
+        <SidebarInset>
+          <DefaultModelProvider defaultModel={defaultModel}>
+            <KeyboardShortcuts />
 
-              {children}
-            </DefaultModelProvider>
-          </SidebarInset>
-        </SidebarProvider>
-      </ChatProviders>
-    </SessionProvider>
+            {children}
+          </DefaultModelProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </ChatProviders>
   );
 }

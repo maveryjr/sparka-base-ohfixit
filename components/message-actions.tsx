@@ -1,3 +1,5 @@
+"use client";
+
 import { useCopyToClipboard } from 'usehooks-ts';
 
 import type { Vote } from '@/lib/db/schema';
