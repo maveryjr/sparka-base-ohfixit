@@ -1061,7 +1061,7 @@ export function PureMessageParts({
   const parts = useMessagePartsById(messageId);
   const { setActiveFeature, setShowPhase2Hub } = usePhase2();
 
-  // Auto-open Assist dock when plan/health artifacts appear
+  // Auto-open Assist dock when automation artifacts appear
   useEffect(() => {
     try {
       const openForAutomation = parts.some(
@@ -1072,8 +1072,7 @@ export function PureMessageParts({
           p.type === 'tool-uiAutomation' ||
           p.type === 'tool-computerUse',
       );
-      const openForHealth = parts.some((p) => p.type === 'tool-healthScan');
-      if (openForAutomation || openForHealth) {
+      if (openForAutomation) {
         setActiveFeature('automation-panel');
         setShowPhase2Hub(true);
       }

@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { chatStore } from '@/lib/stores/chat-store';
 import type { ModelId } from '@/lib/ai/model-id';
 import { useChatInput } from '@/providers/chat-input-provider';
+import { healthCheckEngine } from '@/lib/ohfixit/health-check-engine';
 
 type Props = {
   chatId?: string | null;
@@ -79,58 +80,20 @@ export function HealthScan({ chatId = null, checks, className }: Props) {
   }
 
   async function startScan() {
-    let cancelled = false;
-    // Cancel any existing polling
+    // Run checks fully client-side to avoid server env (no navigator/performance)
     if (pollingRef.current) cancelAnimationFrame(pollingRef.current);
     pollingRef.current = null;
     setError(null);
     setResult(null);
-    setStatus('queued');
+    setStatus('running');
     try {
-      const requestBody: { chatId?: string; checks?: string[] } = {};
-      if (chatId) requestBody.chatId = chatId;
-      if (checks) requestBody.checks = checks;
-      
-      const res = await fetch('/api/ohfixit/health/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-      if (!res.ok) throw new Error(`Failed to schedule: ${res.status}`);
-      const { jobId: newJobId } = await res.json();
-      if (cancelled) return;
-      setJobId(newJobId);
-      setStatus('running');
-
-      const poll = async () => {
-        try {
-          const r = await fetch(`/api/ohfixit/health/results?jobId=${newJobId}${chatId ? `&chatId=${encodeURIComponent(chatId)}` : ''}`);
-          if (!r.ok) throw new Error('failed to fetch results');
-          const data = await r.json();
-          setStatus((data.status || 'running') as JobStatus);
-          if (data.result) setResult(data.result);
-          if (data.status === 'completed' || data.status === 'failed') {
-            if (pollingRef.current) cancelAnimationFrame(pollingRef.current);
-            pollingRef.current = null;
-            return;
-          }
-          pollingRef.current = requestAnimationFrame(async () => {
-            setTimeout(poll, 1200);
-          });
-        } catch (e: any) {
-          setError(e?.message || 'Polling error');
-        }
-      };
-      poll();
+      const res = await healthCheckEngine.runAllChecks();
+      setResult(res);
+      setStatus('completed');
     } catch (e: any) {
-      setError(e?.message || 'Failed to start health scan');
+      setError(e?.message || 'Health scan failed');
       setStatus('failed');
     }
-    return () => {
-      cancelled = true;
-      if (pollingRef.current) cancelAnimationFrame(pollingRef.current);
-      pollingRef.current = null;
-    };
   }
 
   useEffect(() => {

@@ -10,6 +10,7 @@ import OhFixItApprovalPanel from '@/components/ohfixit-approval-panel';
 import OhFixItAuditTimeline from '@/components/ohfixit-audit-timeline';
 import { HealthCheckDashboard } from '@/components/ohfixit/health-check-dashboard';
 import { toast } from 'sonner';
+import { executeAllowlistedAction } from '@/lib/ohfixit/tauri-bridge';
 
 // moved to components/chat-system
 
@@ -74,6 +75,15 @@ export function ChatPage({ id }: { id: string }) {
                 throw new Error(json?.error || 'Auto-fix failed');
               }
               toast.success('Auto-fix queued');
+
+              // If running inside the desktop helper environment, trigger it immediately
+              try {
+                const token = json?.execution?.helperToken as string | undefined;
+                const actionId = json?.mapping?.actionId as string | undefined;
+                if (token && actionId) {
+                  await executeAllowlistedAction(actionId, json?.mapping?.parameters ?? {}, token);
+                }
+              } catch {}
             } catch (e: any) {
               toast.error(e?.message || 'Failed to queue auto-fix');
             }

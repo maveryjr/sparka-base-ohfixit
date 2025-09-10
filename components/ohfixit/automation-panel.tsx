@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { executeAllowlistedAction } from '@/lib/ohfixit/tauri-bridge';
 
 type AllowlistedAction = {
   id: string;
@@ -92,6 +93,15 @@ export function AutomationPanel({ chatId }: { chatId: string }) {
     const json = await res.json();
     if (!res.ok) throw new Error(json?.error || 'Execute failed');
     setExec({ jobId: json.jobId, actionLogId: json.actionLogId, helperToken: json.helperToken, reportUrl: json.reportUrl, expiresIn: json.expiresIn });
+
+    // If the desktop helper is available (Tauri), trigger execution locally with the helper token
+    try {
+      if (json.helperToken && selected) {
+        const params = selected.id === 'clear-app-cache' && bundleId ? { bundleId } : {};
+        // Fire and forget; helper will report back via /api/automation/helper/report
+        executeAllowlistedAction(selected.id, params, json.helperToken).catch(() => {});
+      }
+    } catch {}
   }
 
   async function doRollback() {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { executeAllowlistedAction } from '@/lib/ohfixit/tauri-bridge';
 
 type AllowlistAction = {
   id: string;
@@ -127,6 +128,11 @@ export function OhFixItApprovalPanel({ chatId }: { chatId: string }) {
       if (!res.ok) throw new Error(data?.error || 'Execute failed');
       setStatus(`Execution queued with jobId ${data.jobId}`);
       setJobId(data.jobId || null);
+
+      // If a helper token was provided, trigger the native helper directly
+      if (data.helperToken) {
+        executeAllowlistedAction(selected, undefined, data.helperToken).catch(() => {});
+      }
     } catch (e: any) {
       setError(e?.message || 'Execute error');
     } finally {
