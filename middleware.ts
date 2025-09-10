@@ -1,8 +1,5 @@
-import NextAuth from 'next-auth';
-
-import { authConfig } from '@/app/(auth)/auth.config';
-
-export default NextAuth(authConfig).auth;
+// Edge-compatible middleware from our NextAuth setup
+export { auth as middleware } from '@/app/(auth)/auth';
 
 export const config = {
   matcher: [
